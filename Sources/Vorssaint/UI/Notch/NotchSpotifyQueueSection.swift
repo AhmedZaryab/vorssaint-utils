@@ -18,6 +18,9 @@ struct NotchSpotifyQueueSection: View {
     @State private var dragOffset: CGFloat = 0
     @State private var hoveredID: String?
     @State private var orderFailed = false
+    /// A move or remove is on its way to Spotify. No new drag starts until it lands, so a
+    /// drag's positions always count rows in the list Spotify last sent (service.upNext).
+    @State private var committing = false
     private static let rowHeight: CGFloat = 44
     private let text = SpotifyQueueStrings.current
 
@@ -44,6 +47,7 @@ struct NotchSpotifyQueueSection: View {
                         Button(text.retry) { service.retryNow() }.buttonStyle(.borderless).font(.caption)
                     }
                 }
+                if let playing = service.current { nowPlayingRow(playing) }
                 if service.upNext.isEmpty, !service.loading, service.failureCode == nil {
                     Text(text.nothingQueued).font(.callout).foregroundStyle(.secondary)
                 } else {
@@ -75,6 +79,15 @@ struct NotchSpotifyQueueSection: View {
         if dragFrom < dragTo, index > dragFrom, index <= dragTo { return -Self.rowHeight }
         if dragTo < dragFrom, index >= dragTo, index < dragFrom { return Self.rowHeight }
         return 0
+    }
+
+    /// The playing song, pinned above up next. Not in `shown`, so it never moves or gets removed.
+    private func nowPlayingRow(_ track: SpotifyQueueService.Track) -> some View {
+        row(track) {
+            Text(text.nowPlaying).font(.caption2.weight(.semibold)).foregroundStyle(.secondary)
+        }
+        .frame(height: Self.rowHeight)
+        .accessibilityElement(children: .combine)
     }
 
     private func queueRow(_ track: SpotifyQueueService.Track, index: Int) -> some View {
@@ -120,12 +133,16 @@ struct NotchSpotifyQueueSection: View {
     private func reorderGesture(_ track: SpotifyQueueService.Track, index: Int) -> some Gesture {
         DragGesture(minimumDistance: 4, coordinateSpace: .global)
             .onChanged { value in
-                if dragID == nil { dragID = track.id; dragFrom = index; dragTo = index }
+                if dragID == nil {
+                    guard !committing else { return }
+                    dragID = track.id; dragFrom = index; dragTo = index
+                }
                 dragOffset = value.translation.height
                 let target = dragFrom + Int((value.translation.height / Self.rowHeight).rounded())
                 dragTo = min(max(target, 0), shown.count - 1)
             }
             .onEnded { _ in
+                guard dragID != nil else { return }
                 let from = dragFrom, to = dragTo
                 withAnimation(.easeOut(duration: 0.15)) {
                     dragID = nil; dragOffset = 0
@@ -145,17 +162,22 @@ struct NotchSpotifyQueueSection: View {
         commit { try await QueueCommandsProvider.current.removeFromQueue(uid: uid) }
     }
 
-    /// Optimistic: the list already changed. On failure put the real queue back and say so once.
+    /// Optimistic: the list already changed. On success the queue was re-read before `work`
+    /// returned, so drop the local order; on failure put the real queue back and say so once.
     private func commit(_ work: @escaping () async throws -> Void) {
         orderFailed = false
-        Task {
-            do { try await work() } catch {
-                await MainActor.run {
-                    withAnimation { localOrder = nil }
-                    orderFailed = true
-                }
+        committing = true
+        Task { @MainActor in
+            do {
+                try await work()
+                localOrder = nil
+                committing = false
+            } catch {
+                withAnimation { localOrder = nil }
+                committing = false
+                orderFailed = true
                 try? await Task.sleep(nanoseconds: 4_000_000_000)
-                await MainActor.run { orderFailed = false }
+                orderFailed = false
             }
         }
     }

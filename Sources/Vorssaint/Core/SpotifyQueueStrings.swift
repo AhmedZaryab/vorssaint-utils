@@ -21,6 +21,7 @@ struct SpotifyQueueStrings {
     let signInFailed: String
     let browserDone: String
     let upNext: String
+    let nowPlaying: String
     let nothingQueued: String
     let fromPlaylist: String
     let fromAlbum: String
@@ -54,6 +55,7 @@ struct SpotifyQueueStrings {
         signInFailed: "Spotify sign in did not finish. Try again.",
         browserDone: "Spotify is connected to Vorssaint. You can close this tab.",
         upNext: "Up next",
+        nowPlaying: "Now playing",
         nothingQueued: "Nothing queued after this song",
         fromPlaylist: "From the playlist",
         fromAlbum: "From the album",

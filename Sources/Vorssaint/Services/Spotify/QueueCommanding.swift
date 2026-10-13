@@ -3,8 +3,8 @@
 
 import Foundation
 
-/// What the queue list needs from Spotify to reorder and remove. SpotifyConnectCommands conforms;
-/// until the integrator points `QueueCommandsProvider.current` at it, the stub reports failure.
+/// What the queue list needs from Spotify to reorder and remove. SpotifyConnectCommands conforms
+/// and AppDelegate points `QueueCommandsProvider.current` at it on launch; before that the stub fails.
 protocol QueueCommanding {
     func moveInQueue(from: Int, to: Int) async throws
     func removeFromQueue(uid: String) async throws
@@ -12,7 +12,7 @@ protocol QueueCommanding {
 }
 
 enum QueueCommandsProvider {
-    /// Integrator: set this to SpotifyConnectCommands.shared.
+    /// Set to SpotifyConnectCommands.shared in applicationDidFinishLaunching.
     static var current: QueueCommanding = UnwiredQueueCommands()
 }
 
@@ -24,6 +24,6 @@ private struct UnwiredQueueCommands: QueueCommanding {
 }
 
 extension SpotifyQueueService.Track {
-    /// Integrator: replace with the real connect-state uid once Track carries one.
-    var queueUID: String { id }
+    /// The connect-state uid of the row (next_tracks[i].uid), what set_queue keys on.
+    var queueUID: String { uid }
 }

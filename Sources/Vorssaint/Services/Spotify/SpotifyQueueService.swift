@@ -22,6 +22,8 @@ final class SpotifyQueueService: ObservableObject {
         let title: String
         let artist: String
         let artworkURL: URL?
+        /// The connect-state uid of this next_tracks entry; empty off the Web API.
+        var uid: String = ""
     }
 
     @Published private(set) var current: Track?
@@ -122,7 +124,7 @@ final class SpotifyQueueService: ObservableObject {
             await loadMetadata(for: [cluster.currentURI].compactMap { $0 } + shown.map(\.uri),
                                token: token, clientToken: clientToken)
             current = cluster.currentURI.flatMap { track(uri: $0, index: -1) }
-            upNext = shown.enumerated().compactMap { track(uri: $0.element.uri, index: $0.offset) }
+            upNext = shown.enumerated().compactMap { track(uri: $0.element.uri, uid: $0.element.uid, index: $0.offset) }
             contextURI = cluster.contextURI
             let kind = cluster.contextURI?.split(separator: ":").dropFirst().first.map(String.init)
             contextKind = shown.contains { $0.provider == "queue" } ? nil
@@ -181,9 +183,10 @@ final class SpotifyQueueService: ObservableObject {
         for (uri, meta) in found { metadata[uri] = meta }
     }
 
-    private func track(uri: String, index: Int) -> Track? {
+    private func track(uri: String, uid: String = "", index: Int) -> Track? {
         guard let meta = metadata[uri] else { return nil }
-        return Track(id: "\(index)-\(uri)", uri: uri, title: meta.title, artist: meta.artist, artworkURL: meta.artworkURL)
+        return Track(id: "\(index)-\(uri)", uri: uri, title: meta.title, artist: meta.artist,
+                     artworkURL: meta.artworkURL, uid: uid)
     }
 
     private func loadContext() async {

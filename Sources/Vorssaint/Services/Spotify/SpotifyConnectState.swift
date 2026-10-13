@@ -15,7 +15,7 @@
 import Foundation
 
 enum SpotifyConnectState {
-    struct Entry { let uri: String; let provider: String }
+    struct Entry { let uri: String; let uid: String; let provider: String }
 
     struct Cluster {
         let currentURI: String?
@@ -38,7 +38,7 @@ enum SpotifyConnectState {
         let state = json?["player_state"] as? [String: Any] ?? [:]
         let next = (state["next_tracks"] as? [[String: Any]] ?? []).compactMap { item -> Entry? in
             guard let uri = item["uri"] as? String, isPlayable(uri) else { return nil }
-            return Entry(uri: uri, provider: item["provider"] as? String ?? "context")
+            return Entry(uri: uri, uid: item["uid"] as? String ?? "", provider: item["provider"] as? String ?? "context")
         }
         let current = (state["track"] as? [String: Any])?["uri"] as? String
         let context = (state["context_uri"] as? String).flatMap { $0.isEmpty ? nil : $0 }

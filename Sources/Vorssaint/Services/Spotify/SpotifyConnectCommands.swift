@@ -76,12 +76,15 @@ final class SpotifyConnectCommands {
         let activeDeviceID: String?
         let contextURI: String?
         let queueRevision: String?
+        /// uid of the playing track (player_state.track), never part of a move.
+        let currentUID: String?
         let next: [QueueTrack]
         let prev: [QueueTrack]
 
         init(json: [String: Any]) {
             let state = json["player_state"] as? [String: Any] ?? [:]
             activeDeviceID = (json["active_device_id"] as? String).flatMap { $0.isEmpty ? nil : $0 }
+            currentUID = ((state["track"] as? [String: Any])?["uid"] as? String).flatMap { $0.isEmpty ? nil : $0 }
             contextURI = (state["context_uri"] as? String).flatMap { $0.isEmpty ? nil : $0 }
             queueRevision = state["queue_revision"] as? String
             next = (state["next_tracks"] as? [[String: Any]] ?? []).compactMap(QueueTrack.init(json:))
@@ -162,7 +165,7 @@ final class SpotifyConnectCommands {
     }
 
     @discardableResult
-    func removeFromQueue(uid: String) async -> Bool {
+    func remove(uid: String) async -> Bool {
         await refreshCluster()
         guard let next = cluster?.next else { return false }
         let remaining = next.filter { $0.uid != uid }
@@ -172,26 +175,46 @@ final class SpotifyConnectCommands {
 
     /// Replaces the up next list (fresh queue_revision is read first).
     @discardableResult
-    func setQueue(nextTracks: [QueueTrack]) async -> Bool {
+    func replaceQueue(_ nextTracks: [QueueTrack]) async -> Bool {
         await refreshCluster()
         return await sendSetQueue(nextTracks)
     }
 
-    /// Moves a song in up next. Indexes count playable rows only (what the
-    /// notch shows), the full next_tracks list is reordered around them.
-    /// A context song moved above a queued one joins the queue; a queued song
-    /// moved below the context is refused (Spotify does not keep that).
+    /// set_queue with next_tracks exactly as Spotify sent them (a no-op reorder, for probing).
     @discardableResult
-    func moveInQueue(from: Int, to: Int) async -> Bool {
+    func resendQueueUnchanged() async -> Bool {
+        await refreshCluster()
+        guard let next = cluster?.next else { return false }
+        return await sendSetQueue(next)
+    }
+
+    /// Moves a song in up next. `from` and `to` are positions in the list the
+    /// notch shows (SpotifyQueueService.upNext, which never holds the playing
+    /// track); each row is found in next_tracks by its uid and the full list is
+    /// reordered around it. A context song moved above a queued one joins the
+    /// queue; a queued song moved below the context is refused (Spotify does
+    /// not keep that).
+    @discardableResult
+    func move(from: Int, to: Int) async -> Bool {
         guard from != to else { return true }
+        let shown = SpotifyQueueService.shared.upNext.map(\.uid)
+        guard shown.indices.contains(from), shown.indices.contains(to),
+              !shown[from].isEmpty, !shown[to].isEmpty else {
+            Self.log.error("move skipped: rows \(from, privacy: .public)->\(to, privacy: .public) not in the shown list")
+            return false
+        }
         await refreshCluster()
         guard var full = cluster?.next else { return false }
-        let rows = full.indices.filter { full[$0].isPlayable }
-        guard rows.indices.contains(from), rows.indices.contains(to) else { return false }
-        let source = rows[from], target = rows[to]
+        let playing = cluster?.currentUID
+        guard shown[from] != playing, shown[to] != playing,
+              let source = full.firstIndex(where: { $0.uid == shown[from] }),
+              let target = full.firstIndex(where: { $0.uid == shown[to] }) else {
+            Self.log.error("move skipped: the shown rows are no longer in Spotify's up next")
+            return false
+        }
         let item = full.remove(at: source)
         let anchor = target > source ? target - 1 : target
-        let insertAt = from < to ? anchor + 1 : anchor
+        let insertAt = source < target ? anchor + 1 : anchor
         full.insert(item, at: insertAt)
         if item.provider == "queue" {
             guard full[..<insertAt].allSatisfy({ $0.provider == "queue" }) else {
@@ -343,5 +366,32 @@ final class SpotifyConnectCommands {
 
     private static func randomHex(_ count: Int) -> String {
         String((0..<count).map { _ in "0123456789abcdef".randomElement()! })
+    }
+}
+
+// MARK: - QueueCommanding
+
+extension SpotifyConnectCommands: QueueCommanding {
+    /// Spotify said no (non-2xx, no active device, or the rows moved under us).
+    struct Rejected: Error { let command: String }
+
+    func moveInQueue(from: Int, to: Int) async throws {
+        guard await move(from: from, to: to) else { throw Rejected(command: "move") }
+    }
+
+    func removeFromQueue(uid: String) async throws {
+        guard await remove(uid: uid) else { throw Rejected(command: "remove") }
+    }
+
+    /// `nextTracks` are uids from the cluster (a uri works too); every entry
+    /// keeps its own uid, provider and metadata. An unknown uri goes in as queued.
+    func setQueue(nextTracks: [String]) async throws {
+        await refreshCluster()
+        let known = cluster?.next ?? []
+        let list = nextTracks.map { key in
+            known.first { $0.uid == key } ?? known.first { $0.uri == key }
+                ?? QueueTrack(uri: key, uid: Self.randomHex(32), metadata: ["is_queued": "true"])
+        }
+        guard await sendSetQueue(list) else { throw Rejected(command: "set_queue") }
     }
 }

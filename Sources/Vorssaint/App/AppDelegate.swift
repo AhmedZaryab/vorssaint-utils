@@ -61,6 +61,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSW
         AppAppearanceController.shared.apply()
         GlobalShortcut.startObservingKeyboardLayout()
         SongPeekController.shared.start()
+        QueueCommandsProvider.current = SpotifyConnectCommands.shared
+        SpotifyQueueDebugHook.installIfEnabled()
         // UNUserNotificationCenter aborts in a process without a bundle;
         // guard keeps ad-hoc runs of the bare binary alive for probing.
         if Bundle.main.bundleIdentifier != nil {
