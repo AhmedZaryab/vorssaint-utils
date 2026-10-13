@@ -60,6 +60,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSW
         // appearance and then repainted.
         AppAppearanceController.shared.apply()
         GlobalShortcut.startObservingKeyboardLayout()
+        SongPeekController.shared.start()
         // UNUserNotificationCenter aborts in a process without a bundle;
         // guard keeps ad-hoc runs of the bare binary alive for probing.
         if Bundle.main.bundleIdentifier != nil {
