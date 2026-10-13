@@ -222,9 +222,7 @@ enum DefaultsKey {
     static let startupDidNotFinish = "startupDidNotFinish"
     // Set only while Vorssaint owes a Bluetooth restore, so a Mac shut down
     // while asleep still gets it back on the next launch.
-    static let musicBlockEnabled = "musicBlockEnabled"
-    static let musicBlockReplacementPath = "musicBlockReplacementPath"  // app bundle path ("" = none)
-    static let musicBlockPlayReplacement = "musicBlockPlayReplacement" // play after Play/Pause opens the replacement
+
     static let cleanerScheduleFrequency = "cleanerScheduleFrequency"    // off | daily | weekly
     static let cleanerScheduleHour = "cleanerScheduleHour"
     static let cleanerScheduleMinute = "cleanerScheduleMinute"
@@ -1288,9 +1286,7 @@ enum Defaults {
         DefaultsKey.keyboardBrightnessShortcutsEnabled: false,
         DefaultsKey.keyboardBrightnessDecreaseShortcut: "option+command:27",
         DefaultsKey.keyboardBrightnessIncreaseShortcut: "option+command:24",
-        DefaultsKey.musicBlockEnabled: false,
-        DefaultsKey.musicBlockReplacementPath: "",
-        DefaultsKey.musicBlockPlayReplacement: true,
+
         DefaultsKey.cleanerScheduleFrequency: "off",
         DefaultsKey.cleanerScheduleHour: 9,
         DefaultsKey.cleanerScheduleMinute: 0,

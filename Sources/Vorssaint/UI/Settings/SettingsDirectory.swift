@@ -177,9 +177,7 @@ enum SettingsDirectory {
                                        keywords: [s.launchAtLogin, s.languageLabel,
                                                   FeatureStrings.appearance(language).label,
                                                   FeatureStrings.appearance(language).dark],
-                                       featureKeywords: [
-                                        (.musicBlock, [s.musicBlockTitle, s.musicBlockSection]),
-                                       ]),
+                                       featureKeywords: []),
                 // Searching any feature name lands here even when the feature
                 // is hidden, so the hub is always the way back.
                 SettingsDirectoryItem(page: .features, title: FeatureStrings.hub(language).pageTitle,

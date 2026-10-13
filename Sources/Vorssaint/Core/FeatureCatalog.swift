@@ -22,7 +22,7 @@ enum AppFeature: String, CaseIterable {
     case clipboardHistory, pastePlain, finderCutPaste, finderRename, shelf, urlCleaner,
          diskImageInstaller
     // Sound
-    case mixer, soundOutputSwitcher, audioPriority, micMute, musicBlock
+    case mixer, soundOutputSwitcher, audioPriority, micMute
     // Energy and display
     case keepAwake, brightness
     // Tools
@@ -109,7 +109,7 @@ extension AppFeature {
         case .clipboardHistory, .pastePlain, .finderCutPaste, .finderRename, .shelf, .urlCleaner,
              .diskImageInstaller:
             return .clipboardFiles
-        case .mixer, .soundOutputSwitcher, .audioPriority, .micMute, .musicBlock:
+        case .mixer, .soundOutputSwitcher, .audioPriority, .micMute:
             return .sound
         case .keepAwake, .brightness:
             return .energyDisplay
@@ -161,7 +161,6 @@ extension AppFeature {
         case .soundOutputSwitcher: return "hifispeaker"
         case .audioPriority: return "list.number"
         case .micMute: return "mic.slash"
-        case .musicBlock: return "music.note"
         case .keepAwake: return "moon.zzz.fill"
         case .brightness: return "display.2"
         case .quickLauncher: return "wand.and.rays"
@@ -276,7 +275,6 @@ extension AppFeature {
         case .soundOutputSwitcher: return [DefaultsKey.soundOutputSwitcherEnabled]
         case .audioPriority: return [DefaultsKey.audioPriorityOutputEnabled,
                                      DefaultsKey.audioPriorityInputEnabled]
-        case .musicBlock: return [DefaultsKey.musicBlockEnabled]
         case .brightness: return [DefaultsKey.brightnessControlEnabled]
         case .windowLayout, .diskImageInstaller, .mixer, .micMute, .keepAwake,
              .quickLauncher, .quickToggles, .colorPicker, .screenOCR, .cleaningMode, .mediaTools,
@@ -373,7 +371,6 @@ extension AppFeature {
         case .appUpdates: return [.notifications, .appManagement]
         case .diskImageInstaller: return [.appManagement]
         case .mixer: return [.audioCapture, .accessibility]
-        case .musicBlock: return [.accessibility]
         case .monitorCPU, .monitorMemory, .monitorDisk, .monitorPower: return [.notifications]
         case .clipboardHistory, .shelf, .urlCleaner,
              .soundOutputSwitcher, .audioPriority,
@@ -391,7 +388,7 @@ extension AppFeature {
         switch self {
         case .keepAwake, .brightness, .radialMenu, .quickToggles, .cleaner,
              .uninstaller, .homebrew, .appUpdates, .mixer, .cameraPreview,
-             .micMute, .musicBlock, .notchWatch:
+             .micMute, .notchWatch:
             return []
         default:
             return permissions.filter { $0 == .accessibility || $0 == .screenRecording }
@@ -466,7 +463,7 @@ extension AppFeature {
              .scrollInverter, .smoothScroll, .mouseAcceleration, .mouseNavigation, .mouseButtonShortcuts,
              .middleClick, .mouseClickDebounce, .textSnippets, .superKey,
              .clipboardHistory, .pastePlain, .finderCutPaste, .finderRename, .shelf, .urlCleaner,
-             .mixer, .soundOutputSwitcher, .micMute, .musicBlock,
+             .mixer, .soundOutputSwitcher, .micMute,
              .keepAwake, .brightness,
              .quickLauncher, .quickToggles, .colorPicker, .screenOCR, .cleaningMode, .mediaTools,
              .cleaner, .uninstaller, .homebrew, .appUpdates, .screenshot, .cameraPreview, .radialMenu,

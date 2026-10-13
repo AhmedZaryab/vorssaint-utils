@@ -1027,7 +1027,6 @@ extension AppFeature {
         case .soundOutputSwitcher: return s.soundOutputSwitcherTitle
         case .audioPriority: return hub.titleAudioPriority
         case .micMute: return s.micMuteName
-        case .musicBlock: return hub.titleMusicBlock
         case .keepAwake: return s.keepAwakeTitle
         case .brightness: return FeatureStrings.brightness(L10n.shared.language).pageTitle
         case .quickLauncher: return s.launcherName
@@ -1108,7 +1107,6 @@ extension AppFeature {
         case .soundOutputSwitcher: return hub.descSoundOutputSwitcher
         case .audioPriority: return hub.descAudioPriority
         case .micMute: return hub.descMicMute
-        case .musicBlock: return hub.descMusicBlock
         case .keepAwake: return hub.descKeepAwake
         case .brightness: return FeatureStrings.brightness(L10n.shared.language).hubDescription
         case .quickLauncher: return hub.descQuickLauncher

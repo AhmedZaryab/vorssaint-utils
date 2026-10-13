@@ -28,8 +28,6 @@ enum PreferencesFeatureTests {
                "a chosen recording save folder is authority on one Mac and must not travel in a settings backup")
         suite.expect(!SettingsBackupSupport.exportKeys().contains(DefaultsKey.screenshotSaveFolder),
                "a chosen screenshot save folder is authority on one Mac and must not travel in a settings backup")
-        suite.expect(!SettingsBackupSupport.exportKeys().contains(DefaultsKey.musicBlockReplacementPath),
-               "a chosen replacement app bundle path is authority on one Mac and must not travel in a settings backup")
         suite.expect(SettingsBackupSupport.exportKeys().contains(DefaultsKey.screenshotSaveSubfolder),
                "a screenshot subfolder name is a pattern rather than a path, so it still follows settings backups")
         suite.expect(!SettingsBackupSupport.exportKeys().contains(DefaultsKey.commandBarFileScopes)
@@ -39,8 +37,7 @@ enum PreferencesFeatureTests {
             && !SettingsBackupSupport.exportKeys().contains(DefaultsKey.mediaImageWatermarkLogoPath),
                "every chosen folder already excluded from backups stays excluded")
         suite.expect(!SettingsBackupSupport.keysToClear(whenImporting: [:]).contains(DefaultsKey.recorderSaveFolder)
-            && !SettingsBackupSupport.keysToClear(whenImporting: [:]).contains(DefaultsKey.screenshotSaveFolder)
-            && !SettingsBackupSupport.keysToClear(whenImporting: [:]).contains(DefaultsKey.musicBlockReplacementPath),
+            && !SettingsBackupSupport.keysToClear(whenImporting: [:]).contains(DefaultsKey.screenshotSaveFolder),
                "importing a backup never clears the Mac's own chosen save folders, because the clear set follows the export set")
         suite.expect(registeredDefaults[DefaultsKey.appearance] as? String == AppAppearance.system.rawValue,
                "the app follows the system appearance until the user picks a side")
