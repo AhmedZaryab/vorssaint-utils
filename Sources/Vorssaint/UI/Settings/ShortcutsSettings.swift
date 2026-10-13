@@ -9,7 +9,6 @@ import SwiftUI
 struct ShortcutsSettings: View {
     @ObservedObject private var l10n = L10n.shared
     @ObservedObject private var features = FeatureRuntime.shared
-    @ObservedObject private var superKey = SuperKeyService.shared
     @ObservedObject private var router = SettingsRouter.shared
     @AppStorage(DefaultsKey.keyboardBrightnessShortcutsEnabled) private var keyboardBrightnessShortcutsEnabled = false
     /// Keyed by group too: brightness has a row in two groups, and each opens on its own.
@@ -127,8 +126,6 @@ struct ShortcutsSettings: View {
                             action: action,
                             shortcutsEnabled: UserDefaults.standard.bool(
                                 forKey: DefaultsKey.windowLayoutShortcutsEnabled),
-                            showsSuperKeyAlternative: superKey.isRunning,
-                            superKeyModifiers: superKey.modifiers,
                             text: text
                         )
                         .disclosureIndent()
@@ -230,8 +227,6 @@ struct ShortcutsSettings: View {
             contextLabel: showsFeatureContext && title != featureTitle ? featureTitle : nil,
             statusText: active ? text.active : text.inactive,
             statusIsActive: active,
-            showsSuperKeyAlternative: superKey.isRunning,
-            superKeyModifiers: superKey.modifiers,
             includeInactiveConflicts: true,
             reservesClearButtonSpace: reservesClearButtonSpace,
             additionalConflict: { shortcut in
@@ -339,11 +334,8 @@ private struct RadialMenuShortcutsRow: View {
 
 private struct CentralWindowLayoutShortcutRow: View {
     @ObservedObject private var l10n = L10n.shared
-    @ObservedObject private var superKey = SuperKeyService.shared
     let action: WindowLayoutAction
     let shortcutsEnabled: Bool
-    let showsSuperKeyAlternative: Bool
-    let superKeyModifiers: GlobalShortcutModifiers
     let text: ShortcutSettingsStrings
     @AppStorage private var rawValue: String
     @State private var errorText: String?
@@ -352,13 +344,9 @@ private struct CentralWindowLayoutShortcutRow: View {
 
     init(action: WindowLayoutAction,
          shortcutsEnabled: Bool,
-         showsSuperKeyAlternative: Bool,
-         superKeyModifiers: GlobalShortcutModifiers,
          text: ShortcutSettingsStrings) {
         self.action = action
         self.shortcutsEnabled = shortcutsEnabled
-        self.showsSuperKeyAlternative = showsSuperKeyAlternative
-        self.superKeyModifiers = superKeyModifiers
         self.text = text
         _rawValue = AppStorage(
             wrappedValue: action.defaultShortcut?.storageValue
@@ -423,12 +411,6 @@ private struct CentralWindowLayoutShortcutRow: View {
                         }
                         .disabled(shortcut == action.defaultShortcut)
                     }
-                    if let alternative = superKeyAlternative {
-                        Text(String(format: text.superKeyAlternativeFormat, alternative))
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                            .accessibilityLabel(alternative)
-                    }
                 }
             }
             if let errorText {
@@ -468,12 +450,6 @@ private struct CentralWindowLayoutShortcutRow: View {
         shortcutsEnabled && shortcut != nil
     }
 
-    private var superKeyAlternative: String? {
-        guard showsSuperKeyAlternative, let shortcut else { return nil }
-        return shortcut.superKeyAlternative(
-            sourceLabel: FeatureStrings.superKey(l10n.language).sourceLabel(superKey.source),
-            superKeyModifiers: superKeyModifiers)
-    }
 
     private func clear() {
         rawValue = WindowLayoutAction.clearedShortcutStorageValue

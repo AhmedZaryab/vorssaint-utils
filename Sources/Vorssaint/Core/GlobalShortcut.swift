@@ -273,14 +273,6 @@ struct GlobalShortcut: Equatable, Hashable {
         modifiers.keyCaps + [keyLabel ?? "Key \(keyCode)"]
     }
 
-    /// The shorter way to press a shortcut matching the configured Super key.
-    func superKeyAlternative(sourceLabel: String,
-                             superKeyModifiers: GlobalShortcutModifiers) -> String? {
-        guard superKeyModifiers.hasPrimaryModifier,
-              modifiers == superKeyModifiers,
-              let key = keyCaps.last else { return nil }
-        return "\(sourceLabel) + \(key)"
-    }
 
     var carbonKeyCode: UInt32 {
         UInt32(exactly: keyCode) ?? 0

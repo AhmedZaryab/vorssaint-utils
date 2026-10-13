@@ -131,7 +131,6 @@ private extension PanelSectionID {
         case .utilities: return text.sectionUtilities
         case .controls: return text.sectionControls
         case .toggles: return text.sectionToggles
-        case .wallpaper: return FeatureStrings.wallpaper(L10n.shared.language).panelDescription
         }
     }
 }

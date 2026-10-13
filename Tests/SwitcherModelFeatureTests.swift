@@ -2997,9 +2997,6 @@ enum SwitcherModelFeatureTests {
                "disk monitor panel section is shown by default")
         suite.expect(registeredDefaults[DefaultsKey.monitorSysAlerts] as? Bool == true,
                "system alert controls are shown by default")
-        suite.expect(registeredDefaults[DefaultsKey.monitorSysConnectedDevices] as? Bool == true
-                     && SettingsBackupSupport.exportKeys().contains(DefaultsKey.monitorSysConnectedDevices),
-               "the System card's connected devices row is shown by default and travels in backups")
         suite.expect(registeredDefaults[DefaultsKey.monitorSysCPUCores] as? Bool == true
                      && SettingsBackupSupport.exportKeys().contains(DefaultsKey.monitorSysCPUCores),
                "the CPU row's per-core bars are shown by default and travel in backups")
@@ -3038,7 +3035,7 @@ enum SwitcherModelFeatureTests {
         suite.expect(registeredDefaults[DefaultsKey.menuBarFanSpeed] as? Bool == false,
                "menu bar fan speed is opt-in")
         suite.expect(registeredDefaults[DefaultsKey.menuBarMetricOrder] as? String
-               == "cpu,cpuTemperature,gpu,gpuTemperature,memory,battery,batteryTime,batteryTemperature,peripheralBattery,network,diskUsage,diskActivity,connectedDevices,power,fanSpeed",
+               == "cpu,cpuTemperature,gpu,gpuTemperature,memory,battery,batteryTime,batteryTemperature,peripheralBattery,network,diskUsage,diskActivity,power,fanSpeed",
                "menu bar metric order keeps temperature sensors next to their components and disk near live I/O")
         suite.expect(registeredDefaults[DefaultsKey.menuBarCombineTemperatures] as? Bool == true,
                "menu bar combines usage and temperature by default")
