@@ -76,6 +76,9 @@ final class AgentUsageService: ObservableObject {
     private var watchedRoots: [AgentLogRoot] = []
     private var poller: DispatchSourceTimer?
     private var polling = false
+    /// One vnode watcher per log an agent may still be writing; a log with none
+    /// falls back to the timed look.
+    private var fileWatchers: [String: DispatchSourceFileSystemObject] = [:]
     private var network: NWPathMonitor?
     /// When the Mac lost its network, and the uptime then, which leaves out
     /// sleep; nil while it has one.
@@ -133,6 +136,7 @@ final class AgentUsageService: ObservableObject {
         queue.async { [self] in
             poller?.cancel()
             poller = nil
+            cancelFileWatchers()
             watcher?.stop()
             saveProgress()
         }
@@ -173,6 +177,7 @@ final class AgentUsageService: ObservableObject {
             readerCancellation = nil
             poller?.cancel()
             poller = nil
+            cancelFileWatchers()
             watcher?.stop()
             watcher = nil
             watchedRoots = []
@@ -325,7 +330,7 @@ final class AgentUsageService: ObservableObject {
         timer.setEventHandler { [weak self] in
             guard let self else { return }
             defer { self.syncPolling() }
-            let read = self.pollOpenLogs(within: Self.pollWindow)
+            let read = self.pollOpenLogs(within: Self.pollWindow, skippingWatched: true)
             var stopped = self.store.closeSettledTurns(now: Date())
             // After the logs too, which can hold a reply or a command's
             // result written meanwhile.
@@ -351,8 +356,13 @@ final class AgentUsageService: ObservableObject {
     /// Never create a timer here: late work after pause or stop must stay idle.
     private func syncPolling(now: Date = Date()) {
         guard let poller else { return }
+        syncFileWatchers(now: now)
+        // Logs with a watcher need no look; the timer stays for open turns,
+        // whose end is decided by time, and for logs that could not be watched.
         let wanted = !store.turns.isEmpty || !store.waiting.isEmpty
-            || cursors.values.contains { now.timeIntervalSince($0.modified) < Self.pollWindow }
+            || cursors.contains { path, cursor in
+                fileWatchers[path] == nil && now.timeIntervalSince(cursor.modified) < Self.pollWindow
+            }
         guard wanted != polling else { return }
         polling = wanted
         if wanted {
@@ -362,10 +372,57 @@ final class AgentUsageService: ObservableObject {
         }
     }
 
+    /// Keeps a watcher on each log written lately or holding a turn, and none
+    /// on the rest. A file event reads the log at once, so the timed stat of
+    /// every open log is gone. Runs on `queue`.
+    private func syncFileWatchers(now: Date) {
+        var wanted = Set(store.turns.keys).union(store.waiting.keys)
+        for path in cursors.keys where wanted.contains(path) == false {
+            if let cursor = cursors[path], now.timeIntervalSince(cursor.modified) < Self.pollWindow { wanted.insert(path) }
+        }
+        for path in fileWatchers.keys where !wanted.contains(path) || cursors[path] == nil {
+            fileWatchers.removeValue(forKey: path)?.cancel()
+        }
+        for path in wanted where fileWatchers[path] == nil {
+            // OpenCode keeps a database, changed in place; it stays timed.
+            guard let cursor = cursors[path], cursor.provider != .opencode else { continue }
+            let fd = open(path, O_EVTONLY)
+            guard fd >= 0 else { continue }
+            let source = DispatchSource.makeFileSystemObjectSource(
+                fileDescriptor: fd, eventMask: [.write, .extend, .rename, .delete], queue: queue)
+            source.setEventHandler { [weak self, weak source] in
+                guard let self, let source, self.readerSession >= 0 else { return }
+                if !source.data.isDisjoint(with: [.rename, .delete]) {
+                    // The file moved or went: look once, then watch what is there now.
+                    self.fileWatchers.removeValue(forKey: path)?.cancel()
+                }
+                let changed = self.read(path, provider: cursor.provider)
+                defer { self.syncPolling() }
+                guard changed else { return }
+                self.checkLimits()
+                self.schedulePublish()
+            }
+            source.setCancelHandler { close(fd) }
+            fileWatchers[path] = source
+            source.resume()
+            // Anything written before the watcher existed.
+            var info = stat()
+            if stat(path, &info) != 0 || UInt64(max(0, info.st_size)) != cursor.offset
+                || UInt64(info.st_ino) != cursor.identity {
+                if read(path, provider: cursor.provider) { schedulePublish() }
+            }
+        }
+    }
+
+    private func cancelFileWatchers() {
+        fileWatchers.values.forEach { $0.cancel() }
+        fileWatchers.removeAll()
+    }
+
     /// Reads the logs that grew, were replaced or disappeared since the last
     /// look, among those an agent may still be writing. True when that
     /// changed what is stored.
-    private func pollOpenLogs(within window: TimeInterval) -> Bool {
+    private func pollOpenLogs(within window: TimeInterval, skippingWatched: Bool = false) -> Bool {
         guard readerSession >= 0 else { return false }
         let now = Date()
         // A turn gone quiet, as while it waits for an approval, is noticed
@@ -378,6 +435,7 @@ final class AgentUsageService: ObservableObject {
         var changed = false
         for (path, cursor) in cursors
         where working.contains(path) || now.timeIntervalSince(cursor.modified) < window {
+            if skippingWatched, fileWatchers[path] != nil { continue }
             if cursor.provider == .opencode {
                 // A database changes in place: its write-ahead log grows instead.
                 if let modified = AgentOpenCodeReader.modified(path), modified <= cursor.modified { continue }
