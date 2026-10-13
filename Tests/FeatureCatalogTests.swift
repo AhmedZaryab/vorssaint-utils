@@ -396,7 +396,7 @@ enum FeatureCatalogTests {
             "clipboardHistory", "pastePlain", "finderCutPaste", "finderRename", "shelf", "urlCleaner",
             "diskImageInstaller",
             "mixer", "soundOutputSwitcher", "audioPriority", "micMute", "musicBlock",
-            "keepAwake", "brightness", "extraBrightness", "bluetoothSleep",
+            "keepAwake", "brightness", "extraBrightness",
             "quickLauncher", "quickToggles", "colorPicker", "screenOCR", "cleaningMode", "mediaTools",
             "cleaner", "uninstaller", "homebrew", "appUpdates", "screenshot", "cameraPreview",
             "radialMenu", "scratchpad", "commandBar", "screenRecorder", "wallpaper", "killProcess", "portManager", "notch", "notchCalendar", "notchNotifications", "notchGestures", "notchTimer", "notchAccessories", "notchLyrics", "notchQueue", "spotifyQueue", "notchLiveEqualizer", "notchDownloads", "notchAgents", "notchWatch", "notchMascot",
@@ -567,7 +567,7 @@ enum FeatureCatalogTests {
             "middleClick", "mouseClickDebounce", "textSnippets", "superKey",
             "clipboardHistory", "pastePlain", "finderCutPaste", "finderRename", "shelf", "urlCleaner",
             "mixer", "soundOutputSwitcher", "micMute", "musicBlock",
-            "keepAwake", "brightness", "extraBrightness", "bluetoothSleep",
+            "keepAwake", "brightness", "extraBrightness",
             "quickLauncher", "quickToggles", "colorPicker", "screenOCR", "cleaningMode", "mediaTools",
             "cleaner", "uninstaller", "homebrew", "appUpdates", "screenshot", "cameraPreview", "radialMenu",
             "scratchpad", "commandBar", "screenRecorder",
@@ -781,40 +781,6 @@ enum FeatureCatalogTests {
                 && AppFeature.diskImageInstaller.permissions == [.appManagement]
                 && AppFeature.diskImageInstaller.energyProfile == .idle,
                "the disk image installer is an event-driven file feature with contextual app access")
-        suite.expect(AppFeature.bluetoothSleep.group == .energyDisplay
-                && AppFeature.bluetoothSleep.enabledKeys == [DefaultsKey.bluetoothSleepEnabled]
-                && AppFeature.bluetoothSleep.permissions.isEmpty
-                && AppFeature.bluetoothSleep.energyProfile == .idle
-                && !AppFeature.bluetoothSleep.isBeta,
-               "Bluetooth on sleep is an energy feature that costs nothing at rest")
-        suite.expect((AppFeature.availabilityDefaults[AppFeature.bluetoothSleep.availabilityKey] as? Bool) == true,
-               "Bluetooth on sleep ships installed, switched off, so its section is findable")
-        suite.expect(AppFeature.bluetoothSleep.settingsDestination
-                == FeatureSettingsDestination(.energy, sectionAnchor: .bluetoothSleep)
-                && AppFeature.bluetoothSleep.settingsDestination.hasValidSectionAnchor
-                && FeatureVisibilitySupport.features(for: .energy).contains(.bluetoothSleep),
-               "Bluetooth on sleep owns a section of the Energy page and can keep it alive alone")
-        suite.expect(BluetoothSleepSupport.sleepPlan(isPoweredOn: true, restoresOnWake: true)
-                == BluetoothSleepSupport.SleepPlan(powersOff: true, owesRestore: true),
-               "Bluetooth on before sleep is switched off and owed back")
-        suite.expect(BluetoothSleepSupport.sleepPlan(isPoweredOn: true, restoresOnWake: false)
-                == BluetoothSleepSupport.SleepPlan(powersOff: true, owesRestore: false),
-               "without the restore option, sleep switches Bluetooth off for good")
-        suite.expect(BluetoothSleepSupport.sleepPlan(isPoweredOn: false, restoresOnWake: true)
-                == BluetoothSleepSupport.SleepPlan(powersOff: false, owesRestore: false),
-               "Bluetooth already off before sleep is left alone, so the wake never turns it on")
-        suite.expect(BluetoothSleepSupport.restores(owesRestore: true, isPoweredOn: false),
-               "a wake that still owes a restore switches Bluetooth back on")
-        suite.expect(!BluetoothSleepSupport.restores(owesRestore: false, isPoweredOn: false),
-               "a wake owing nothing leaves Bluetooth off")
-        suite.expect(!BluetoothSleepSupport.restores(owesRestore: true, isPoweredOn: true),
-               "Bluetooth the user switched on first is left alone")
-        var readControllerPower = false
-        func controllerPower() -> Bool { readControllerPower = true; return false }
-        _ = BluetoothSleepSupport.restores(owesRestore: false, isPoweredOn: controllerPower())
-        suite.expect(!readControllerPower,
-               "a launch owing no restore never reads the Bluetooth controller")
-
         suite.expect((Defaults.registeredDefaults[DefaultsKey.panelShowFanControl] as? Bool) == true,
                "installing fan control reveals its panel section by default")
 
@@ -1947,8 +1913,7 @@ enum FeatureCatalogTests {
         suite.expect(!pageVisible(.mouse, available: []),
                "the mouse page hides only with all eight mouse features off")
         suite.expect(!pageVisible(.energy, available: allFeatures.subtracting([.keepAwake, .brightness,
-                                                                         .extraBrightness,
-                                                                         .bluetoothSleep])),
+                                                                         .extraBrightness])),
                "energy hides when all four of its features are off")
         suite.expect(pageVisible(.energy, available: [.extraBrightness]), "XDR alone keeps the energy page")
         suite.expect(pageVisible(.energy, available: [.brightness]),

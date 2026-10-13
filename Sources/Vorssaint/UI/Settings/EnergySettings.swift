@@ -22,8 +22,6 @@ struct EnergySettings: View {
     private var brightnessKeyStep = BrightnessSupport.KeyStep.standard.rawValue
     @AppStorage(DefaultsKey.extraBrightnessEnabled) private var extraBrightnessEnabled = false
     @AppStorage(DefaultsKey.extraBrightnessLevel) private var extraBrightnessLevel = 100
-    @AppStorage(DefaultsKey.bluetoothSleepEnabled) private var bluetoothSleepEnabled = false
-    @AppStorage(DefaultsKey.bluetoothSleepRestoreOnWake) private var bluetoothSleepRestoreOnWake = true
     @AppStorage(DefaultsKey.defaultDuration) private var defaultDuration = 0
     @AppStorage(DefaultsKey.batteryLimit) private var batteryLimit = 10
     @AppStorage(DefaultsKey.keepAwakeAutoStart) private var keepAwakeAutoStart = false
@@ -60,12 +58,7 @@ struct EnergySettings: View {
                 if (focus == nil || focus == .extraBrightness), AppFeature.extraBrightness.isAvailable {
                     extraBrightnessCard
                         .settingsSectionAnchor(.extraBrightness, cornerRadius: 16)
-                }
-                if (focus == nil || focus == .bluetoothSleep), AppFeature.bluetoothSleep.isAvailable {
-                    bluetoothCard
-                        .settingsSectionAnchor(.bluetoothSleep, cornerRadius: 16)
-                }
-            }
+                }            }
             .frame(maxWidth: 760)
             .frame(maxWidth: .infinity)
             .padding(22)
@@ -102,7 +95,6 @@ struct EnergySettings: View {
         case .keepAwake: return l10n.s.keepAwakeTitle
         case .brightness: return FeatureStrings.brightness(l10n.language).pageTitle
         case .extraBrightness: return l10n.s.extraBrightnessName
-        case .bluetoothSleep: return FeatureStrings.bluetoothSleep(l10n.language).pageTitle
         default: return l10n.s.tabEnergy
         }
     }
@@ -112,7 +104,6 @@ struct EnergySettings: View {
         case .keepAwake: return FeatureStrings.hub(l10n.language).descKeepAwake
         case .brightness: return FeatureStrings.brightness(l10n.language).hubDescription
         case .extraBrightness: return FeatureStrings.hub(l10n.language).descExtraBrightness
-        case .bluetoothSleep: return FeatureStrings.bluetoothSleep(l10n.language).hubDescription
         default: return FeatureStrings.settingsPages(l10n.language).energyDescription
         }
     }
@@ -460,35 +451,6 @@ struct EnergySettings: View {
                     extraBrightnessLevel = Int(newValue)
                     ExtraBrightnessService.shared.levelDidChange()
                 })
-    }
-
-    // MARK: - Bluetooth on sleep
-
-    private var bluetoothCard: some View {
-        let strings = FeatureStrings.bluetoothSleep(l10n.language)
-        return SettingsCard {
-            if BluetoothSleepService.isSupported {
-                SettingsRow(symbol: "dot.radiowaves.left.and.right", title: strings.enable,
-                            caption: strings.enableCaption) {
-                    Toggle(strings.enable, isOn: $bluetoothSleepEnabled)
-                        .labelsHidden()
-                        .onChange(of: bluetoothSleepEnabled) { _, _ in
-                            BluetoothSleepService.shared.syncWithPreferences()
-                        }
-                }
-                if bluetoothSleepEnabled {
-                    SettingsRow(symbol: "arrow.counterclockwise", title: strings.restoreToggle,
-                                caption: strings.restoreCaption) {
-                        Toggle(strings.restoreToggle, isOn: $bluetoothSleepRestoreOnWake).labelsHidden()
-                    }
-                }
-            } else {
-                SettingsRow(symbol: "dot.radiowaves.left.and.right", title: strings.pageTitle,
-                            caption: strings.unsupported) {
-                    EmptyView()
-                }
-            }
-        }
     }
 
     private var automationStrings: KeepAwakeAutomationStrings {
