@@ -300,10 +300,6 @@ enum SettingsDirectory {
                                                  s.shelfClearOnClose, s.shelfShortcutFinderSelection,
                                                  FeatureStrings.notch(language).title,
                                                  FeatureStrings.notchEditor(language).separate]),
-                SettingsDirectoryItem(page: .media, title: s.mediaName, icon: "photo.on.rectangle.angled",
-                                      keywords: ["PDF", "GIF", "PNG", "JPEG", "convert", "resize", "watermark",
-                                                 "rename", "profile", "fit", "fill", "crop",
-                                                 s.mediaStartConvertPDF, s.ocrName]),
             ]),
             // Everything about the apps installed on the Mac lives together:
             // what is out of date, what is junk and what should go.

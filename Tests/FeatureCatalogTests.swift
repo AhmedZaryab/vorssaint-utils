@@ -304,7 +304,7 @@ enum FeatureCatalogTests {
 
         // MARK: Features hub catalog
 
-        suite.expect(AppFeature.allCases.count == 58, "feature catalog has 58 features")
+        suite.expect(AppFeature.allCases.count == 57, "feature catalog has 57 features")
         suite.expect(Set(AppFeature.allCases.map(\.rawValue)).count == AppFeature.allCases.count,
                "feature ids are unique")
         suite.expect(AppFeature.allCases.map(\.rawValue) == [
@@ -314,7 +314,7 @@ enum FeatureCatalogTests {
             "clipboardHistory", "pastePlain", "finderCutPaste", "finderRename", "shelf",
             "mixer", "micMute",
             "keepAwake", "brightness",
-            "quickLauncher", "quickToggles", "colorPicker", "screenOCR", "cleaningMode", "mediaTools",
+            "quickLauncher", "quickToggles", "colorPicker", "screenOCR", "cleaningMode",
             "uninstaller", "homebrew", "appUpdates", "screenshot", "cameraPreview",
             "radialMenu", "scratchpad", "commandBar", "screenRecorder", "killProcess", "portManager", "menuBarTidy", "notch", "notchCalendar", "notchNotifications", "notchGestures", "notchTimer", "notchAccessories", "notchLyrics", "notchQueue", "spotifyQueue", "notchLiveEqualizer", "notchDownloads", "notchAgents", "notchWatch", "notchMascot",
             "monitorPower",
@@ -484,7 +484,7 @@ enum FeatureCatalogTests {
             "clipboardHistory", "pastePlain", "finderCutPaste", "finderRename", "shelf",
             "mixer", "micMute",
             "keepAwake", "brightness",
-            "quickLauncher", "quickToggles", "colorPicker", "screenOCR", "cleaningMode", "mediaTools",
+            "quickLauncher", "quickToggles", "colorPicker", "screenOCR", "cleaningMode",
             "uninstaller", "homebrew", "appUpdates", "screenshot", "cameraPreview", "radialMenu",
             "scratchpad", "commandBar", "screenRecorder",
             "notch", "notchCalendar", "notchNotifications", "notchGestures", "notchTimer", "notchAccessories",

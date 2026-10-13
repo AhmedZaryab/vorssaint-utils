@@ -407,7 +407,6 @@ enum NotchPresentationProbe {
     }
 
     static func runAndExit() -> Never {
-        if CommandLine.arguments.contains("--media-layout") { NotchMediaPresentationProbe.runAndExit() }
         if CommandLine.arguments.contains("--mission-control") { runMissionControlAndExit() }
         if let index = CommandLine.arguments.firstIndex(of: "--preview-notice"),
            CommandLine.arguments.indices.contains(index + 1) {

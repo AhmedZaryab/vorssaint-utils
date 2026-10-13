@@ -145,7 +145,6 @@ enum NotchScreenRefreshContract {
         var notice: Bool?
         var heldDrag = false
         var heldMusic: Bool?
-        var choosingFileDropDestination = false
         var screenUpdates = 0
         var consumerSyncs = 0
         func NSMouseInRect(_ point: CGPoint, _ rect: CGRect, _ flipped: Bool) -> Bool { rect.contains(point) }
@@ -507,7 +506,6 @@ enum NotchScreenRefreshContract {
         let blockers: [(String, (Service) -> Void)] = [
             ("open", { $0.expanded = true }), ("peeking", { $0.peeking = true }), ("showing a notice", { $0.notice = true }),
             ("showing capture controls", { $0.captureControls = true }), ("holding a drag", { $0.heldDrag = true }),
-            ("choosing where a file drops", { $0.choosingFileDropDestination = true }),
             ("keeping a working surface", { $0.keepsWorkingSurface = true }),
             ("holding a song for its notice", { $0.heldMusic = true }),
         ]

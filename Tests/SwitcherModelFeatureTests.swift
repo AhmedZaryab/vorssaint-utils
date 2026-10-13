@@ -2077,8 +2077,6 @@ enum SwitcherModelFeatureTests {
                "panel uninstaller utility is visible by default")
         suite.expect(registeredDefaults[DefaultsKey.panelUtilityHomebrew] as? Bool == true,
                "panel Homebrew utility is visible by default")
-        suite.expect(registeredDefaults[DefaultsKey.panelUtilityMedia] as? Bool == true,
-               "panel Media utility is visible by default")
         suite.expect(registeredDefaults[DefaultsKey.panelControlMouseScroll] as? Bool == true,
                "panel mouse scroll control is visible by default")
         suite.expect(registeredDefaults[DefaultsKey.panelControlMouseNavigation] as? Bool == true,

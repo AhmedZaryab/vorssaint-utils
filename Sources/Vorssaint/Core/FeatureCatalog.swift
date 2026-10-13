@@ -25,7 +25,7 @@ enum AppFeature: String, CaseIterable {
     // Energy and display
     case keepAwake, brightness
     // Tools
-    case quickLauncher, quickToggles, colorPicker, screenOCR, cleaningMode, mediaTools,
+    case quickLauncher, quickToggles, colorPicker, screenOCR, cleaningMode,
          uninstaller, homebrew, appUpdates, screenshot, cameraPreview, radialMenu, scratchpad,
          commandBar, screenRecorder, killProcess, portManager, menuBarTidy
     // Dynamic Island, then its extensions
@@ -112,7 +112,7 @@ extension AppFeature {
             return .sound
         case .keepAwake, .brightness:
             return .energyDisplay
-        case .quickLauncher, .quickToggles, .colorPicker, .screenOCR, .cleaningMode, .mediaTools,
+        case .quickLauncher, .quickToggles, .colorPicker, .screenOCR, .cleaningMode,
              .uninstaller, .homebrew, .appUpdates, .screenshot, .cameraPreview, .radialMenu,
              .scratchpad, .commandBar, .screenRecorder, .killProcess, .portManager, .menuBarTidy:
             return .tools
@@ -157,7 +157,6 @@ extension AppFeature {
         case .colorPicker: return "eyedropper"
         case .screenOCR: return "text.viewfinder"
         case .cleaningMode: return "bubbles.and.sparkles"
-        case .mediaTools: return "photo.on.rectangle.angled"
         case .uninstaller: return "trash"
         case .homebrew: return "shippingbox"
         case .appUpdates: return "arrow.down.app"
@@ -251,7 +250,7 @@ extension AppFeature {
         case .shelf: return [DefaultsKey.shelfEnabled]
         case .brightness: return [DefaultsKey.brightnessControlEnabled]
         case .windowLayout, .mixer, .micMute, .keepAwake,
-             .quickLauncher, .quickToggles, .colorPicker, .screenOCR, .cleaningMode, .mediaTools,
+             .quickLauncher, .quickToggles, .colorPicker, .screenOCR, .cleaningMode,
              .uninstaller, .homebrew, .appUpdates, .screenshot, .cameraPreview, .scratchpad,
              .commandBar, .screenRecorder, .killProcess, .portManager,
              .monitorPower:
@@ -342,7 +341,7 @@ extension AppFeature {
         case .appUpdates: return [.notifications, .appManagement]
         case .mixer: return [.audioCapture, .accessibility]
         case .clipboardHistory, .shelf,
-             .quickLauncher, .colorPicker, .micMute, .mediaTools,
+             .quickLauncher, .colorPicker, .micMute,
              .scratchpad, .monitorPower, .killProcess,
              .portManager:
             return []
@@ -433,7 +432,7 @@ extension AppFeature {
              .clipboardHistory, .pastePlain, .finderCutPaste, .finderRename, .shelf,
              .mixer, .micMute,
              .keepAwake, .brightness,
-             .quickLauncher, .quickToggles, .colorPicker, .screenOCR, .cleaningMode, .mediaTools,
+             .quickLauncher, .quickToggles, .colorPicker, .screenOCR, .cleaningMode,
              .uninstaller, .homebrew, .appUpdates, .screenshot, .cameraPreview, .radialMenu,
              .scratchpad, .commandBar, .screenRecorder,
              .notch, .notchCalendar, .notchNotifications, .notchGestures, .notchTimer, .notchAccessories,

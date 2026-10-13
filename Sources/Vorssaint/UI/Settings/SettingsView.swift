@@ -584,7 +584,6 @@ struct SettingsView: View {
         case .portManager: PortManagerView()
         case .homebrew: HomebrewSettings()
         case .appUpdates: AppUpdatesSettings()
-        case .media: MediaSettings()
         case .clipboard: ClipboardSettings()
         case .quickTools: QuickToolsSettings()
         case .screenshot: ScreenCaptureSettings()

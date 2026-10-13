@@ -391,7 +391,7 @@ private enum UtilityPanelItem: String, PanelOrderItem, Identifiable {
     // Case order IS the default panel order (PanelLayout.itemOrder falls back
     // to allCases). Screenshot leads in 3.1.13; existing orders that predate it
     // are migrated once without disturbing the rest of the user's layout.
-    case screenshot, quickLauncher, appUpdates, homebrew, media, clipboard, windowLayout,
+    case screenshot, quickLauncher, appUpdates, homebrew, clipboard, windowLayout,
          uninstaller, cleaning, screenOCR, colorPicker, cameraPreview, scratchpad,
          commandBar, screenRecorder, portManager
 
@@ -404,7 +404,6 @@ private enum UtilityPanelItem: String, PanelOrderItem, Identifiable {
         case .quickLauncher: return .quickLauncher
         case .homebrew: return .homebrew
         case .appUpdates: return .appUpdates
-        case .media: return .mediaTools
         case .clipboard: return .clipboardHistory
         case .windowLayout: return .windowLayout
         case .uninstaller: return .uninstaller
@@ -428,7 +427,6 @@ struct UtilitiesSection: View {
     @State private var showUninstaller = false
     @State private var showHomebrewPanel = false
     @State private var showAppUpdatesPanel = false
-    @State private var showMediaPanel = false
     @State private var showClipboardPanel = false
     @State private var showRecentCapturesPanel = false
     @State private var showWindowLayoutPanel = false
@@ -437,7 +435,6 @@ struct UtilitiesSection: View {
     @AppStorage(DefaultsKey.panelUtilityUninstaller) private var showUninstallerAction = true
     @AppStorage(DefaultsKey.panelUtilityHomebrew) private var showHomebrew = true
     @AppStorage(DefaultsKey.panelUtilityAppUpdates) private var showAppUpdates = true
-    @AppStorage(DefaultsKey.panelUtilityMedia) private var showMedia = true
     @AppStorage(DefaultsKey.panelUtilityClipboard) private var showClipboard = true
     @AppStorage(DefaultsKey.panelUtilityWindowLayout) private var showWindowLayout = true
     @AppStorage(DefaultsKey.panelUtilityScreenOCR) private var showScreenOCR = true
@@ -468,11 +465,6 @@ struct UtilitiesSection: View {
             } else if showHomebrewPanel {
                 PanelHomebrewView {
                     showHomebrewPanel = false
-                }
-            } else if showMediaPanel {
-                PanelMediaView {
-                    PanelInteractionState.shared.viewKeepsPopoverOpen = false
-                    showMediaPanel = false
                 }
             } else if showClipboardPanel {
                 PanelClipboardView {
@@ -532,7 +524,6 @@ struct UtilitiesSection: View {
     private var hostedSettingsPage: SettingsPage? {
         if showUninstaller { return .uninstaller }
         if showHomebrewPanel { return .homebrew }
-        if showMediaPanel { return .media }
         if showClipboardPanel { return .clipboard }
         if showRecentCapturesPanel { return .screenshot }
         if showWindowLayoutPanel { return .windowLayout }
@@ -546,7 +537,7 @@ struct UtilitiesSection: View {
     /// elsewhere in the app must not dismiss it.
     private var isHostingUtility: Bool {
         showUninstaller || showHomebrewPanel
-            || showMediaPanel || showClipboardPanel || showRecentCapturesPanel
+            || showClipboardPanel || showRecentCapturesPanel
             || showWindowLayoutPanel || showAppUpdatesPanel || showPortManagerPanel
     }
 
@@ -587,7 +578,6 @@ struct UtilitiesSection: View {
         switch item {
         case .homebrew: return showHomebrew
         case .appUpdates: return showAppUpdates
-        case .media: return showMedia
         case .clipboard: return showClipboard
         case .windowLayout: return showWindowLayout
         case .uninstaller: return showUninstallerAction
@@ -626,16 +616,6 @@ struct UtilitiesSection: View {
                                 visibility: $showAppUpdates,
                                 action: {
                                     showAppUpdatesPanel = true
-                                })
-        case .media:
-            UtilityActionButton(title: l10n.s.mediaName,
-                                caption: l10n.s.mediaEnableCaption,
-                                systemImage: "photo.on.rectangle.angled",
-                                isEditing: editing,
-                                showsDragHandle: true,
-                                visibility: $showMedia,
-                                action: {
-                                    showMediaPanel = true
                                 })
         case .clipboard:
             UtilityActionButton(title: FeatureStrings.clipboard(l10n.language).title,
@@ -887,7 +867,6 @@ struct UtilitiesSection: View {
         utilityOrderRaw = ""
         showHomebrew = true
         showAppUpdates = true
-        showMedia = true
         showClipboard = true
         showWindowLayout = true
         showUninstallerAction = true
