@@ -105,21 +105,60 @@ struct NotchSongPeekBand: View {
     }
 
     /// Progress is (10 - remaining) / 10, floored at 0.03 so the ring always
-    /// shows a start. Reduce Motion steps it once a second instead of sweeping.
+    /// shows a start. One linear animation runs to the song's end; Reduce
+    /// Motion steps it every 0.25 s instead.
     private var ring: some View {
-        TimelineView(.animation(minimumInterval: reduceMotion ? 1 : 1.0 / 30)) { context in
-            let remaining = model.endsAt.timeIntervalSince(context.date)
-            let progress = remaining.isFinite && remaining >= 0
-                ? max(0.03, min(1.0, (SongPeekPolicy.lead - remaining) / SongPeekPolicy.lead)) : 0
+        PeekRing(endsAt: model.endsAt, reduceMotion: reduceMotion)
+            .padding(Self.ringStroke / 2)
+            .accessibilityHidden(true)
+    }
+
+    private struct PeekRing: View {
+        let endsAt: Date
+        let reduceMotion: Bool
+        @State private var progress: CGFloat = 0.03
+
+        var body: some View {
+            Group {
+                if reduceMotion {
+                    TimelineView(.periodic(from: .now, by: 0.25)) { context in
+                        shape(Self.fraction(endsAt, at: context.date))
+                    }
+                } else {
+                    shape(progress)
+                        .onAppear { anchor() }
+                        .onChange(of: endsAt) { _ in anchor() }
+                }
+            }
+            .drawingGroup()
+        }
+
+        private func shape(_ value: CGFloat) -> some View {
             ZStack {
-                Circle().stroke(.white.opacity(0.14), lineWidth: Self.ringStroke)
+                Circle().stroke(.white.opacity(0.14), lineWidth: NotchSongPeekBand.ringStroke)
                 Circle()
-                    .trim(from: 0, to: progress)
-                    .stroke(Self.ringFill, style: StrokeStyle(lineWidth: Self.ringStroke, lineCap: .round))
+                    .trim(from: 0, to: value)
+                    .stroke(NotchSongPeekBand.ringFill,
+                            style: StrokeStyle(lineWidth: NotchSongPeekBand.ringStroke, lineCap: .round))
                     .rotationEffect(.degrees(-90))
             }
-            .padding(Self.ringStroke / 2)
         }
-        .accessibilityHidden(true)
+
+        private static func fraction(_ endsAt: Date, at date: Date) -> CGFloat {
+            let remaining = endsAt.timeIntervalSince(date)
+            guard remaining.isFinite, remaining >= 0 else { return 0 }
+            return CGFloat(max(0.03, min(1, (SongPeekPolicy.lead - remaining) / SongPeekPolicy.lead)))
+        }
+
+        /// Jump to where the song really is, then sweep to full over what is left.
+        private func anchor() {
+            let remaining = max(0, endsAt.timeIntervalSinceNow)
+            var t = Transaction()
+            t.disablesAnimations = true
+            withTransaction(t) { progress = Self.fraction(endsAt, at: Date()) }
+            DispatchQueue.main.async {
+                withAnimation(.linear(duration: remaining)) { progress = 1 }
+            }
+        }
     }
 }
