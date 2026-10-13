@@ -29,16 +29,9 @@ final class PanelInteractionState {
             || isPresentingPopoverModal
             || AirPlayRouteManager.isPresentingPicker
             || HomebrewManager.shared.operationStatus?.isActive == true
-            || cleanerIsRunning
             || uninstallerIsRunning
     }
 
-    private var cleanerIsRunning: Bool {
-        switch JunkCleaner.shared.phase {
-        case .scanning, .cleaning: return true
-        case .idle, .results, .done: return false
-        }
-    }
 
     private var uninstallerIsRunning: Bool {
         switch AppUninstaller.shared.phase {

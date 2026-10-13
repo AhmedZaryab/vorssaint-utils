@@ -648,10 +648,6 @@ enum FeatureCatalogTests {
         suite.expect(AppFeature.screenRecorder.onboardingPermissions
                 == [.screenRecording, .accessibility],
                "the recorder choice explains both permissions it needs")
-        suite.expect(AppFeature.cleaner.onboardingPermissions.isEmpty
-                && AppFeature.cameraPreview.onboardingPermissions.isEmpty
-                && AppFeature.notchWatch.onboardingPermissions.isEmpty,
-               "contextual grants are not requested during first setup")
         suite.expect(AppFeature.fanControl.group == .monitor
                 && AppFeature.fanControl.enabledKeys.isEmpty
                 && AppFeature.fanControl.permissions.isEmpty
@@ -1287,37 +1283,17 @@ enum FeatureCatalogTests {
                          available: Set(AppFeature.allCases).subtracting([.monitorCPU]),
                          on: [DefaultsKey.monitorAlertCPU]) == [],
                "an alert whose metric is unavailable does not notify")
-        suite.expect(activeSet(.notifications, on: [DefaultsKey.cleanerScheduleNotify],
-                         strings: [DefaultsKey.cleanerScheduleFrequency: "weekly"]) == [.cleaner],
-               "a scheduled cleaner with notice enabled uses notifications")
-        suite.expect(activeSet(.notifications, on: [DefaultsKey.cleanerScheduleNotify],
-                         strings: [DefaultsKey.cleanerScheduleFrequency: "off"]) == [],
-               "an unscheduled cleaner does not use notifications")
         suite.expect(activeSet(.notifications,
                          on: [DefaultsKey.whatsAppDownloadsAutomaticEnabled,
                               DefaultsKey.whatsAppDownloadsNotify]) == [],
                "WhatsApp cleanup notifications stay unused until that cleaner is turned on")
         suite.expect(activeSet(.notifications,
-                         on: [DefaultsKey.whatsAppDownloadsEnabled,
-                              DefaultsKey.whatsAppDownloadsAutomaticEnabled,
-                              DefaultsKey.whatsAppDownloadsNotify]) == [.cleaner],
-               "WhatsApp cleanup only uses notifications for an opted-in automatic summary")
-        suite.expect(activeSet(.notifications,
                          on: [DefaultsKey.whatsAppOrganizerEnabled,
                               DefaultsKey.whatsAppDownloadsNotify]) == [],
                "the experimental WhatsApp organizer stays silent until that cleaner is turned on")
-        suite.expect(activeSet(.notifications,
-                         on: [DefaultsKey.whatsAppDownloadsEnabled,
-                              DefaultsKey.whatsAppOrganizerEnabled,
-                              DefaultsKey.whatsAppDownloadsNotify]) == [.cleaner],
-               "the experimental WhatsApp organizer can offer an undo notification")
         suite.expect(activeSet(.filesAndFolders) == [],
                "WhatsApp Downloads folder access stays unused until that cleaner is turned on")
-        suite.expect(activeSet(.filesAndFolders, on: [DefaultsKey.whatsAppDownloadsEnabled]) == [.cleaner],
-               "the cleaner owns WhatsApp Downloads folder access")
 
-        suite.expect(activeSet(.fullDiskAccess) == [.cleaner, .uninstaller],
-               "cleaner and uninstaller are on-demand full disk users")
         suite.expect(activeSet(.automationFinder, on: [DefaultsKey.finderCutPasteEnabled])
                 == [.finderCutPaste, .uninstaller, .quickToggles],
                "finder automation is used by cut and paste, the uninstaller and the quick toggles")
@@ -1828,9 +1804,6 @@ enum FeatureCatalogTests {
                 && pageVisible(.cutPaste, available: [.finderCutPaste])
                 && !pageVisible(.cutPaste, available: []),
                "either Finder shortcut keeps their shared page visible")
-        suite.expect(!pageVisible(.cleaner,
-                            available: allFeatures.subtracting([.cleaner])),
-               "cleaner settings, including WhatsApp downloads, follow the cleaner module")
         suite.expect(pageVisible(.quickTools, available: [.quickToggles]),
                "the quick toggles alone keep the quick tools page")
         suite.expect(pageVisible(.clipboard, available: [.finderCutPaste]),
@@ -1953,9 +1926,6 @@ enum FeatureCatalogTests {
                "a later generic request clears any unconsumed feature target so it cannot leak into unrelated navigation")
 
         settingsRouter.cleanerTool = "tool-id"
-        settingsRouter.request(FeatureSettingsDestination(.cleaner))
-        suite.expect(settingsRouter.page == .cleaner && settingsRouter.cleanerTool == "tool-id",
-               "requesting Cleaner Settings preserves its one-shot tool hint")
         settingsRouter.consumeDestinationRequest(id: settingsRouter.requestID)
         settingsRouter.cleanerTool = nil
         settingsRouter.page = .general

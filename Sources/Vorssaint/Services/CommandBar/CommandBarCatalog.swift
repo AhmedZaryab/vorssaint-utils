@@ -662,14 +662,6 @@ enum CommandBarCatalog {
                     openSettings(at: .appUpdates)
                 }))
         }
-        if AppFeature.cleaner.isAvailable {
-            entries.append(CommandBarEntry(
-                id: "action.cleaner",
-                title: s.cleanerName,
-                subtitle: area(.cleaner, under: s.cleanerName),
-                icon: .symbol("sparkle"),
-                run: { _ in openSettings(at: .cleaner) }))
-        }
         if AppFeature.uninstaller.isAvailable {
             entries.append(CommandBarEntry(
                 id: "action.uninstaller",
@@ -815,7 +807,7 @@ enum CommandBarCatalog {
     /// Pages an action row already opens; listing them again would put two
     /// rows in the list that lead to the same place.
     private static let pagesCoveredByActions: Set<SettingsPage> = [
-        .general, .cleaner, .uninstaller, .appUpdates,
+        .general, .uninstaller, .appUpdates,
     ]
 
     private static func settingsEntries(_ s: Strings,

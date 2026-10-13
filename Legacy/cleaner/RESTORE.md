@@ -1,0 +1,6 @@
+# Restore cleaner
+1. git mv the Cleaner Services/UI files here back to Sources/Vorssaint/Services/Cleaner/ and Sources/Vorssaint/UI/Cleaner/ (CleanerSupport.swift never moved, the Uninstaller shares it); Tests/ folder back to Tests/; re-add CleanerPolicy and CleanerSchedule to build.sh and the three Cleaner blocks to Tests/generate_sources.py plus the four .run(suite) lines in MetricsTests.
+2. Re-add `cleaner` to AppFeature and its lists (FeatureCatalog), FeatureSettingsSection (FeatureVisibilitySupport, with cleanerTool), the SettingsPage route in SettingsView, FeatureRuntime (`.cleaner` sync of CleanerScheduler and WhatsApp scheduler/organizer), and the WhatsApp `AppFeature.cleaner.isAvailable` guards.
+3. Re-add the cleaner* and panelUtilityCleaner DefaultsKeys and defaults, and the backup not-exported entries; re-add the tile in MenuPanelView, QuickLauncherItem, RadialMenuTool, CommandBarCatalog, PanelLayout, PanelInteractionState, FeatureHubSettings and SettingsDirectory.
+4. Restore the stripped test expectations: git show chore/cut-cleaner^:Tests/AppManagementFeatureTests.swift (and FeatureCatalogTests, UtilitiesFeatureTests, CommandBarFeatureTests, QuickLauncherActionTests, UpdateFeatureTests).
+5. Run swift build --build-tests.

@@ -75,12 +75,6 @@ def main():
                     for prefix in ["    private func refreshLaunchAtLogin()",
                                    "    private func setLaunchAtLogin("])
           + "}\n")
-    cleaner_view = "Sources/Vorssaint/UI/Cleaner/CleanerView.swift"
-    write("CleanerLayout.swift", "import SwiftUI\nextension CleanerLayoutTests.Results {\n"
-          + "".join(declaration(cleaner_view, prefix).replace("    private ", "    @ViewBuilder\n    ", 1)
-                    for prefix in ["    private var resultsState:", "    private var resultsGroups:",
-                                   "    private func section("])
-          + "}\n")
     write("NotchActivityPicker.swift", "import SwiftUI\n"
           + declaration("Sources/Vorssaint/UI/Notch/NotchView.swift", "struct NotchShape: Shape {")
           + declaration("Sources/Vorssaint/UI/Notch/NotchView.swift", "struct NotchActivityPicker: View {"))
@@ -560,41 +554,12 @@ def main():
           + "".join(declaration(mixer_section, prefix).replace("private func", "func", 1) for prefix in [
               "        private func startMonitoringEscape()", "        private func finish("])
           + "}\n}\n")
-    cleaner = "Sources/Vorssaint/Services/Cleaner/JunkCleaner.swift"
-    write("CleanerEligibilityBodies.swift", "import Foundation\nextension CleanerEligibilityTests {\n"
-          + "".join(declaration(cleaner, "    private static func " + name)
-                    .replace("private static func", "static func", 1)
-                    for name in ["appendLeftovers(", "scanCaches(", "scanLogs(",
-                                 "directorySize(", "fileSize(", "sorted(",
-                                 "scanScreenshots(", "isScreenCapture(", "extendedAttribute("])
-          + declaration(cleaner, "    private static func leftoverOwner(")
-          + declaration(cleaner, "    private static func containerOwner(")
-          + declaration(cleaner, "    private static func mayRemove(")
-          + "static func owner(_ url: URL, metadata: Bool = false) -> String? {\n"
-          + "leftoverOwner(entry: url.lastPathComponent, url: url, usesContainerMetadata: metadata)\n}\n"
-          + "static func canRemove(_ item: Item, installed: Set<String> = []) -> Bool {\n"
-          + "mayRemove(item, installed: installed)\n}\n}\n")
-    write("CleanerScanFlow.swift", "import Foundation\nextension CleanerScanFlowTests {\n"
-          + declaration(cleaner, "    enum Phase:")
-          + "final class Scanner: ScannerState {\nstatic let shared = Scanner()\n"
-          + "".join(declaration(cleaner, prefix) for prefix in ["    func reset()", "    func scan("])
-          + "}\n}\n")
-
     super_key = "Sources/Vorssaint/Services/SuperKey/SuperKeyService.swift"
     write("SuperKeyTap.swift", "import CoreGraphics\nimport Foundation\n"
           + "extension SuperKeyTapContract {\nfinal class SuperKeyService: State {\n"
           + "".join(declaration(super_key, prefix).replace("private func", "func", 1)
                     for prefix in ["    private func runEventTap()", "    private func setMappingFailure("])
             .replace("CGEvent.tapCreate(", "Tap.create(")
-          + "}\n}\n")
-
-    write("CleanerLastRun.swift", "import Foundation\nextension CleanerLastRunContract {\n"
-          + "final class Scheduler: SchedulerState {\n"
-          + declaration("Sources/Vorssaint/Services/Cleaner/CleanerScheduler.swift", "    private func finishRun(")
-            .replace("private func", "func", 1)
-          + "}\nfinal class Card: CardState {\n"
-          + declaration("Sources/Vorssaint/UI/Cleaner/CleanerView.swift", "    private var lastRunLine:")
-            .replace("private var", "var", 1)
           + "}\n}\n")
 
     updates = "Sources/Vorssaint/Services/AppUpdates/AppUpdatesService.swift"

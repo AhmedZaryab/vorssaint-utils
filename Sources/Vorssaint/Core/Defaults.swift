@@ -209,16 +209,6 @@ enum DefaultsKey {
     static let startupDidNotFinish = "startupDidNotFinish"
     // Set only while Vorssaint owes a Bluetooth restore, so a Mac shut down
     // while asleep still gets it back on the next launch.
-
-    static let cleanerScheduleFrequency = "cleanerScheduleFrequency"    // off | daily | weekly
-    static let cleanerScheduleHour = "cleanerScheduleHour"
-    static let cleanerScheduleMinute = "cleanerScheduleMinute"
-    static let cleanerScheduleWeekday = "cleanerScheduleWeekday"        // 1 Sunday ... 7 Saturday
-    static let cleanerScheduleNotify = "cleanerScheduleNotify"
-    static let cleanerLastAutoRun = "cleanerLastAutoRun"                // Double, epoch seconds
-    static let cleanerLastAutoFreed = "cleanerLastAutoFreed"            // Int bytes
-    static let cleanerLastAutoFailed = "cleanerLastAutoFailed"          // Int items left in place
-    static let cleanerScreenshotAgeDays = "cleanerScreenshotAgeDays"    // Int, 0 = off
     // Confirmed WhatsApp downloads in the top level of ~/Downloads.
     static let whatsAppDownloadsEnabled = "whatsAppDownloadsEnabled"
     static let whatsAppDownloadsAutomaticEnabled = "whatsAppDownloadsAutomaticEnabled"
@@ -261,7 +251,6 @@ enum DefaultsKey {
     static let killProcessGroupRelated = "killProcessGroupRelated"
     static let killProcessSortBy = "killProcessSortBy" // cpu | memory | name | pid
     static let killProcessSortAscending = "killProcessSortAscending"
-    static let panelUtilityCleaner = "panelUtilityCleaner"
     static let panelUtilityHomebrew = "panelUtilityHomebrew"
     static let homebrewGroupDependencies = "homebrewGroupDependencies"
     static let panelUtilityAppUpdates = "panelUtilityAppUpdates"
@@ -1256,16 +1245,6 @@ enum Defaults {
         DefaultsKey.keyboardBrightnessShortcutsEnabled: false,
         DefaultsKey.keyboardBrightnessDecreaseShortcut: "option+command:27",
         DefaultsKey.keyboardBrightnessIncreaseShortcut: "option+command:24",
-
-        DefaultsKey.cleanerScheduleFrequency: "off",
-        DefaultsKey.cleanerScheduleHour: 9,
-        DefaultsKey.cleanerScheduleMinute: 0,
-        DefaultsKey.cleanerScheduleWeekday: 2,
-        DefaultsKey.cleanerScheduleNotify: true,
-        DefaultsKey.cleanerLastAutoRun: 0.0,
-        DefaultsKey.cleanerLastAutoFreed: 0,
-        DefaultsKey.cleanerLastAutoFailed: 0,
-        DefaultsKey.cleanerScreenshotAgeDays: CleanerPolicy.defaultScreenshotAgeDays,
         DefaultsKey.whatsAppDownloadsEnabled: false,
         DefaultsKey.whatsAppDownloadsAutomaticEnabled: false,
         DefaultsKey.whatsAppDownloadsCategories: "image,video,audio",
@@ -1435,7 +1414,6 @@ enum Defaults {
         DefaultsKey.killProcessGroupRelated: true,
         DefaultsKey.killProcessSortBy: "cpu",
         DefaultsKey.killProcessSortAscending: false,
-        DefaultsKey.panelUtilityCleaner: true,
         DefaultsKey.panelUtilityHomebrew: true,
         DefaultsKey.homebrewGroupDependencies: true,
         DefaultsKey.panelUtilityAppUpdates: true,

@@ -11,7 +11,7 @@ enum QuickLauncherItem: String, PanelOrderItem, Identifiable {
     // Case order is the default grid order; the cleaner comes second, right
     // after Keep awake, by the owner's decision. Saved orders are untouched
     // (a case added later joins a saved order at the end).
-    case keepAwake, cleaner, toggles, micMute, screenOCR, colorPicker, clipboard, windowLayout,
+    case keepAwake, toggles, micMute, screenOCR, colorPicker, clipboard, windowLayout,
          cleaning, homebrew, media, uninstaller, screenshot, screenRecorder,
          cameraPreview, scratchpad
 
@@ -22,7 +22,6 @@ enum QuickLauncherItem: String, PanelOrderItem, Identifiable {
     var feature: AppFeature {
         switch self {
         case .keepAwake: return .keepAwake
-        case .cleaner: return .cleaner
         case .toggles: return .quickToggles
         case .micMute: return .micMute
         case .screenOCR: return .screenOCR
@@ -317,7 +316,7 @@ final class QuickLauncherService: ObservableObject {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 CleaningModeManager.shared.activate()
             }
-        case .windowLayout, .homebrew, .media, .uninstaller, .cleaner, .toggles:
+        case .windowLayout, .homebrew, .media, .uninstaller, .toggles:
             activeUtility = item
         }
     }

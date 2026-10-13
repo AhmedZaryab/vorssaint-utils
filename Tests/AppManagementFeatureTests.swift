@@ -14,16 +14,6 @@ import VMStatisticsCompat
 enum AppManagementFeatureTests {
     static func run(_ suite: TestSuite) {
         let registeredDefaults = Defaults.registeredDefaults
-        suite.expect(registeredDefaults[DefaultsKey.panelUtilityCleaner] as? Bool == true,
-               "the cleaner row is visible in the panel utilities like its siblings")
-        suite.expect(registeredDefaults[DefaultsKey.cleanerScheduleFrequency] as? String == "off",
-               "automatic cleanup is opt-in")
-        suite.expect(registeredDefaults[DefaultsKey.cleanerScheduleHour] as? Int == 9
-               && registeredDefaults[DefaultsKey.cleanerScheduleMinute] as? Int == 0
-               && registeredDefaults[DefaultsKey.cleanerScheduleWeekday] as? Int == 2,
-               "the schedule defaults to nine in the morning on Mondays")
-        suite.expect(registeredDefaults[DefaultsKey.cleanerScheduleNotify] as? Bool == true,
-               "the schedule reports its outcome unless the user opts out")
         suite.expect(registeredDefaults[DefaultsKey.whatsAppDownloadsEnabled] as? Bool == false,
                "WhatsApp downloads stay hidden until the user turns them on")
         suite.expect(registeredDefaults[DefaultsKey.whatsAppDownloadsAutomaticEnabled] as? Bool == false,
@@ -48,51 +38,6 @@ enum AppManagementFeatureTests {
             utcCalendar.date(from: DateComponents(year: 2026, month: 7, day: day,
                                                   hour: hour, minute: minute)) ?? Date()
         }
-        suite.expect(CleanerSchedule.nextFireDate(after: scheduleDate(9, 8, 0), frequency: .daily,
-                                            hour: 9, minute: 0, weekday: 2,
-                                            calendar: utcCalendar) == scheduleDate(9, 9, 0),
-               "a daily schedule still due today fires today")
-        suite.expect(CleanerSchedule.nextFireDate(after: scheduleDate(9, 10, 0), frequency: .daily,
-                                            hour: 9, minute: 0, weekday: 2,
-                                            calendar: utcCalendar) == scheduleDate(10, 9, 0),
-               "a daily schedule already past fires tomorrow")
-        suite.expect(CleanerSchedule.nextFireDate(after: scheduleDate(9, 10, 0), frequency: .weekly,
-                                            hour: 9, minute: 0, weekday: 2,
-                                            calendar: utcCalendar) == scheduleDate(13, 9, 0),
-               "a weekly Monday schedule queried on Thursday fires next Monday")
-        suite.expect(CleanerSchedule.nextFireDate(after: scheduleDate(9, 10, 0), frequency: .off,
-                                            hour: 9, minute: 0, weekday: 2,
-                                            calendar: utcCalendar) == nil,
-               "an off schedule never fires")
-        suite.expect(CleanerSchedule.missedRun(now: scheduleDate(9, 10, 0),
-                                         lastRun: scheduleDate(8, 9, 30),
-                                         frequency: .daily, hour: 9, minute: 0, weekday: 2,
-                                         calendar: utcCalendar),
-               "a fire that passed while the Mac was off counts as missed")
-        suite.expect(!CleanerSchedule.missedRun(now: scheduleDate(9, 10, 0),
-                                          lastRun: scheduleDate(9, 9, 30),
-                                          frequency: .daily, hour: 9, minute: 0, weekday: 2,
-                                          calendar: utcCalendar),
-               "a run that already happened today is not missed")
-        suite.expect(!CleanerSchedule.missedRun(now: scheduleDate(9, 10, 0), lastRun: nil,
-                                          frequency: .daily, hour: 9, minute: 0, weekday: 2,
-                                          calendar: utcCalendar),
-               "enabling the schedule never triggers a surprise first run")
-        suite.expect(CleanerSchedule.hour24(hour12: 12, isPM: false) == 0
-               && CleanerSchedule.hour24(hour12: 12, isPM: true) == 12
-               && CleanerSchedule.hour24(hour12: 1, isPM: true) == 13
-               && CleanerSchedule.hour24(hour12: 11, isPM: false) == 11,
-               "twelve hour picks map to the right clock hours, midnight and noon included")
-        suite.expect(CleanerSchedule.hour12Components(fromHour24: 0) == (12, false)
-               && CleanerSchedule.hour12Components(fromHour24: 12) == (12, true)
-               && CleanerSchedule.hour12Components(fromHour24: 18) == (6, true)
-               && CleanerSchedule.hour12Components(fromHour24: 9) == (9, false),
-               "clock hours split back into the twelve hour pickers")
-        suite.expect((0...23).allSatisfy { hour in
-                   let parts = CleanerSchedule.hour12Components(fromHour24: hour)
-                   return CleanerSchedule.hour24(hour12: parts.hour12, isPM: parts.isPM) == hour
-               },
-               "every hour of the day round trips through the twelve hour pickers")
 
         // MARK: WhatsApp downloads
 
@@ -648,25 +593,6 @@ enum AppManagementFeatureTests {
         // rows unchecked by default, the common clean must not pay for that
         // walk. JunkCleaner is not part of this test binary, so pin the gate
         // and the premise that makes an empty oracle safe at their source.
-        let junkCleanerSource = (try? String(
-            contentsOfFile: "Sources/Vorssaint/Services/Cleaner/JunkCleaner.swift",
-            encoding: .utf8)) ?? ""
-        let cleanSelectedBody = sourceBody(of: junkCleanerSource, from: "func cleanSelected(",
-                                           to: "private static func mayRemove")
-        suite.expect(cleanSelectedBody.contains("chosen.contains { $0.category == .leftovers }")
-               && cleanSelectedBody.contains("? Self.installedBundleIDs() : []")
-               && !cleanSelectedBody.contains("let installed = Self.installedBundleIDs()"),
-               "a clean builds the installed-apps oracle only when a leftover row is selected")
-        let mayRemoveBody = sourceBody(of: junkCleanerSource, from: "private static func mayRemove",
-                                       to: "private static func trashViaFinder")
-        let leftoverBranch = mayRemoveBody.range(of: "if item.category == .leftovers")
-        suite.expect(mayRemoveBody.components(separatedBy: "installed: installed").count == 2,
-               "the removal guard consults the installed-apps oracle exactly once")
-        suite.expect(leftoverBranch.map { branch in
-                   mayRemoveBody.range(of: "installed: installed",
-                                       range: branch.upperBound..<mayRemoveBody.endIndex) != nil
-               } == true,
-               "the removal guard reads the installed-apps oracle inside its leftovers branch")
         // The known-application roster opens every installed app, and only the
         // shared-data claims read it. AppUninstaller is not part of this test
         // binary either, so pin the gate that keeps a removal that cannot claim
@@ -812,31 +738,10 @@ enum AppManagementFeatureTests {
         suite.expect(!CleanerSupport.sharesVendorNamespace(candidate: "io.github.account.tool",
                                                      withInstalled: ["io.github.other.app"]),
                "code hosting namespaces are shared by unrelated developers and never match")
-        suite.expect(CleanerPolicy.precheckCacheEntry("Homebrew")
-               && CleanerPolicy.precheckCacheEntry("com.vendor.editor"),
-               "download caches and third party app caches start checked")
-        suite.expect(!CleanerPolicy.precheckCacheEntry("PlainVendorFolder")
-               && !CleanerPolicy.precheckCacheEntry("com.apple.Music")
-               && !CleanerPolicy.precheckCacheEntry("com.spotify.client")
-               && !CleanerPolicy.precheckCacheEntry("ms-playwright"),
-               "system, sensitive and unattributable caches start unchecked")
-        suite.expect(CleanerPolicy.isExcludedCacheEntry("com.spotify.client")
-               && CleanerPolicy.isExcludedCacheEntry("COM.SPOTIFY.CLIENT")
-               && CleanerPolicy.isExcludedCacheEntry("com.spotify.client.helper"),
-               "caches holding installed customizations are excluded even when all caches are selected")
-        suite.expect(!CleanerPolicy.isExcludedCacheEntry("com.vendor.editor")
-               && !CleanerPolicy.isExcludedCacheEntry("ms-playwright"),
-               "ordinary and downloadable sensitive caches remain available for review")
         suite.expect(CleanerSupport.Category.deviceBackups.rawValue == 6
                && CleanerSupport.Category.screenshots.rawValue == 7
                && CleanerSupport.Category.allCases.count == 8,
                "device backups and screenshots joined the cleaner with stable category ids")
-        suite.expect(!CleanerPolicy.precheckDeviceBackups,
-               "device backups never start checked, they are the user's safety net")
-        suite.expect(!CleanerPolicy.precheckScreenshots
-               && registeredDefaults[DefaultsKey.cleanerScreenshotAgeDays] as? Int == 30
-               && CleanerPolicy.sanitizedScreenshotAgeDays(-3) == 0,
-               "forgotten screenshots start unchecked after a 30 day default")
         // CleanerScheduler and CleanerView are outside this test binary, so
         // pin escalation at the call sites: the unattended pass must never
         // reach Finder's administrator prompt, and no default lets a later
@@ -845,22 +750,6 @@ enum AppManagementFeatureTests {
             ((try? String(contentsOfFile: path, encoding: .utf8)) ?? "")
                 .split(whereSeparator: \.isWhitespace).joined()
         }
-        let schedulerCode = compact("Sources/Vorssaint/Services/Cleaner/CleanerScheduler.swift")
-        let cleanerViewCode = compact("Sources/Vorssaint/UI/Cleaner/CleanerView.swift")
-        suite.expect(schedulerCode.components(separatedBy: "cleanSelected(").count == 2
-               && schedulerCode.contains("cleanSelected(escalate:false)")
-               && schedulerCode.contains("notifyIfWanted(freed:freed,failed:failed)"),
-               "the scheduled clean never escalates and reports what it left in place")
-        suite.expect(junkCleanerSource.contains("func cleanSelected(escalate: Bool) {")
-               && cleanerViewCode.components(separatedBy: "cleanSelected(").count == 2
-               && cleanerViewCode.contains("cleanSelected(escalate:true)"),
-               "cleanSelected has no default escalation and the manual clean still asks")
-        suite.expect(schedulerCode.contains("cleaner.scan(attended:false)")
-               && cleanerViewCode.contains("cleaner.scan(attended:true)"),
-               "only a scan someone started reads the screenshot folders")
-        suite.expect(CleanerPolicy.developerJunkPaths.contains("/Library/Developer/Xcode/iOS DeviceSupport")
-               && CleanerPolicy.developerJunkPaths.contains("/Library/Developer/Xcode/watchOS DeviceSupport"),
-               "stale DeviceSupport symbol caches count as developer junk")
         suite.expect(CleanerSupport.looksLikeBundleID("com.vendor.editor")
                && CleanerSupport.looksLikeBundleID("com.foo.Bar-Helper_2")
                && CleanerSupport.looksLikeBundleID("test.editor")

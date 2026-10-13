@@ -105,7 +105,6 @@ enum QuickLauncherContract {
             (.homebrew, .homebrew, nil, nil),
             (.media, .mediaTools, nil, nil),
             (.uninstaller, .uninstaller, nil, nil),
-            (.cleaner, .cleaner, nil, nil),
             (.toggles, .quickToggles, nil, nil),
         ]
         suite.expect(Set(cases.map { $0.0 }) == Set(QuickLauncherItem.allCases),
