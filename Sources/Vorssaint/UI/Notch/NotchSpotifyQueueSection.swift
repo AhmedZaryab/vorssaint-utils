@@ -6,6 +6,7 @@ import SwiftUI
 /// Spotify's own queue on the music page, read from the Web API.
 struct NotchSpotifyQueueSection: View {
     @ObservedObject private var auth = SpotifyWebAuth.shared
+    @ObservedObject private var privateAuth = SpotifyPrivateAuth.shared
     @ObservedObject private var service = SpotifyQueueService.shared
     @State private var searchText = ""
     @State private var showsSearch = false
@@ -14,7 +15,7 @@ struct NotchSpotifyQueueSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             header
-            if !auth.isConnected {
+            if !connected {
                 connectPrompt
             } else {
                 if showsSearch { searchArea }
@@ -54,15 +55,18 @@ struct NotchSpotifyQueueSection: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .onAppear { service.setVisible(true) }
         .onDisappear { service.setVisible(false) }
-        .onChange(of: auth.isConnected) { _, connected in service.setVisible(connected) }
+        .onChange(of: connected) { _, connected in service.setVisible(connected) }
     }
+
+    /// Either login works: the Spotify login first, the developer app second.
+    private var connected: Bool { privateAuth.isConnected || auth.isConnected }
 
     private var header: some View {
         HStack(spacing: 6) {
             Text(text.upNext).font(.callout.weight(.semibold))
             Spacer()
             if service.loading || service.actionPending || service.searching { ProgressView().controlSize(.mini) }
-            if auth.isConnected {
+            if connected {
                 iconButton("backward.end.fill", text.skipPrevious) { service.skipPrevious() }
                 iconButton("forward.end.fill", text.skipNext) { service.skipNext() }
                 iconButton(showsSearch ? "xmark" : "plus", text.addToQueue) {
@@ -76,9 +80,8 @@ struct NotchSpotifyQueueSection: View {
     private var connectPrompt: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(text.connectPrompt).font(.callout).foregroundStyle(.secondary)
-            NotchPillButton(title: auth.connecting ? text.connecting : text.connect, prominent: true) { auth.connect() }
-                .disabled(auth.connecting)
-            if let error = auth.lastError {
+            NotchPillButton(title: text.connect, prominent: true) { privateAuth.login() }
+            if let error = privateAuth.lastError ?? auth.lastError {
                 Text(error).font(.caption).foregroundStyle(.orange).lineLimit(3)
             }
         }
