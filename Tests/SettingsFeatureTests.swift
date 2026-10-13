@@ -95,15 +95,6 @@ enum SettingsFeatureTests {
                 && islandKeys.isDisjoint(with: oldKeysToClear)
                 && oldKeysToClear.contains(DefaultsKey.switcherEnabled),
                "a pre-island backup leaves local island settings intact while importing other preferences")
-        suite.expect(Defaults.registeredDefaults[DefaultsKey.musicBlockPlayReplacement] as? Bool == true
-                && backupKeys.contains(DefaultsKey.musicBlockPlayReplacement),
-               "replacement playback keeps the current default and its opt-out travels with settings backup")
-        let replacementOptOut = SettingsBackupSupport.payload(appVersion: "test") { key in
-            key == DefaultsKey.musicBlockPlayReplacement ? false : nil
-        }
-        suite.expect(SettingsBackupSupport.sanitizedSettings(from: replacementOptOut)?[
-                    DefaultsKey.musicBlockPlayReplacement] as? Bool == false,
-               "restoring a backup preserves the choice to open the replacement without playing")
         let retiredDisplayBackup: [String: Any] = [
             SettingsBackupSupport.formatVersionKey: SettingsBackupSupport.formatVersion,
             SettingsBackupSupport.settingsKey: [DefaultsKey.notchDisplay: "chosen"],

@@ -217,13 +217,6 @@ def main():
                         "    func commitEdits(", "    private func flushSave(", "    private func save(",
                         "    func createPad("])
           + "}\n}\n")
-    write("MusicLaunchBlockerLifecycle.swift", "import AppKit\nimport Foundation\n"
-          + "extension MusicLaunchBlockerContract {\nfinal class Service: Fixture {\n"
-          + "".join(declaration("Sources/Vorssaint/Services/Audio/MusicLaunchBlocker.swift", prefix)
-                    .replace("private ", "", 1) for prefix in [
-                        "    func syncWithPreferences(", "    private func start(", "    func stop(",
-                        "    private func handleLaunch(", "    private func handleMediaKeyEvent("])
-          + "}\n}\n")
     middle_click_lifecycle = "".join(
         declaration("Sources/Vorssaint/Services/MiddleClick/MiddleClickService.swift", prefix)
         .replace("private ", "", 1) for prefix in [

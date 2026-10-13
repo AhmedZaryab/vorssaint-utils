@@ -26,10 +26,6 @@ enum AppManagementFeatureTests {
                "no Bluetooth restore is owed before the first sleep")
         suite.expect(!SettingsBackupSupport.exportKeys().contains(DefaultsKey.bluetoothSleepRestorePending),
                "a Bluetooth restore owed by one sleeping Mac never travels to another")
-        suite.expect(registeredDefaults[DefaultsKey.musicBlockEnabled] as? Bool == false,
-               "blocking the music app from launching is opt-in")
-        suite.expect(registeredDefaults[DefaultsKey.musicBlockReplacementPath] as? String == "",
-               "the music replacement app starts unset")
         suite.expect(registeredDefaults[DefaultsKey.panelUtilityCleaner] as? Bool == true,
                "the cleaner row is visible in the panel utilities like its siblings")
         suite.expect(registeredDefaults[DefaultsKey.cleanerScheduleFrequency] as? String == "off",

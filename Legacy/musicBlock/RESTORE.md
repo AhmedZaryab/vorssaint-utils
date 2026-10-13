@@ -1,0 +1,6 @@
+# Restore musicBlock (parked, not deleted)
+1. git mv Legacy/musicBlock/MusicLaunch{Blocker,Support}.swift Sources/Vorssaint/Services/Audio/; MusicBlockingSettings.swift body goes back at the end of UI/Settings/GeneralToolSettings.swift; MusicLaunchBlockerContract.swift goes to Tests/ (and its generate_sources.py block, build.sh test list entry for MusicLaunchSupport.swift).
+2. Catalog: re-add `musicBlock` to AppFeature (sound category, icon "music.note", enabledKeys musicBlockEnabled, permissions [.accessibility], energy .keyboard, runtime/preset/AppDelegate accessibility lists), the 3 musicBlock* DefaultsKey constants + defaults (Replacement path stays excluded from SettingsBackupSupport).
+3. Runtime: FeatureRuntime `.musicBlock: { MusicLaunchBlocker.shared.syncWithPreferences() }`; settings page: `musicBlocking` SettingsSectionAnchor (+ page, destination, SettingsView list, GeneralToolSettings case), FeatureHubSettings title/desc, SettingsDirectory featureKeywords.
+4. Strings (musicBlock*, titleMusicBlock/descMusicBlock) were left in Core/Localization*, FeatureHubStrings.
+5. Tests: restore removed blocks with `git show ours:Tests/<file>` (FeatureCatalogTests, UpdateFeatureTests, AppManagementFeatureTests, PreferencesFeatureTests, SettingsFeatureTests, NotchMusicAutomationTests playbackNeverArrived check).

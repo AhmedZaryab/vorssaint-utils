@@ -177,7 +177,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSW
                     .dockPreview, .finderCutPaste, .finderRename, .autoQuit, .dockClick,
                     .middleClick, .windowMaximizer, .keyboardDebounce, .windowLayout,
                     .textSnippets, .brightness, .radialMenu, .mouseButtonShortcuts,
-                    .mouseClickDebounce, .superKey, .mixer, .musicBlock, .notch,
+                    .mouseClickDebounce, .superKey, .mixer, .notch,
                 ])
             }
             .store(in: &cancellables)
