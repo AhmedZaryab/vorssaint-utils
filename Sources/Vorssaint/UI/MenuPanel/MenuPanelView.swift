@@ -1113,7 +1113,7 @@ struct UtilitiesSection: View {
 
 private enum ControlPanelItem: String, PanelOrderItem, Identifiable {
     case mouseScroll, linearScroll, focusFollowsMouse, mouseAcceleration, mouseNavigation, switcher, cutPaste, autoQuit, shelf, windowMaximize, dockPreview,
-         dockClick, dockClickHide, dockClickCycle, middleClick, textSnippets, radialMenu, mouseButtonShortcuts, superKey,
+         dockClick, dockClickHide, dockClickCycle, middleClick, textSnippets, radialMenu, mouseButtonShortcuts,
          mouseClickDebounce, notch, spacesOrder
 
     var id: String { rawValue }
@@ -1140,7 +1140,6 @@ private enum ControlPanelItem: String, PanelOrderItem, Identifiable {
         case .spacesOrder: return .spacesOrder
         case .radialMenu: return .radialMenu
         case .mouseButtonShortcuts: return .mouseButtonShortcuts
-        case .superKey: return .superKey
         case .mouseClickDebounce: return .mouseClickDebounce
         }
     }
@@ -1159,7 +1158,7 @@ private enum ControlCategory: String, CaseIterable, Identifiable {
              .spacesOrder:
             return .windows
         case .mouseScroll, .linearScroll, .focusFollowsMouse, .mouseAcceleration, .mouseNavigation, .mouseButtonShortcuts, .middleClick,
-             .textSnippets, .radialMenu, .superKey, .mouseClickDebounce:
+             .textSnippets, .radialMenu, .mouseClickDebounce:
             return .inputDevices
         case .cutPaste, .shelf:
             return .files
@@ -1203,14 +1202,9 @@ struct QuickControlsSection: View {
     @AppStorage(DefaultsKey.radialMenuEnabled) private var radialMenuEnabled = false
     @AppStorage(DefaultsKey.mouseButtonShortcutsEnabled) private var mouseButtonShortcutsEnabled = false
     @AppStorage(DefaultsKey.mouseSpacesGestureEnabled) private var spacesEnabled = false
-    @AppStorage(DefaultsKey.superKeyEnabled) private var superKeyEnabled = false
     @AppStorage(DefaultsKey.mouseAccelerationDisabled) private var mouseAccelerationDisabled = false
     @AppStorage(DefaultsKey.linearScrollEnabled) private var linearScrollEnabled = false
     @AppStorage(DefaultsKey.mouseClickDebounceEnabled) private var mouseClickDebounceEnabled = false
-    @AppStorage(DefaultsKey.superKeyModifiers) private var superKeyModifierStorage =
-        SuperKeySupport.defaultModifierStorageValue
-    @AppStorage(DefaultsKey.superKeySource) private var superKeySourceRaw =
-        SuperKeySource.capsLock.rawValue
     @AppStorage(DefaultsKey.panelControlMouseScroll) private var showScroll = true
     @AppStorage(DefaultsKey.panelControlLinearScroll) private var showLinearScroll = true
     @AppStorage(DefaultsKey.panelControlFocusFollowsMouse) private var showFocusFollowsMouse = true
@@ -1229,7 +1223,6 @@ struct QuickControlsSection: View {
     @AppStorage(DefaultsKey.panelControlTextSnippets) private var showTextSnippets = true
     @AppStorage(DefaultsKey.panelControlRadialMenu) private var showRadialMenu = true
     @AppStorage(DefaultsKey.panelControlMouseButtonShortcuts) private var showMouseButtonShortcuts = true
-    @AppStorage(DefaultsKey.panelControlSuperKey) private var showSuperKey = true
     @AppStorage(DefaultsKey.panelControlMouseAcceleration) private var showMouseAcceleration = true
     @AppStorage(DefaultsKey.panelControlMouseClickDebounce) private var showMouseClickDebounce = true
     @AppStorage(DefaultsKey.panelControlWindowsExpanded) private var windowsExpanded = false
@@ -1352,7 +1345,6 @@ struct QuickControlsSection: View {
         case .notch: return notchEnabled
         case .radialMenu: return radialMenuEnabled
         case .mouseButtonShortcuts: return mouseButtonShortcutsEnabled || spacesEnabled
-        case .superKey: return superKeyEnabled
         case .mouseClickDebounce: return mouseClickDebounceEnabled
         }
     }
@@ -1431,7 +1423,6 @@ struct QuickControlsSection: View {
         case .notch: return showNotch
         case .radialMenu: return showRadialMenu
         case .mouseButtonShortcuts: return showMouseButtonShortcuts
-        case .superKey: return showSuperKey
         case .mouseClickDebounce: return showMouseClickDebounce
         }
     }
@@ -1771,34 +1762,6 @@ struct QuickControlsSection: View {
                     MouseButtonShortcutService.shared.syncWithPreferences()
                     requestAccessibilityIfNeeded(enabled)
                 }
-        case .superKey:
-            let superKeyStrings = FeatureStrings.superKey(l10n.language)
-            let superKeySource = SuperKeySource.sanitized(superKeySourceRaw)
-            let modifierCaption = String(
-                format: superKeyStrings.panelCaptionFormat,
-                superKeyStrings.sourceLabel(superKeySource),
-                SuperKeySupport.modifiers(from: superKeyModifierStorage).keyCaps.joined()
-            )
-            PanelToggleRow(title: superKeyStrings.pageTitle,
-                           caption: caption(modifierCaption,
-                                            needsAccessibility: superKeyEnabled),
-                           systemImage: superKeySource.systemImage,
-                           isOn: $superKeyEnabled,
-                           isEditing: editing,
-                           showsDragHandle: true,
-                           visibility: $showSuperKey,
-                           needsAttention: superKeyEnabled && !permissions.accessibility,
-                           permissionButtonTitle: l10n.s.permissionRequest,
-                           permissionAction: accessibilityPermissionAction(superKeyEnabled),
-                           accessoryTitle: superKeyEnabled ? superKeyStrings.manageButton : nil,
-                           accessoryAction: {
-                               SettingsRouter.shared.page = .superKey
-                               appDelegate()?.openSettingsWindow()
-                           })
-                .onChange(of: superKeyEnabled) { _, enabled in
-                    SuperKeyService.shared.syncWithPreferences()
-                    requestAccessibilityIfNeeded(enabled)
-                }
         case .mouseAcceleration:
             PanelToggleRow(title: l10n.s.mouseAccelerationName,
                            caption: l10n.s.mouseAccelerationCaption,
@@ -1870,7 +1833,6 @@ struct QuickControlsSection: View {
         showTextSnippets = true
         showRadialMenu = true
         showMouseButtonShortcuts = true
-        showSuperKey = true
         showMouseAcceleration = true
         showLinearScroll = true
         showMouseClickDebounce = true

@@ -392,7 +392,7 @@ enum FeatureCatalogTests {
         suite.expect(AppFeature.allCases.map(\.rawValue) == [
             "switcher", "dockPreview", "dockClick", "windowMaximizer", "windowLayout", "autoQuit", "spacesOrder",
             "scrollInverter", "scrollHorizontal", "focusFollowsMouse", "smoothScroll", "linearScroll", "mouseAcceleration", "mouseNavigation", "mouseButtonShortcuts", "middleClick",
-            "mouseClickDebounce", "textSnippets", "superKey",
+            "mouseClickDebounce", "textSnippets",
             "clipboardHistory", "pastePlain", "finderCutPaste", "finderRename", "shelf", "urlCleaner",
             "diskImageInstaller",
             "mixer", "soundOutputSwitcher", "audioPriority", "micMute", "musicBlock",
@@ -564,7 +564,7 @@ enum FeatureCatalogTests {
         let installedOnUpdate: Set<String> = [
             "switcher", "dockPreview", "dockClick", "windowMaximizer", "windowLayout", "autoQuit",
             "scrollInverter", "smoothScroll", "mouseAcceleration", "mouseNavigation", "mouseButtonShortcuts",
-            "middleClick", "mouseClickDebounce", "textSnippets", "superKey",
+            "middleClick", "mouseClickDebounce", "textSnippets",
             "clipboardHistory", "pastePlain", "finderCutPaste", "finderRename", "shelf", "urlCleaner",
             "mixer", "soundOutputSwitcher", "micMute", "musicBlock",
             "keepAwake", "brightness",
@@ -651,7 +651,7 @@ enum FeatureCatalogTests {
                                                 isSaved: { _ in false }) == offeredWhenUnused,
                "an install where nothing was ever switched on offers the whole list")
         suite.expect(!AppFeature.neverSwitchedOn(isAvailable: everythingInstalled, boolFor: { _ in false },
-                                                 isSaved: { $0 == DefaultsKey.superKeyEnabled }).contains(.superKey),
+                                                 isSaved: { $0 == DefaultsKey.mouseClickDebounceEnabled }).contains(.mouseClickDebounce),
                "a switch turned on and back off keeps its feature off the offer")
         suite.expect(!AppFeature.neverSwitchedOn(isAvailable: everythingInstalled,
                                                  boolFor: { $0 == DefaultsKey.dockClickHide },
@@ -1527,36 +1527,6 @@ enum FeatureCatalogTests {
                 .contains(where: \.isKeyboardBrightness),
                "removing the brightness feature releases both keyboard shortcuts")
 
-        let superSpace = GlobalShortcut(keyCode: Int64(kVK_Space), modifiers: .validMask)
-        let customSuperSpace = GlobalShortcut(keyCode: Int64(kVK_Space),
-                                              modifiers: [.control, .option, .command])
-        suite.expect(superSpace.superKeyAlternative(sourceLabel: "Right ⌘",
-                                              superKeyModifiers: .validMask) == "Right ⌘ + Space"
-                && customSuperSpace.superKeyAlternative(
-                    sourceLabel: "Right ⌘",
-                    superKeyModifiers: [.control, .option, .command]) == "Right ⌘ + Space"
-                && GlobalShortcut.commandBarDefault.superKeyAlternative(
-                    sourceLabel: "Right ⌘",
-                    superKeyModifiers: [.control, .option, .command]) == nil,
-               "the shortcut editor follows the configured Super key modifiers")
-
-        // MARK: Super key held-key watchdog
-        // The source key (F18) does not autorepeat, so a steadily-held key
-        // reaches the watchdog just like a lost release. The physical key state
-        // is what tells them apart.
-        suite.expect(SuperKeySupport.heldKeyWatchdogOutcome(physicalKeyDown: true, stateThinksHeld: true, tapAlive: true)
-                == .reArm,
-               "a key still physically down keeps the hold alive")
-        suite.expect(SuperKeySupport.heldKeyWatchdogOutcome(physicalKeyDown: false, stateThinksHeld: true, tapAlive: true)
-                == .forget,
-               "a key that has come up ends the hold (its release was missed)")
-        suite.expect(SuperKeySupport.heldKeyWatchdogOutcome(physicalKeyDown: true, stateThinksHeld: false, tapAlive: true)
-                == .forget,
-               "nothing to keep alive once the state is no longer held")
-        suite.expect(SuperKeySupport.heldKeyWatchdogOutcome(physicalKeyDown: true, stateThinksHeld: true, tapAlive: false)
-                == .forget,
-               "a torn-down tap cannot stamp modifiers, so the hold is dropped")
-
         // MARK: Features hub strings
 
         for language in AppLanguage.allCases {
@@ -1638,28 +1608,9 @@ enum FeatureCatalogTests {
                "Kill Process reports no descendants for a leaf and never follows a self-parenting row")
 
         for language in AppLanguage.allCases {
-            let superKeyValues = Mirror(reflecting: FeatureStrings.superKey(language)).children
-                .compactMap { $0.value as? String }
-            let refusals = SuperKeyMappingFailure.allCases.map {
-                FeatureStrings.superKey(language).mappingFailure($0)
-            }
-            suite.expect(Set(refusals).count == SuperKeyMappingFailure.allCases.count
-                    && refusals.allSatisfy { !$0.isEmpty },
-                   "every reason the key mapping is refused reads differently (\(language.rawValue))")
-            let superKeyStrings = FeatureStrings.superKey(language)
-            suite.expect(superKeyValues.allSatisfy { !$0.contains("—") }
-                    && superKeyStrings.enableToggle != superKeyStrings.pageTitle
-                    && superKeyStrings.rightKeyFormat.contains("%@")
-                    && superKeyStrings.panelCaptionFormat.contains("%1$@")
-                    && superKeyStrings.panelCaptionFormat.contains("%2$@")
-                    && SuperKeySource.allCases.allSatisfy {
-                        !superKeyStrings.sourceLabel($0).isEmpty
-                    },
-                   "super key strings keep their format and avoid em-dashes (\(language.rawValue))")
             let shortcutValues = Mirror(reflecting: FeatureStrings.shortcuts(language)).children
                 .compactMap { $0.value as? String }
-            suite.expect(shortcutValues.allSatisfy { !$0.contains("—") }
-                    && FeatureStrings.shortcuts(language).superKeyAlternativeFormat.contains("%@"),
+            suite.expect(shortcutValues.allSatisfy { !$0.contains("—") },
                    "shortcut editor strings keep their format and avoid em-dashes (\(language.rawValue))")
             suite.expect(FeatureStrings.feedback(language).charactersFormat.contains("%d"),
                    "feedback character format keeps its placeholder (\(language.rawValue))")

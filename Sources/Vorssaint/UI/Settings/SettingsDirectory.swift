@@ -44,11 +44,10 @@ enum SettingsDirectory {
     /// first and separate everyday controls from the longer tool list.
     static func sidebarSections(_ s: Strings,
                                 language: AppLanguage,
-                                superKeySource: SuperKeySource = SuperKeyService.shared.source,
                                 isAvailable: (AppFeature) -> Bool) -> [SettingsSidebarSection] {
         let hub = FeatureStrings.hub(language)
         let grouped: [SettingsSidebarSection] = sections(
-            s, language: language, superKeySource: superKeySource
+            s, language: language
         ).enumerated().compactMap { index, section -> SettingsSidebarSection? in
                 let items = section.items.flatMap { pageItem -> [SettingsSidebarItem] in
                     var rows = SettingsSidebarSupport.items(
@@ -129,17 +128,15 @@ enum SettingsDirectory {
 
     static func sidebarItems(_ s: Strings,
                              language: AppLanguage,
-                             superKeySource: SuperKeySource = SuperKeyService.shared.source,
                              isAvailable: (AppFeature) -> Bool) -> [SettingsSidebarItem] {
-        sidebarSections(s, language: language, superKeySource: superKeySource,
+        sidebarSections(s, language: language,
                         isAvailable: isAvailable).flatMap(\.items)
     }
 
     /// Destination-aware rows for focused Settings and Command Bar search.
     static func searchItems(_ s: Strings,
-                            language: AppLanguage,
-                            superKeySource: SuperKeySource = SuperKeyService.shared.source) -> [SettingsSearchItem] {
-        let pageItems = sections(s, language: language, superKeySource: superKeySource)
+                            language: AppLanguage) -> [SettingsSearchItem] {
+        let pageItems = sections(s, language: language)
             .flatMap(\.items).map { item in
                 SettingsSearchItem(id: .page(item.page),
                                    destination: FeatureSettingsDestination(item.page),
@@ -167,8 +164,7 @@ enum SettingsDirectory {
     }
 
     static func sections(_ s: Strings,
-                         language: AppLanguage,
-                         superKeySource: SuperKeySource = SuperKeyService.shared.source)
+                         language: AppLanguage)
         -> [(title: String, items: [SettingsDirectoryItem])] {
         let categories = FeatureStrings.settingsCategories(language)
         return [
@@ -402,12 +398,6 @@ enum SettingsDirectory {
                                        featureKeywords: SettingsSearchSupport
                                         .screenCaptureFeatureKeywords(s, language: language)),
                 SettingsDirectoryItem(page: .urlCleaner, title: s.urlCleanerName, icon: "link"),
-                SettingsDirectoryItem(page: .superKey,
-                                      title: FeatureStrings.superKey(language).pageTitle,
-                                      icon: superKeySource.systemImage,
-                                      keywords: SuperKeySource.allCases.map {
-                                          FeatureStrings.superKey(language).sourceLabel($0)
-                                      }),
                 SettingsDirectoryItem(page: .textSnippets,
                                       title: FeatureStrings.snippets(language).pageTitle,
                                       icon: "text.append",
