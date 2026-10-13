@@ -313,7 +313,6 @@ final class FeatureRuntime: ObservableObject {
             HotkeyManager.shared.syncWithPreferences()
         },
         .brightness: { BrightnessService.shared.syncWithPreferences() },
-        .extraBrightness: { ExtraBrightnessService.shared.syncWithPreferences() },
         .quickLauncher: { QuickLauncherService.shared.syncWithPreferences() },
         .colorPicker: {
             ScreenCaptureService.shared.syncWithPreferences()

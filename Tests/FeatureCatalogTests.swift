@@ -396,7 +396,7 @@ enum FeatureCatalogTests {
             "clipboardHistory", "pastePlain", "finderCutPaste", "finderRename", "shelf", "urlCleaner",
             "diskImageInstaller",
             "mixer", "soundOutputSwitcher", "audioPriority", "micMute", "musicBlock",
-            "keepAwake", "brightness", "extraBrightness",
+            "keepAwake", "brightness",
             "quickLauncher", "quickToggles", "colorPicker", "screenOCR", "cleaningMode", "mediaTools",
             "cleaner", "uninstaller", "homebrew", "appUpdates", "screenshot", "cameraPreview",
             "radialMenu", "scratchpad", "commandBar", "screenRecorder", "wallpaper", "killProcess", "portManager", "notch", "notchCalendar", "notchNotifications", "notchGestures", "notchTimer", "notchAccessories", "notchLyrics", "notchQueue", "spotifyQueue", "notchLiveEqualizer", "notchDownloads", "notchAgents", "notchWatch", "notchMascot",
@@ -567,7 +567,7 @@ enum FeatureCatalogTests {
             "middleClick", "mouseClickDebounce", "textSnippets", "superKey",
             "clipboardHistory", "pastePlain", "finderCutPaste", "finderRename", "shelf", "urlCleaner",
             "mixer", "soundOutputSwitcher", "micMute", "musicBlock",
-            "keepAwake", "brightness", "extraBrightness",
+            "keepAwake", "brightness",
             "quickLauncher", "quickToggles", "colorPicker", "screenOCR", "cleaningMode", "mediaTools",
             "cleaner", "uninstaller", "homebrew", "appUpdates", "screenshot", "cameraPreview", "radialMenu",
             "scratchpad", "commandBar", "screenRecorder",
@@ -1913,9 +1913,8 @@ enum FeatureCatalogTests {
         suite.expect(!pageVisible(.mouse, available: []),
                "the mouse page hides only with all eight mouse features off")
         suite.expect(!pageVisible(.energy, available: allFeatures.subtracting([.keepAwake, .brightness,
-                                                                         .extraBrightness])),
+                                                                         ])),
                "energy hides when all four of its features are off")
-        suite.expect(pageVisible(.energy, available: [.extraBrightness]), "XDR alone keeps the energy page")
         suite.expect(pageVisible(.energy, available: [.brightness]),
                "brightness control alone keeps the energy page")
         suite.expect(!pageVisible(.monitor, available: allFeatures.subtracting(Set(FeatureVisibilitySupport.monitorFeatures))),
@@ -2148,7 +2147,7 @@ enum FeatureCatalogTests {
         generalToolRouter.page = .energy
         generalToolRouter.request(FeatureSettingsDestination(.energy, sectionAnchor: .keepAwake))
         generalToolRouter.request(FeatureSettingsDestination(.energy, sectionAnchor: .brightness))
-        generalToolRouter.request(FeatureSettingsDestination(.energy, sectionAnchor: .extraBrightness),
+        generalToolRouter.request(FeatureSettingsDestination(.energy, sectionAnchor: .keepAwake),
                                   replacingVisit: true)
         generalToolRouter.goBack()
         suite.expect(generalToolRouter.destination == FeatureSettingsDestination(.energy, sectionAnchor: .keepAwake),

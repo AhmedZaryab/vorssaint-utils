@@ -207,7 +207,6 @@ enum SettingsDirectory {
                                                        FeatureStrings.brightness(language).keyStep,
                                                        FeatureStrings.brightness(language).keyStepHalf,
                                                        FeatureStrings.brightness(language).keyStepQuarter]),
-                                        (.extraBrightness, [s.extraBrightnessName]),
                                        ]),
                 SettingsDirectoryItem(page: .monitor, title: s.tabMonitor, icon: "chart.line.uptrend.xyaxis",
                                        keywords: [s.menuBarSpacingLabel, s.menuBarHideIconToggle],
