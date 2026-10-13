@@ -59,7 +59,7 @@ struct SpotifyQueueStrings {
         fromAlbum: "From the album",
         noAnswer: "Spotify did not answer (code %d), retrying",
         retry: "Retry",
-        reorderLimit: "Spotify does not let apps reorder the queue. Tap a song to play it now.",
+        reorderLimit: "Drag to reorder. Tap a song to play it now.",
         searchPlaceholder: "Add a song to the queue",
         addToQueue: "Add to queue",
         playNow: "Play now",
