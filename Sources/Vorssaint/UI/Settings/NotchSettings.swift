@@ -72,6 +72,7 @@ struct NotchSettings: View {
     @AppStorage(DefaultsKey.notchShowInCaptures) private var showInCaptures = true
     @AppStorage(DefaultsKey.notchLockScreen) private var lockScreen = false
     @AppStorage(DefaultsKey.notchLockSounds) private var lockSounds = false
+    @AppStorage(DefaultsKey.notchLockStatus) private var lockStatus = false
     @AppStorage(DefaultsKey.notchSize) private var size = NotchSize.spacious.rawValue
     @AppStorage(DefaultsKey.notchOutlineEnabled) private var outlineEnabled = false
     @AppStorage(DefaultsKey.notchHideMenuBarGap) private var hideMenuBarGap = true
@@ -593,6 +594,8 @@ struct NotchSettings: View {
             let locked = FeatureStrings.notchLockScreen(l10n.language)
             SettingsCard(title: locked.title) {
                 switchRow("lock.display", locked.show, caption: locked.showHint, isOn: $lockScreen)
+                switchRow("battery.75percent", FeatureStrings.notchLockStatus(l10n.language).show,
+                          caption: FeatureStrings.notchLockStatus(l10n.language).hint, isOn: $lockStatus)
                 switchRow("speaker.wave.2", locked.sounds, caption: locked.soundsHint, isOn: $lockSounds)
             }
         }

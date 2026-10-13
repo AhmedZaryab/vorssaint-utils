@@ -14,6 +14,8 @@ final class NotchLockScreenModel: ObservableObject {
         var downloads = false
         var countdown = false
         var timeLeft = false
+        var battery = false
+        var keepAwake = false
     }
 
     @Published var gates = Gates()
@@ -303,6 +305,7 @@ struct NotchLockScreenActivities: View {
     @ObservedObject private var usage = AgentUsageService.shared
     @ObservedObject private var downloads = NotchDownloadService.shared
     @ObservedObject private var calendar = NotchCalendarService.shared
+    @ObservedObject private var awake = KeepAwakeManager.shared
     @ObservedObject private var l10n = L10n.shared
     @AppStorage(DefaultsKey.notchAgentsReadout) private var readout = NotchAgentReadout.elapsed.rawValue
     @AppStorage(DefaultsKey.notchAgentsLimitDisplay) private var display = NotchAgentLimitDisplay.remaining.rawValue
@@ -332,7 +335,9 @@ struct NotchLockScreenActivities: View {
                 ($0.ongoing ? gates.timeLeft : gates.countdown || calendar.isChosen($0.event)) && $0.isShown(at: date)
             } == true,
             agents: gates.agents && !usage.snapshot.live.isEmpty,
-            downloads: gates.downloads && downloads.items.contains { $0.active && !$0.completed })
+            downloads: gates.downloads && downloads.items.contains { $0.active && !$0.completed },
+            battery: gates.battery && SystemInfo.batterySnapshot() != nil,
+            keepAwake: gates.keepAwake && awake.isActive)
     }
 
     private func line(_ items: [NotchLockScreenActivity], at date: Date) -> some View {
@@ -398,6 +403,29 @@ struct NotchLockScreenActivities: View {
             .accessibilityLabel(working.map(\.displayName).joined(separator: ", ") + ", "
                                 + FeatureStrings.notchLockScreen(l10n.language).working)
             .accessibilityValue(reading)
+        case .battery:
+            if let info = SystemInfo.batterySnapshot() {
+                let text = FeatureStrings.notchLockStatus(l10n.language)
+                HStack(spacing: 7) {
+                    Image(systemName: info.isCharging ? "battery.100percent.bolt" : info.percent <= 20 ? "battery.25percent" : "battery.75percent")
+                        .foregroundStyle(info.isCharging ? Color.green : info.percent <= 20 ? Color.red : Color.white)
+                    Text(Double(info.percent) / 100, format: .percent.precision(.fractionLength(0)))
+                }
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel(text.battery)
+            }
+        case .keepAwake:
+            let text = FeatureStrings.notchLockStatus(l10n.language)
+            HStack(spacing: 7) {
+                Image(systemName: NotchKeepAwakeSupport.symbol).foregroundStyle(.orange)
+                if let end = awake.endDate {
+                    Text(NotchKeepAwakeSupport.compactText(until: end, now: date, locale: Locale(identifier: l10n.language.rawValue)))
+                } else {
+                    Image(systemName: NotchKeepAwakeSupport.openSymbol)
+                }
+            }
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(text.keepAwake)
         case .downloads:
             // Progress without the file's name, which stays off the lock screen.
             let fraction = downloads.items.first(where: { $0.active && !$0.completed })?.fraction
