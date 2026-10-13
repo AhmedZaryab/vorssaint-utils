@@ -43,7 +43,6 @@ enum SettingsSectionAnchor: String, CaseIterable, Hashable {
     case screenOCR
     case micMute
     case cameraPreview
-    case wallpaper
     case scratchpad
     case cleaningMode
     case soundOutputSwitcher
@@ -65,7 +64,7 @@ enum SettingsSectionAnchor: String, CaseIterable, Hashable {
         case .dock, .dockClick: return .dock
         case .finderCutPaste, .finderRename: return .cutPaste
         case .clipboardHistory, .pastePlain: return .clipboard
-        case .quickLauncher, .quickToggles, .micMute, .cameraPreview, .wallpaper, .scratchpad, .cleaningMode,
+        case .quickLauncher, .quickToggles, .micMute, .cameraPreview, .scratchpad, .cleaningMode,
              .menuBarTidy:
             return .quickTools
         case .screenshot, .screenRecorder, .colorPicker, .screenOCR:
@@ -350,8 +349,6 @@ extension AppFeature {
             return FeatureSettingsDestination(.screenshot, sectionAnchor: .screenshot)
         case .cameraPreview:
             return FeatureSettingsDestination(.quickTools, sectionAnchor: .cameraPreview)
-        case .wallpaper:
-            return FeatureSettingsDestination(.quickTools, sectionAnchor: .wallpaper)
         case .notch, .notchCalendar, .notchNotifications, .notchGestures, .notchTimer, .notchAccessories, .notchLyrics, .notchQueue, .spotifyQueue, .notchLiveEqualizer, .notchDownloads, .notchAgents, .notchWatch: return FeatureSettingsDestination(.notch)
         case .notchMascot: return FeatureSettingsDestination(.notchMascot)
         case .radialMenu: return FeatureSettingsDestination(.radialMenu)
@@ -394,7 +391,7 @@ enum FeatureVisibilitySupport {
         case .shelf: return [.shelf]
         case .media: return [.mediaTools]
         case .quickTools: return [.quickLauncher, .quickToggles, .micMute,
-                                  .cameraPreview, .wallpaper, .scratchpad, .cleaningMode, .menuBarTidy]
+                                  .cameraPreview, .scratchpad, .cleaningMode, .menuBarTidy]
         case .urlCleaner: return [.urlCleaner]
         case .cleaner: return [.cleaner]
         case .homebrew: return [.homebrew]
