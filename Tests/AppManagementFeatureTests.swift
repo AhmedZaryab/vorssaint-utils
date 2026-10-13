@@ -1378,12 +1378,5 @@ enum AppManagementFeatureTests {
         }
         suite.expect(dismissResponses == [.alertSecondButtonReturn] && weakTarget == nil,
                "dismissing answers once, ignores later clicks and releases what the alert retained")
-
-        let installerSource = (try? String(
-            contentsOfFile: "Sources/Vorssaint/Services/DiskImageInstaller/DiskImageInstallerService.swift",
-            encoding: .utf8)) ?? ""
-        suite.expect(!installerSource.isEmpty && !installerSource.contains(".runModal()")
-               && installerSource.components(separatedBy: "NonModalAlert.present(").count == 3,
-               "the install prompt and the result alert both open without a modal session")
     }
 }

@@ -19,8 +19,7 @@ enum AppFeature: String, CaseIterable {
     case scrollInverter, scrollHorizontal, focusFollowsMouse, linearScroll, mouseAcceleration, mouseNavigation, mouseButtonShortcuts, middleClick,
          mouseClickDebounce, textSnippets
     // Clipboard and files
-    case clipboardHistory, pastePlain, finderCutPaste, finderRename, shelf, urlCleaner,
-         diskImageInstaller
+    case clipboardHistory, pastePlain, finderCutPaste, finderRename, shelf, urlCleaner
     // Sound
     case mixer, soundOutputSwitcher, micMute
     // Energy and display
@@ -106,8 +105,7 @@ extension AppFeature {
         case .scrollInverter, .scrollHorizontal, .focusFollowsMouse, .linearScroll, .mouseAcceleration, .mouseNavigation, .mouseButtonShortcuts, .middleClick,
              .textSnippets, .mouseClickDebounce:
             return .mouseKeyboard
-        case .clipboardHistory, .pastePlain, .finderCutPaste, .finderRename, .shelf, .urlCleaner,
-             .diskImageInstaller:
+        case .clipboardHistory, .pastePlain, .finderCutPaste, .finderRename, .shelf, .urlCleaner:
             return .clipboardFiles
         case .mixer, .soundOutputSwitcher, .micMute:
             return .sound
@@ -151,7 +149,6 @@ extension AppFeature {
         case .finderRename: return "pencil"
         case .shelf: return "tray.full"
         case .urlCleaner: return "link"
-        case .diskImageInstaller: return "externaldrive.badge.plus"
         case .mixer: return "speaker.wave.2"
         case .soundOutputSwitcher: return "hifispeaker"
         case .micMute: return "mic.slash"
@@ -264,7 +261,7 @@ extension AppFeature {
         case .urlCleaner: return [DefaultsKey.urlCleanerEnabled]
         case .soundOutputSwitcher: return [DefaultsKey.soundOutputSwitcherEnabled]
         case .brightness: return [DefaultsKey.brightnessControlEnabled]
-        case .windowLayout, .diskImageInstaller, .mixer, .micMute, .keepAwake,
+        case .windowLayout, .mixer, .micMute, .keepAwake,
              .quickLauncher, .quickToggles, .colorPicker, .screenOCR, .cleaningMode, .mediaTools,
              .cleaner, .uninstaller, .homebrew, .appUpdates, .screenshot, .cameraPreview, .scratchpad,
              .commandBar, .screenRecorder, .killProcess, .portManager,
@@ -356,7 +353,6 @@ extension AppFeature {
         case .uninstaller: return [.fullDiskAccess, .automationFinder]
         case .homebrew: return [.automationTerminal, .appManagement]
         case .appUpdates: return [.notifications, .appManagement]
-        case .diskImageInstaller: return [.appManagement]
         case .mixer: return [.audioCapture, .accessibility]
         case .monitorCPU, .monitorMemory, .monitorDisk, .monitorPower: return [.notifications]
         case .clipboardHistory, .shelf, .urlCleaner,
@@ -459,7 +455,7 @@ extension AppFeature {
              .notchLyrics, .notchQueue, .spotifyQueue, .notchLiveEqualizer, .notchDownloads, .notchAgents, .notchWatch,
              .monitorCPU, .monitorGPU, .monitorMemory, .monitorNetwork, .monitorDisk, .monitorPower:
             return true
-        case .focusFollowsMouse, .scrollHorizontal, .linearScroll, .diskImageInstaller,
+        case .focusFollowsMouse, .scrollHorizontal, .linearScroll,
              .killProcess, .portManager, .fanControl, .notchMascot, .menuBarTidy:
             return false
         }

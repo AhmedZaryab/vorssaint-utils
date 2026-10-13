@@ -42,7 +42,6 @@ enum OverlayPanelTests {
             "Sources/Vorssaint/Services/RadialMenu/RadialNowPlayingService.swift",
             "Sources/Vorssaint/Services/DockPreview/DockPreviewService.swift",
             "Sources/Vorssaint/Services/WindowLayout/WindowLayoutService.swift",
-            "Sources/Vorssaint/Services/DiskImageInstaller/DiskImageInstallerService.swift",
             "Sources/Vorssaint/Services/Finder/FinderCutPaste.swift",
             "Sources/Vorssaint/Services/Display/BrightnessOSD.swift",
             "Sources/Vorssaint/Services/CleaningMode/CleaningModeManager.swift",

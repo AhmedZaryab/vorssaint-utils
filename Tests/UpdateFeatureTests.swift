@@ -445,7 +445,6 @@ enum UpdateFeatureTests {
             .cameraPreview: "Camera Preview",
             .screenRecorder: "Screen Recorder",
             .micMute: "Mic Mute",
-            .diskImageInstaller: "Disk Image Installer",
         ]
         let featureSearchItems = SettingsSearchSupport.featureItems(language: .enUS) { feature in
             settingsFeatureTitles[feature] ?? feature.rawValue
@@ -455,7 +454,6 @@ enum UpdateFeatureTests {
             (.cameraPreview, FeatureSettingsDestination(.quickTools, sectionAnchor: .cameraPreview)),
             (.screenRecorder, FeatureSettingsDestination(.screenshot, sectionAnchor: .screenRecorder)),
             (.micMute, FeatureSettingsDestination(.quickTools, sectionAnchor: .micMute)),
-            (.diskImageInstaller, FeatureSettingsDestination(.features)),
         ]
         for (feature, destination) in expectedFeatureSearchDestinations {
             let item = featureSearchItems.first { $0.id == .feature(feature) }
@@ -571,16 +569,10 @@ enum UpdateFeatureTests {
         }.count == 1
                 && combinedSettingsItems.contains { $0.id == .page(.appUpdates) },
                "a structurally one-to-one App Updates result is deduplicated to the page")
-        suite.expect(combinedSettingsItems.contains { $0.id == .feature(.diskImageInstaller) },
-               "a differently named feature remains discoverable through its Features fallback")
         suite.expect(combinedSettingsItems.first { $0.id == .page(.homebrew) }?.feature == .homebrew,
                "a deduplicated Homebrew page result keeps its feature identity")
         suite.expect(combinedSettingsItems.first { $0.id == .page(.features) }?.feature == nil,
                "a generic page result that does not merge with a feature carries no feature identity")
-        suite.expect(combinedSettingsItems.first { $0.id == .feature(.diskImageInstaller) }?.feature
-                == .diskImageInstaller,
-               "a feature-only result carries its own feature identity")
-
         // MARK: Settings search routing
 
         let homebrewPageItem = combinedSettingsItems.first { $0.id == .page(.homebrew) }!
@@ -603,12 +595,6 @@ enum UpdateFeatureTests {
                 == FeatureSettingsDestination(.quickTools, sectionAnchor: .cameraPreview)
                 && availableCameraRoute.targetFeature == nil,
                "an available grouped feature keeps opening its anchored section directly")
-
-        let diskImageItem = featureSearchItems.first { $0.id == .feature(.diskImageInstaller) }!
-        let diskImageRoute = SettingsSearchSupport.route(for: diskImageItem) { _ in true }
-        suite.expect(diskImageRoute.destination == FeatureSettingsDestination(.features)
-                && diskImageRoute.targetFeature == .diskImageInstaller,
-               "Disk Image Installer, whose own destination is Features, still targets its exact row")
 
         let genericFeaturesItem = SettingsSearchItem(id: .page(.features),
                                                      destination: FeatureSettingsDestination(.features),
