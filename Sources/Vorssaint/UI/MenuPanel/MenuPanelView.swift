@@ -551,7 +551,7 @@ private enum UtilityPanelItem: String, PanelOrderItem, Identifiable {
     // to allCases). Screenshot leads in 3.1.13; existing orders that predate it
     // are migrated once without disturbing the rest of the user's layout.
     case screenshot, quickLauncher, appUpdates, cleaner, homebrew, media, clipboard, windowLayout,
-         uninstaller, cleanURL, cleaning, screenOCR, colorPicker, cameraPreview, scratchpad,
+         uninstaller, cleaning, screenOCR, colorPicker, cameraPreview, scratchpad,
          commandBar, screenRecorder, portManager
 
     var id: String { rawValue }
@@ -568,7 +568,6 @@ private enum UtilityPanelItem: String, PanelOrderItem, Identifiable {
         case .clipboard: return .clipboardHistory
         case .windowLayout: return .windowLayout
         case .uninstaller: return .uninstaller
-        case .cleanURL: return .urlCleaner
         case .cleaning: return .cleaningMode
         case .screenOCR: return .screenOCR
         case .colorPicker: return .colorPicker
@@ -588,7 +587,6 @@ struct UtilitiesSection: View {
     @ObservedObject private var features = FeatureRuntime.shared
     @State private var showUninstaller = false
     @State private var showCleanerPanel = false
-    @State private var showURLCleaner = false
     @State private var showHomebrewPanel = false
     @State private var showAppUpdatesPanel = false
     @State private var showMediaPanel = false
@@ -597,7 +595,6 @@ struct UtilitiesSection: View {
     @State private var showWindowLayoutPanel = false
     @State private var showPortManagerPanel = false
     @AppStorage(DefaultsKey.panelUtilityCleaning) private var showCleaning = true
-    @AppStorage(DefaultsKey.panelUtilityURLCleaner) private var showCleanURL = true
     @AppStorage(DefaultsKey.panelUtilityUninstaller) private var showUninstallerAction = true
     @AppStorage(DefaultsKey.panelUtilityCleaner) private var showCleanerAction = true
     @AppStorage(DefaultsKey.panelUtilityHomebrew) private var showHomebrew = true
@@ -633,10 +630,6 @@ struct UtilitiesSection: View {
             } else if showCleanerPanel {
                 PanelCleanerView {
                     showCleanerPanel = false
-                }
-            } else if showURLCleaner {
-                PanelURLCleanerView {
-                    showURLCleaner = false
                 }
             } else if showHomebrewPanel {
                 PanelHomebrewView {
@@ -705,7 +698,6 @@ struct UtilitiesSection: View {
     private var hostedSettingsPage: SettingsPage? {
         if showUninstaller { return .uninstaller }
         if showCleanerPanel { return .cleaner }
-        if showURLCleaner { return .urlCleaner }
         if showHomebrewPanel { return .homebrew }
         if showMediaPanel { return .media }
         if showClipboardPanel { return .clipboard }
@@ -720,7 +712,7 @@ struct UtilitiesSection: View {
     /// list. A hosted tool turns the panel into a work surface, so clicks
     /// elsewhere in the app must not dismiss it.
     private var isHostingUtility: Bool {
-        showUninstaller || showCleanerPanel || showURLCleaner || showHomebrewPanel
+        showUninstaller || showCleanerPanel || showHomebrewPanel
             || showMediaPanel || showClipboardPanel || showRecentCapturesPanel
             || showWindowLayoutPanel || showAppUpdatesPanel || showPortManagerPanel
     }
@@ -767,7 +759,6 @@ struct UtilitiesSection: View {
         case .windowLayout: return showWindowLayout
         case .uninstaller: return showUninstallerAction
         case .cleaner: return showCleanerAction
-        case .cleanURL: return showCleanURL
         case .cleaning: return showCleaning
         case .screenOCR: return showScreenOCR
         case .colorPicker: return showColorPicker
@@ -857,16 +848,6 @@ struct UtilitiesSection: View {
                                 visibility: $showCleanerAction,
                                 action: {
                                     showCleanerPanel = true
-                                })
-        case .cleanURL:
-            UtilityActionButton(title: l10n.s.urlCleanerName,
-                                caption: l10n.s.urlCleanerEnableCaption,
-                                systemImage: "link",
-                                isEditing: editing,
-                                showsDragHandle: true,
-                                visibility: $showCleanURL,
-                                action: {
-                                    showURLCleaner = true
                                 })
         case .cleaning:
             UtilityActionButton(title: l10n.s.cleaningMenuItem,
@@ -1089,7 +1070,6 @@ struct UtilitiesSection: View {
         showWindowLayout = true
         showUninstallerAction = true
         showCleanerAction = true
-        showCleanURL = true
         showCleaning = true
         showScreenOCR = true
         showScreenshot = true

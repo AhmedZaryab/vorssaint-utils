@@ -1019,7 +1019,6 @@ extension AppFeature {
         case .finderCutPaste: return s.cutPasteName
         case .finderRename: return FeatureStrings.finderRename(L10n.shared.language).hubTitle
         case .shelf: return s.shelfName
-        case .urlCleaner: return s.urlCleanerName
         case .diskImageInstaller:
             return FeatureStrings.diskImageInstaller(L10n.shared.language).title
         case .mixer: return s.mixerSection
@@ -1096,7 +1095,6 @@ extension AppFeature {
         case .finderCutPaste: return hub.descFinderCutPaste
         case .finderRename: return FeatureStrings.finderRename(L10n.shared.language).hubDescription
         case .shelf: return hub.descShelf
-        case .urlCleaner: return hub.descURLCleaner
         case .diskImageInstaller:
             return FeatureStrings.diskImageInstaller(L10n.shared.language).hubDescription
         case .mixer: return hub.descMixer

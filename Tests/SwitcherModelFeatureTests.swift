@@ -2071,8 +2071,6 @@ enum SwitcherModelFeatureTests {
         suite.expect(!GlobalShortcut(keyCode: Int64(kVK_ANSI_C), modifiers: [.command])
                    .isStandardPasteCommand,
                "other Command shortcuts never release the plain-text paste hotkey")
-        suite.expect(registeredDefaults[DefaultsKey.urlCleanerEnabled] as? Bool == false,
-               "URL cleaner clipboard watching is opt-in")
         suite.expect(registeredDefaults[DefaultsKey.windowMaximizeEnabled] as? Bool == false,
                "green button maximize override is opt-in")
         suite.expect(WindowMaximizerSupport.excludes(bundleIdentifier: "com.example.game",
@@ -2100,8 +2098,6 @@ enum SwitcherModelFeatureTests {
                "panel cleaning utility is visible by default")
         suite.expect(registeredDefaults[DefaultsKey.cleaningModeKeepScreenVisible] as? Bool == false,
                "cleaning mode keep screen visible is disabled by default")
-        suite.expect(registeredDefaults[DefaultsKey.panelUtilityURLCleaner] as? Bool == true,
-               "panel URL cleaner utility is visible by default")
         suite.expect(registeredDefaults[DefaultsKey.panelUtilityUninstaller] as? Bool == true,
                "panel uninstaller utility is visible by default")
         suite.expect(registeredDefaults[DefaultsKey.panelUtilityHomebrew] as? Bool == true,

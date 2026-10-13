@@ -72,19 +72,6 @@ enum ClipboardFeatureTests {
         static func frontmostBundleID() -> String? { front }
     }
 
-    /// Runs the production link cleaning poll against a private pasteboard
-    /// standing in for the general one.
-    enum URLCleanerHost {
-        enum NSPasteboard { static let general = AppKit.NSPasteboard.withUniqueName() }
-        final class PollToken { let isCancelled = false }
-        struct PollResult {
-            let changeCount: Int
-            let cleaned: URLCleaning.Result?
-        }
-        static let urlType = AppKit.NSPasteboard.PasteboardType("public.url")
-        static let rules = URLCleaning.Rules.none
-    }
-
     static func run(_ suite: TestSuite) {
         ClipboardPreviewContract.run(suite)
         let source = SourceHost()
@@ -168,24 +155,6 @@ enum ClipboardFeatureTests {
         source.historyIsRunning = false
         source.candidates = ["com.apple.Safari"]
         suite.expect(sourceCheck() == (false, nil, false), "nothing is named while the history is off")
-        // The link cleaner rewrites a copy in place; the app it named stays.
-        let cleanerBoard = URLCleanerHost.NSPasteboard.general
-        cleanerBoard.clearContents()
-        cleanerBoard.setString("com.example.reader", forType: .source)
-        cleanerBoard.setString("https://example.com/path?utm_source=news&id=42", forType: .string)
-        let signedRewrite = URLCleanerHost.pollPasteboard(sinceChangeCount: -1, token: URLCleanerHost.PollToken())
-        suite.expect(signedRewrite?.cleaned?.url == "https://example.com/path?id=42"
-                     && cleanerBoard.string(forType: .string) == "https://example.com/path?id=42"
-                     && cleanerBoard.string(forType: .source) == "com.example.reader",
-                     "the link cleaner's rewrite keeps the app the copy named as its source")
-        cleanerBoard.clearContents()
-        cleanerBoard.setString("https://example.com/path?utm_source=news&id=42", forType: .string)
-        let unsignedRewrite = URLCleanerHost.pollPasteboard(sinceChangeCount: -1, token: URLCleanerHost.PollToken())
-        suite.expect(unsignedRewrite?.cleaned != nil
-                     && cleanerBoard.string(forType: .string) == "https://example.com/path?id=42"
-                     && cleanerBoard.string(forType: .source) == nil,
-                     "a rewritten copy that named no app gains no mark, so the app that copied it is still credited")
-        cleanerBoard.releaseGlobally()
         func expectEqual(_ actual: String, _ expected: String, _ label: String,
                          file: StaticString = #filePath, line: UInt = #line) {
             suite.expect(actual == expected, "\(label): got \(actual), expected \(expected)",

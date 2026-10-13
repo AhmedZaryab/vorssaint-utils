@@ -19,7 +19,7 @@ enum AppFeature: String, CaseIterable {
     case scrollInverter, scrollHorizontal, focusFollowsMouse, linearScroll, mouseAcceleration, mouseNavigation, mouseButtonShortcuts, middleClick,
          mouseClickDebounce, textSnippets, superKey
     // Clipboard and files
-    case clipboardHistory, pastePlain, finderCutPaste, finderRename, shelf, urlCleaner,
+    case clipboardHistory, pastePlain, finderCutPaste, finderRename, shelf,
          diskImageInstaller
     // Sound
     case mixer, micMute
@@ -106,7 +106,7 @@ extension AppFeature {
         case .scrollInverter, .scrollHorizontal, .focusFollowsMouse, .linearScroll, .mouseAcceleration, .mouseNavigation, .mouseButtonShortcuts, .middleClick,
              .textSnippets, .superKey, .mouseClickDebounce:
             return .mouseKeyboard
-        case .clipboardHistory, .pastePlain, .finderCutPaste, .finderRename, .shelf, .urlCleaner,
+        case .clipboardHistory, .pastePlain, .finderCutPaste, .finderRename, .shelf,
              .diskImageInstaller:
             return .clipboardFiles
         case .mixer, .micMute:
@@ -154,7 +154,6 @@ extension AppFeature {
         case .finderCutPaste: return "scissors"
         case .finderRename: return "pencil"
         case .shelf: return "tray.full"
-        case .urlCleaner: return "link"
         case .diskImageInstaller: return "externaldrive.badge.plus"
         case .mixer: return "speaker.wave.2"
         case .micMute: return "mic.slash"
@@ -267,7 +266,6 @@ extension AppFeature {
                                       DefaultsKey.finderPasteImageAsFile]
         case .finderRename: return [DefaultsKey.finderRenameEnabled]
         case .shelf: return [DefaultsKey.shelfEnabled]
-        case .urlCleaner: return [DefaultsKey.urlCleanerEnabled]
         case .brightness: return [DefaultsKey.brightnessControlEnabled]
         case .windowLayout, .diskImageInstaller, .mixer, .micMute, .keepAwake,
              .quickLauncher, .quickToggles, .colorPicker, .screenOCR, .cleaningMode, .mediaTools,
@@ -364,7 +362,7 @@ extension AppFeature {
         case .diskImageInstaller: return [.appManagement]
         case .mixer: return [.audioCapture, .accessibility]
         case .monitorCPU, .monitorMemory, .monitorDisk, .monitorPower: return [.notifications]
-        case .clipboardHistory, .shelf, .urlCleaner,
+        case .clipboardHistory, .shelf,
              .quickLauncher, .colorPicker, .micMute, .mediaTools,
              .scratchpad, .wallpaper, .monitorGPU, .monitorNetwork, .connectedDevices, .fanControl, .killProcess,
              .portManager:
@@ -453,7 +451,7 @@ extension AppFeature {
         case .switcher, .dockPreview, .dockClick, .windowMaximizer, .windowLayout, .autoQuit,
              .scrollInverter, .mouseAcceleration, .mouseNavigation, .mouseButtonShortcuts,
              .middleClick, .mouseClickDebounce, .textSnippets, .superKey,
-             .clipboardHistory, .pastePlain, .finderCutPaste, .finderRename, .shelf, .urlCleaner,
+             .clipboardHistory, .pastePlain, .finderCutPaste, .finderRename, .shelf,
              .mixer, .micMute,
              .keepAwake, .brightness,
              .quickLauncher, .quickToggles, .colorPicker, .screenOCR, .cleaningMode, .mediaTools,

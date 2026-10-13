@@ -311,7 +311,7 @@ enum FeatureCatalogTests {
             "switcher", "dockPreview", "dockClick", "windowMaximizer", "windowLayout", "autoQuit",
             "scrollInverter", "scrollHorizontal", "focusFollowsMouse", "linearScroll", "mouseAcceleration", "mouseNavigation", "mouseButtonShortcuts", "middleClick",
             "mouseClickDebounce", "textSnippets", "superKey",
-            "clipboardHistory", "pastePlain", "finderCutPaste", "finderRename", "shelf", "urlCleaner",
+            "clipboardHistory", "pastePlain", "finderCutPaste", "finderRename", "shelf",
             "diskImageInstaller",
             "mixer", "micMute",
             "keepAwake", "brightness",
@@ -483,7 +483,7 @@ enum FeatureCatalogTests {
             "switcher", "dockPreview", "dockClick", "windowMaximizer", "windowLayout", "autoQuit",
             "scrollInverter", "mouseAcceleration", "mouseNavigation", "mouseButtonShortcuts",
             "middleClick", "mouseClickDebounce", "textSnippets", "superKey",
-            "clipboardHistory", "pastePlain", "finderCutPaste", "finderRename", "shelf", "urlCleaner",
+            "clipboardHistory", "pastePlain", "finderCutPaste", "finderRename", "shelf",
             "mixer", "micMute",
             "keepAwake", "brightness",
             "quickLauncher", "quickToggles", "colorPicker", "screenOCR", "cleaningMode", "mediaTools",
@@ -1615,17 +1615,6 @@ enum FeatureCatalogTests {
             suite.expect(!strings.obPurposeTitle.isEmpty && !strings.obPurposeBody.isEmpty
                     && !strings.obPurposeSkip.isEmpty,
                    "the purpose step speaks \(language.rawValue)")
-            suite.expect(!strings.urlCleanerRulesTitle.isEmpty
-                    && !strings.urlCleanerRulesAllSites.isEmpty
-                    && !strings.urlCleanerRulesCaption.isEmpty
-                    && !strings.urlCleanerRulesAddSite.isEmpty
-                    && !strings.urlCleanerRulesParameterPlaceholder.isEmpty
-                    && !strings.urlCleanerRulesAddButton.isEmpty
-                    && !strings.urlCleanerRulesRemoveButton.isEmpty
-                    && !strings.urlCleanerRulesCountSingular.isEmpty
-                    && strings.urlCleanerRulesCountPluralFormat.contains("%d")
-                    && strings.urlCleanerRemovedFormat.contains("%@"),
-                   "the URL cleaner rule list speaks \(language.rawValue)")
         }
 
         // MARK: Hub presets and energy badges
