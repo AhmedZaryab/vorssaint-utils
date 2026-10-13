@@ -390,14 +390,12 @@ final class UpdateService: ObservableObject {
         // nothing can take the overlay down, not even the menu, so it
         // leaves first and returns if the prompt is declined; an approved
         // install quits.
-        ExtraBrightnessService.shared.stop()
         AdminShell.runInProcess(command, prompt: L10n.shared.s.adminPromptUpdate) { [weak self] granted in
             DispatchQueue.main.async {
                 guard let self else { return }
                 if granted {
                     NSApp.terminate(nil)
                 } else {
-                    ExtraBrightnessService.shared.syncWithPreferences()
                     // The user dismissed the admin prompt: keep the offer so
                     // the button simply works again.
                     self.abortInstall(dmgPath: dmgPath, offered: expectedVersion)

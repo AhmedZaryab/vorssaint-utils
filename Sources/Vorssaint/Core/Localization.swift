@@ -722,10 +722,6 @@ struct Strings {
     let shelfExclusionsCaption: String
     let shelfPin: String
     let shelfUnpin: String
-    let extraBrightnessName: String
-    let extraBrightnessCaption: String
-    let extraBrightnessLevelLabel: String
-    let extraBrightnessUnsupported: String
     let shelfHotkeyLabel: String
     let shelfOpenNow: String
     let shelfNoPermission: String
@@ -1848,10 +1844,6 @@ extension Strings {
         shelfExclusionsCaption: "Sacudir e a área da barra de menus não abrem durante arrastes iniciados nesses apps. O atalho e Abrir agora continuam funcionando.",
         shelfPin: "Manter aberta",
         shelfUnpin: "Deixar fechar após o uso",
-        extraBrightnessName: "Brilho extra",
-        extraBrightnessCaption: "Usa a reserva HDR da tela para passar do brilho máximo. Consome mais bateria e o Mac pode esquentar.",
-        extraBrightnessLevelLabel: "Intensidade",
-        extraBrightnessUnsupported: "Disponível apenas em telas XDR, como as dos MacBook Pro de 14 e 16 polegadas.",
         shelfHotkeyLabel: "Atalho",
         shelfOpenNow: "Abrir agora",
         shelfNoPermission: "Não requer nenhuma permissão.",
@@ -2944,10 +2936,6 @@ extension Strings {
         shelfExclusionsCaption: "Shake and the menu bar drop zone stay off for drags started in these apps. The shortcut and Open now still work.",
         shelfPin: "Keep open",
         shelfUnpin: "Allow closing after use",
-        extraBrightnessName: "Extra brightness",
-        extraBrightnessCaption: "Uses the display’s HDR headroom to go past the maximum brightness. Uses more battery and the Mac can run warm.",
-        extraBrightnessLevelLabel: "Intensity",
-        extraBrightnessUnsupported: "Available only on XDR displays, such as the ones on the 14 and 16 inch MacBook Pro.",
         shelfHotkeyLabel: "Shortcut",
         shelfOpenNow: "Open now",
         shelfNoPermission: "Requires no permissions.",

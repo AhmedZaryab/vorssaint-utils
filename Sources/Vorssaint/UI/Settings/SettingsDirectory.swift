@@ -208,7 +208,6 @@ enum SettingsDirectory {
                                                        FeatureStrings.brightness(language).keyStep,
                                                        FeatureStrings.brightness(language).keyStepHalf,
                                                        FeatureStrings.brightness(language).keyStepQuarter]),
-                                        (.extraBrightness, [s.extraBrightnessName]),
                                         (.bluetoothSleep, [FeatureStrings.bluetoothSleep(language).pageTitle,
                                                            FeatureStrings.bluetoothSleep(language).enable]),
                                        ]),

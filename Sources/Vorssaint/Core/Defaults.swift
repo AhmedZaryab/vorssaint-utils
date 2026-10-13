@@ -203,8 +203,6 @@ enum DefaultsKey {
     static let shelfClearOnClose = "shelfClearOnClose"
     static let shelfShortcutAddsFinderSelection = "shelfShortcutAddsFinderSelection"
     static let shelfAutomaticExclusions = "shelfAutomaticExclusions" // [bundle id] blocks automatic opening only
-    static let extraBrightnessEnabled = "extraBrightnessEnabled"
-    static let extraBrightnessLevel = "extraBrightnessLevel"   // Int percent 0-100
     static let brightnessControlEnabled = "brightnessControlEnabled" // sliders for every display
     static let brightnessKeysEnabled = "brightnessKeysEnabled" // brightness keys act on the display under the pointer
     static let brightnessOSDEnabled = "brightnessOSDEnabled" // brightness adjustment overlay
@@ -1329,8 +1327,6 @@ enum Defaults {
         DefaultsKey.shelfClearOnClose: false,
         DefaultsKey.shelfShortcutAddsFinderSelection: false,
         DefaultsKey.shelfAutomaticExclusions: [String](),
-        DefaultsKey.extraBrightnessEnabled: false,
-        DefaultsKey.extraBrightnessLevel: 100,
         DefaultsKey.brightnessControlEnabled: false,
         DefaultsKey.brightnessKeysEnabled: false,
         DefaultsKey.brightnessOSDEnabled: false,

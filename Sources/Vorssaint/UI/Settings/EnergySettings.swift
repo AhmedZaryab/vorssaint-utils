@@ -13,15 +13,12 @@ struct EnergySettings: View {
     @ObservedObject private var features = FeatureRuntime.shared
     @ObservedObject private var awake = KeepAwakeManager.shared
     @ObservedObject private var permissions = Permissions.shared
-    @ObservedObject private var extraBrightness = ExtraBrightnessService.shared
     @ObservedObject private var brightness = BrightnessService.shared
     @AppStorage(DefaultsKey.brightnessControlEnabled) private var brightnessEnabled = false
     @AppStorage(DefaultsKey.brightnessKeysEnabled) private var brightnessKeysEnabled = false
     @AppStorage(DefaultsKey.brightnessOSDEnabled) private var brightnessOSDEnabled = false
     @AppStorage(DefaultsKey.brightnessKeyStep)
     private var brightnessKeyStep = BrightnessSupport.KeyStep.standard.rawValue
-    @AppStorage(DefaultsKey.extraBrightnessEnabled) private var extraBrightnessEnabled = false
-    @AppStorage(DefaultsKey.extraBrightnessLevel) private var extraBrightnessLevel = 100
     @AppStorage(DefaultsKey.bluetoothSleepEnabled) private var bluetoothSleepEnabled = false
     @AppStorage(DefaultsKey.bluetoothSleepRestoreOnWake) private var bluetoothSleepRestoreOnWake = true
     @AppStorage(DefaultsKey.defaultDuration) private var defaultDuration = 0
@@ -57,10 +54,6 @@ struct EnergySettings: View {
                     displaysCard
                         .settingsSectionAnchor(.brightness, cornerRadius: 16)
                 }
-                if (focus == nil || focus == .extraBrightness), AppFeature.extraBrightness.isAvailable {
-                    extraBrightnessCard
-                        .settingsSectionAnchor(.extraBrightness, cornerRadius: 16)
-                }
                 if (focus == nil || focus == .bluetoothSleep), AppFeature.bluetoothSleep.isAvailable {
                     bluetoothCard
                         .settingsSectionAnchor(.bluetoothSleep, cornerRadius: 16)
@@ -88,9 +81,6 @@ struct EnergySettings: View {
         if focus == nil || focus == .keepAwake {
             awake.refreshPasswordlessStatus()
         }
-        if focus == nil || focus == .extraBrightness {
-            ExtraBrightnessService.shared.syncWithPreferences()
-        }
         if focus == nil || focus == .brightness {
             // Displays may have changed since launch (docked, clamshell).
             BrightnessService.shared.refresh()
@@ -101,7 +91,6 @@ struct EnergySettings: View {
         switch focus {
         case .keepAwake: return l10n.s.keepAwakeTitle
         case .brightness: return FeatureStrings.brightness(l10n.language).pageTitle
-        case .extraBrightness: return l10n.s.extraBrightnessName
         case .bluetoothSleep: return FeatureStrings.bluetoothSleep(l10n.language).pageTitle
         default: return l10n.s.tabEnergy
         }
@@ -111,7 +100,6 @@ struct EnergySettings: View {
         switch focus {
         case .keepAwake: return FeatureStrings.hub(l10n.language).descKeepAwake
         case .brightness: return FeatureStrings.brightness(l10n.language).hubDescription
-        case .extraBrightness: return FeatureStrings.hub(l10n.language).descExtraBrightness
         case .bluetoothSleep: return FeatureStrings.bluetoothSleep(l10n.language).hubDescription
         default: return FeatureStrings.settingsPages(l10n.language).energyDescription
         }
@@ -419,47 +407,6 @@ struct EnergySettings: View {
             SoftwareDimmingButton(display: display)
             DisplayPowerButton(display: display)
         }
-    }
-
-    // MARK: - Extra brightness
-
-    private var extraBrightnessCard: some View {
-        SettingsCard {
-            if extraBrightness.supported {
-                SettingsRow(symbol: "sun.max.fill", title: l10n.s.extraBrightnessName,
-                            caption: l10n.s.extraBrightnessCaption) {
-                    Toggle(l10n.s.extraBrightnessName, isOn: $extraBrightnessEnabled)
-                        .labelsHidden()
-                        .onChange(of: extraBrightnessEnabled) { _, _ in
-                            ExtraBrightnessService.shared.syncWithPreferences()
-                        }
-                }
-                if extraBrightnessEnabled {
-                    HStack(spacing: 12) {
-                        Text(l10n.s.extraBrightnessLevelLabel)
-                        Slider(value: extraBrightnessLevelBinding, in: 10...100, step: 5)
-                        Text("\(extraBrightnessLevel)%")
-                            .font(.system(.body, design: .monospaced))
-                            .foregroundStyle(.secondary)
-                            .frame(width: 52, alignment: .trailing)
-                    }
-                    .padding(.leading, settingsRowTextInset)
-                }
-            } else {
-                SettingsRow(symbol: "sun.max.fill", title: l10n.s.extraBrightnessName,
-                            caption: l10n.s.extraBrightnessUnsupported) {
-                    EmptyView()
-                }
-            }
-        }
-    }
-
-    private var extraBrightnessLevelBinding: Binding<Double> {
-        Binding(get: { Double(extraBrightnessLevel) },
-                set: { newValue in
-                    extraBrightnessLevel = Int(newValue)
-                    ExtraBrightnessService.shared.levelDidChange()
-                })
     }
 
     // MARK: - Bluetooth on sleep

@@ -24,7 +24,7 @@ enum AppFeature: String, CaseIterable {
     // Sound
     case mixer, soundOutputSwitcher, audioPriority, micMute, musicBlock
     // Energy and display
-    case keepAwake, brightness, extraBrightness, bluetoothSleep
+    case keepAwake, brightness, bluetoothSleep
     // Tools
     case quickLauncher, quickToggles, colorPicker, screenOCR, cleaningMode, mediaTools,
          cleaner, uninstaller, homebrew, appUpdates, screenshot, cameraPreview, radialMenu, scratchpad,
@@ -111,7 +111,7 @@ extension AppFeature {
             return .clipboardFiles
         case .mixer, .soundOutputSwitcher, .audioPriority, .micMute, .musicBlock:
             return .sound
-        case .keepAwake, .brightness, .extraBrightness, .bluetoothSleep:
+        case .keepAwake, .brightness, .bluetoothSleep:
             return .energyDisplay
         case .quickLauncher, .quickToggles, .colorPicker, .screenOCR, .cleaningMode, .mediaTools,
              .cleaner, .uninstaller, .homebrew, .appUpdates, .screenshot, .cameraPreview, .radialMenu,
@@ -167,7 +167,6 @@ extension AppFeature {
         case .musicBlock: return "music.note"
         case .keepAwake: return "moon.zzz.fill"
         case .brightness: return "display.2"
-        case .extraBrightness: return "sun.max.fill"
         case .bluetoothSleep: return "wave.3.right.circle"
         case .quickLauncher: return "wand.and.rays"
         case .quickToggles: return "togglepower"
@@ -287,7 +286,6 @@ extension AppFeature {
                                      DefaultsKey.audioPriorityInputEnabled]
         case .musicBlock: return [DefaultsKey.musicBlockEnabled]
         case .brightness: return [DefaultsKey.brightnessControlEnabled]
-        case .extraBrightness: return [DefaultsKey.extraBrightnessEnabled]
         case .bluetoothSleep: return [DefaultsKey.bluetoothSleepEnabled]
         case .windowLayout, .diskImageInstaller, .mixer, .micMute, .keepAwake,
              .quickLauncher, .quickToggles, .colorPicker, .screenOCR, .cleaningMode, .mediaTools,
@@ -388,7 +386,7 @@ extension AppFeature {
         case .monitorCPU, .monitorMemory, .monitorDisk, .monitorPower: return [.notifications]
         case .clipboardHistory, .shelf, .urlCleaner,
              .soundOutputSwitcher, .audioPriority,
-             .extraBrightness, .bluetoothSleep, .quickLauncher, .colorPicker, .micMute, .mediaTools,
+             .bluetoothSleep, .quickLauncher, .colorPicker, .micMute, .mediaTools,
              .scratchpad, .wallpaper, .monitorGPU, .monitorNetwork, .connectedDevices, .fanControl, .killProcess,
              .portManager:
             return []
@@ -479,7 +477,7 @@ extension AppFeature {
              .quitWindowProtection,
              .clipboardHistory, .pastePlain, .finderCutPaste, .finderRename, .shelf, .urlCleaner,
              .mixer, .soundOutputSwitcher, .micMute, .musicBlock,
-             .keepAwake, .brightness, .extraBrightness, .bluetoothSleep,
+             .keepAwake, .brightness, .bluetoothSleep,
              .quickLauncher, .quickToggles, .colorPicker, .screenOCR, .cleaningMode, .mediaTools,
              .cleaner, .uninstaller, .homebrew, .appUpdates, .screenshot, .cameraPreview, .radialMenu,
              .scratchpad, .commandBar, .screenRecorder,
