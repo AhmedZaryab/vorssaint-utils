@@ -251,7 +251,13 @@ public func vorssaintNowPlayingGet() {
             $0.allowsDirectCommands && ($0.itemIdentifier != nil || $0.requiresCurrentPlayer)
         } == true
     }
-    if let position { settlePosition(&snapshot, sample: position, revision: revision) } else { lastPosition = nil }
+    // The moment the position is true, so the app anchors to it rather than
+    // to when the reply happened to arrive after the pipe and artwork decode.
+    let settledAt = Date()
+    if let position {
+        settlePosition(&snapshot, sample: position, revision: revision, now: settledAt)
+        snapshot["sampledAt"] = settledAt.timeIntervalSince1970
+    } else { lastPosition = nil }
     // Cover a callback that completed after the snapshot copy but before publish.
     if watching, let selected {
         lock.lock()

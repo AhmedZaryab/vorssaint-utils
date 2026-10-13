@@ -154,7 +154,12 @@ final class NotchMusicService: ObservableObject {
                 }
                 return
             }
-            let next = NotchPlayback.decode(data, previousArtwork: cachedArtwork,
+            // Anchor to when the adapter settled the position; transit time
+            // (pipe, JSON, artwork) would otherwise put every verse late.
+            let received = Date()
+            let settled = (reply?["sampledAt"] as? NSNumber).map { Date(timeIntervalSince1970: $0.doubleValue) }
+            let anchor = settled.flatMap { $0 <= received && received.timeIntervalSince($0) < 5 ? $0 : nil } ?? received
+            let next = NotchPlayback.decode(data, now: anchor, previousArtwork: cachedArtwork,
                                            commandContext: reply.flatMap(NotchPlaybackContext.init(reply:)),
                                            canSendCommandsDirectly: reply?["canSendCommandsDirectly"] as? Bool == true)
             if cachedArtwork != next?.track.artworkData {
@@ -228,6 +233,12 @@ final class NotchMusicService: ObservableObject {
     /// the next reading replaces it at once. Later readings of the gap never
     /// extend the grace period.
     private func receive(_ reading: Reading) {
+        if UserDefaults.standard.bool(forKey: "debugLyricsDrift"), let old = playback, let new = reading.playback,
+           old.isPlaying, new.isPlaying, NotchMusicIdentity(old) == NotchMusicIdentity(new) {
+            // How far the extrapolated position strayed from the next anchor.
+            let drift = (old.position(at: new.sampledAt) - new.elapsed) * 1000
+            NSLog("VorssaintLyricsDrift %.1f ms", drift)
+        }
         // A player that still lists a song when another player's paused song
         // takes its place was paused. During a gap it had left, the song it
         // lists again can be its next one, still loading.
