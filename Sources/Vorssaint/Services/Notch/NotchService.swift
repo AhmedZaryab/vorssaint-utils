@@ -111,6 +111,8 @@ final class NotchService: ObservableObject {
     @Published private(set) var expanded = false
     @Published private(set) var peeking = false
     @Published private(set) var dragPlaceholder = false
+    /// The next song peek: the closed notch grows by one notch height and shows it.
+    @Published private(set) var songPeek: SongPeekModel?
     @Published private(set) var choosingFileDropDestination = false
     @Published private(set) var targetsMediaDrop = false
     @Published private(set) var selectedMetric: MetricDetailKind?
@@ -867,7 +869,26 @@ final class NotchService: ObservableObject {
             capturesAudio: captureControls?.selectedTool.capturesAudio == true)
     }
 
+    /// The peek band shows only on a plain closed notch.
+    var songPeekBandActive: Bool {
+        songPeek != nil && !expanded && !peeking && !dragPlaceholder && notice == nil && captureControls == nil
+            && !fullscreenCompact && !showsCompactActivityPicker
+    }
+
+    func setSongPeek(_ model: SongPeekModel?) {
+        guard (songPeek == nil) != (model == nil) || songPeek !== model else { return }
+        mutatePresentation { songPeek = model }
+    }
+
+    /// The closed notch keeps its width and grows down by the band
+    /// while the next song peek shows.
     var surfaceSize: CGSize {
+        var size = baseSurfaceSize
+        if songPeekBandActive { size.height += NotchSongPeekBand.height }
+        return size
+    }
+
+    private var baseSurfaceSize: CGSize {
         if let capsule = capsuleSurfaceSize { return capsule }
         if fullscreenCompact { return geometry.bareCutout }
         if captureControls != nil {

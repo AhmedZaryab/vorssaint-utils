@@ -8,8 +8,8 @@ import SwiftUI
 /// Pure timing rules for the next song peek, kept free of app state so tests
 /// can drive them directly.
 enum SongPeekPolicy {
-    /// The card appears this long before the playing song ends.
-    static let lead: TimeInterval = 5
+    /// The band appears this long before the playing song ends.
+    static let lead: TimeInterval = 10
     /// The queue is read once per song, this long before it ends.
     static let prefetchLead: TimeInterval = 15
 
@@ -31,7 +31,7 @@ enum SongPeekPolicy {
     }
 }
 
-/// Shows a small card under the notch about five seconds before a Spotify
+/// Grows the closed notch downward about five seconds before a Spotify
 /// song ends: the next song's cover, title and artist, and a ring that fills
 /// as the current song runs out. Reads the music service's position as it
 /// is; the next song comes from SpotifyQueueService.
@@ -45,7 +45,6 @@ final class SongPeekController {
     }
 
     private let model = SongPeekModel()
-    private var panel: OverlayPanel?
     private var cancellables: Set<AnyCancellable> = []
     private var timer: Timer?
     private var started = false
@@ -153,8 +152,9 @@ final class SongPeekController {
                 playback.track.artist ?? "", String(Int(playback.duration))].joined(separator: "|")
     }
 
-    // MARK: The card
+    // MARK: The band
 
+    /// The closed notch grows downward by one notch height and shows the band.
     private func show(_ track: SpotifyQueueService.Track, endsAt: Date, key: String) {
         hideWork?.cancel()
         model.title = track.title
@@ -162,14 +162,9 @@ final class SongPeekController {
         model.artwork = track.artworkURL.flatMap { SpotifyQueueService.shared.artwork[$0] }
         model.startedAt = Date()
         model.endsAt = endsAt
-        model.visible = false
         visibleKey = key
-        let panel = ensurePanel()
-        panel.setFrame(Self.frame(), display: false)
-        panel.alphaValue = 1
-        panel.orderFrontRegardless()
-        DispatchQueue.main.async { [model] in model.visible = true }
-        // A song that never reports its change still lets the card go.
+        NotchService.shared.setSongPeek(model)
+        // A song that never reports its change still lets the band go.
         let work = DispatchWorkItem { [weak self] in self?.dismiss() }
         hideWork = work
         DispatchQueue.main.asyncAfter(deadline: .now() + max(0, endsAt.timeIntervalSinceNow) + 3, execute: work)
@@ -178,49 +173,9 @@ final class SongPeekController {
     private func dismiss() {
         hideWork?.cancel()
         hideWork = nil
-        guard visibleKey != nil, let panel else { return }
+        guard visibleKey != nil else { return }
         visibleKey = nil
-        model.visible = false
-        NSAnimationContext.runAnimationGroup({ context in
-            context.duration = 0.25
-            panel.animator().alphaValue = 0
-        }, completionHandler: { [weak self] in
-            MainActor.assumeIsolated {
-                guard let self, self.visibleKey == nil else { return }
-                panel.orderOut(nil)
-            }
-        })
-    }
-
-    /// Centred directly under the closed island, on the island's own display.
-    private static func frame() -> CGRect {
-        let geometry = NotchService.shared.geometry
-        let island = geometry.frame(for: geometry.collapsed)
-        let size = SongPeekCardView.size
-        return CGRect(x: (island.midX - size.width / 2).rounded(),
-                      y: (island.minY - SongPeekCardView.gap - size.height).rounded(),
-                      width: size.width, height: size.height)
-    }
-
-    private func ensurePanel() -> OverlayPanel {
-        if let panel { return panel }
-        let panel = OverlayPanel(contentRect: Self.frame(), styleMask: [.borderless, .nonactivatingPanel],
-                                 backing: .buffered, defer: false)
-        panel.isOpaque = false
-        panel.backgroundColor = .clear
-        panel.hasShadow = false
-        panel.hidesOnDeactivate = false
-        panel.isReleasedWhenClosed = false
-        panel.ignoresMouseEvents = true
-        panel.animationBehavior = .none
-        panel.appearance = NSAppearance(named: .darkAqua)
-        panel.level = NotchPanel.normalLevel
-        panel.collectionBehavior = NotchPanel.overlayCollectionBehavior
-        let host = NSHostingView(rootView: SongPeekCardView(model: model))
-        host.sizingOptions = []
-        panel.contentView = host
-        self.panel = panel
-        return panel
+        NotchService.shared.setSongPeek(nil)
     }
 }
 
@@ -232,5 +187,4 @@ final class SongPeekModel: ObservableObject {
     @Published var artwork: NSImage?
     @Published var startedAt = Date()
     @Published var endsAt = Date()
-    @Published var visible = false
 }
