@@ -23,7 +23,6 @@ enum SettingsSectionAnchor: String, CaseIterable, Hashable {
     case brightness
     case scrollDirection
     case focusFollowsMouse
-    case smoothScroll
     case linearScroll
     case mouseAcceleration
     case mouseNavigation
@@ -60,7 +59,7 @@ enum SettingsSectionAnchor: String, CaseIterable, Hashable {
              .soundOutputSwitcher:
             return .general
         case .keepAwake, .brightness: return .energy
-        case .scrollDirection, .focusFollowsMouse, .smoothScroll, .linearScroll, .mouseAcceleration, .mouseNavigation, .mouseButtonShortcuts,
+        case .scrollDirection, .focusFollowsMouse, .linearScroll, .mouseAcceleration, .mouseNavigation, .mouseButtonShortcuts,
              .middleClick, .mouseClickDebounce:
             return .mouse
         case .switcher: return .switcher
@@ -291,8 +290,6 @@ extension AppFeature {
             return FeatureSettingsDestination(.mouse, sectionAnchor: .scrollDirection)
         case .focusFollowsMouse:
             return FeatureSettingsDestination(.mouse, sectionAnchor: .focusFollowsMouse)
-        case .smoothScroll:
-            return FeatureSettingsDestination(.mouse, sectionAnchor: .smoothScroll)
         case .linearScroll:
             return FeatureSettingsDestination(.mouse, sectionAnchor: .linearScroll)
         case .mouseAcceleration:
@@ -390,7 +387,7 @@ enum FeatureVisibilitySupport {
         switch page {
         case .energy: return [.keepAwake, .brightness]
         case .monitor: return monitorFeatures
-        case .mouse: return [.scrollInverter, .scrollHorizontal, .focusFollowsMouse, .smoothScroll, .linearScroll, .mouseAcceleration, .mouseNavigation, .mouseButtonShortcuts,
+        case .mouse: return [.scrollInverter, .scrollHorizontal, .focusFollowsMouse, .linearScroll, .mouseAcceleration, .mouseNavigation, .mouseButtonShortcuts,
                              .middleClick, .mouseClickDebounce]
         case .switcher: return [.switcher]
         case .dock: return [.dockPreview, .dockClick]

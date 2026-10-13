@@ -135,8 +135,7 @@ enum SwitcherModelFeatureTests {
         let switcher = code("Sources/Vorssaint/Services/Switcher/AppSwitcher.swift")
         suite.expect(switcher.contains("CGEventType.scrollWheel.rawValue") && switcher.contains("case .scrollWheel:"),
                      "the switcher subscribes to and handles scroll-wheel events")
-        for path in ["Sources/Vorssaint/Services/SmoothScrollService.swift",
-                     "Sources/Vorssaint/Services/MouseButtons/MouseButtonShortcutService.swift"] {
+        for path in ["Sources/Vorssaint/Services/MouseButtons/MouseButtonShortcutService.swift"] {
             suite.expect(code(path).contains("AppSwitcher.shared.scrollNavigationActive"),
                          "\(path) yields scrolling to the open switcher")
         }

@@ -309,7 +309,7 @@ enum FeatureCatalogTests {
                "feature ids are unique")
         suite.expect(AppFeature.allCases.map(\.rawValue) == [
             "switcher", "dockPreview", "dockClick", "windowMaximizer", "windowLayout", "autoQuit",
-            "scrollInverter", "scrollHorizontal", "focusFollowsMouse", "smoothScroll", "linearScroll", "mouseAcceleration", "mouseNavigation", "mouseButtonShortcuts", "middleClick",
+            "scrollInverter", "scrollHorizontal", "focusFollowsMouse", "linearScroll", "mouseAcceleration", "mouseNavigation", "mouseButtonShortcuts", "middleClick",
             "mouseClickDebounce", "textSnippets", "superKey",
             "clipboardHistory", "pastePlain", "finderCutPaste", "finderRename", "shelf", "urlCleaner",
             "diskImageInstaller",
@@ -481,7 +481,7 @@ enum FeatureCatalogTests {
         // what they have: a feature leaving it would vanish for all of them.
         let installedOnUpdate: Set<String> = [
             "switcher", "dockPreview", "dockClick", "windowMaximizer", "windowLayout", "autoQuit",
-            "scrollInverter", "smoothScroll", "mouseAcceleration", "mouseNavigation", "mouseButtonShortcuts",
+            "scrollInverter", "mouseAcceleration", "mouseNavigation", "mouseButtonShortcuts",
             "middleClick", "mouseClickDebounce", "textSnippets", "superKey",
             "clipboardHistory", "pastePlain", "finderCutPaste", "finderRename", "shelf", "urlCleaner",
             "mixer", "soundOutputSwitcher", "micMute",
@@ -2009,7 +2009,7 @@ enum FeatureCatalogTests {
                "Settings Forward stops at the newest visit")
 
         historyRouter.page = .mouse
-        let refinedDestination = FeatureSettingsDestination(.mouse, sectionAnchor: .smoothScroll)
+        let refinedDestination = FeatureSettingsDestination(.mouse, sectionAnchor: .linearScroll)
         historyRouter.request(refinedDestination)
         historyRouter.request(refinedDestination)
         historyRouter.goBack()

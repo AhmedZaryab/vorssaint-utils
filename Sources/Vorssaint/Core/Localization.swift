@@ -334,9 +334,6 @@ struct Strings {
     let scrollTrackpadNote: String
     let scrollActiveNow: String
     let mouseNavigationActiveNow: String
-    let smoothScrollName: String
-    let smoothScrollCaption: String
-    let smoothScrollStepLabel: String
     let mouseNavigationSection: String
     let mouseNavigationEnable: String
     let mouseNavigationCaption: String
@@ -1269,8 +1266,6 @@ struct Strings {
     let switcherScreenPlacementCaption: String
     let switcherCurrentDisplayOnly: String
     let switcherCurrentDisplayOnlyCaption: String
-    let smoothScrollResponseLabel: String
-    let smoothScrollCoastLabel: String
     let mouseAccelerationName: String
     let mouseAccelerationCaption: String
     let linearScrollName: String
@@ -1450,9 +1445,6 @@ extension Strings {
         scrollTrackpadNote: "O trackpad não muda: continua com a rolagem natural do macOS.",
         scrollActiveNow: "Invertendo a rolagem do mouse agora",
         mouseNavigationActiveNow: "Botões laterais ativos agora",
-        smoothScrollName: "Rolagem suave",
-        smoothScrollCaption: "Transforma cada passo da rodinha do mouse em um deslize curto e macio. O trackpad não muda.",
-        smoothScrollStepLabel: "Velocidade da rolagem",
         mouseNavigationSection: "Navegação",
         mouseNavigationEnable: "Usar botões laterais para voltar e avançar",
         mouseNavigationCaption: "Converte os botões Voltar e Avançar do mouse em comandos de navegação no Finder, navegadores e apps compatíveis.",
@@ -2346,8 +2338,6 @@ extension Strings {
         switcherScreenPlacementCaption: "Em qual tela o alternador abre quando há mais de uma conectada.",
         switcherCurrentDisplayOnly: "Mostrar só a tela atual",
         switcherCurrentDisplayOnlyCaption: "Mostra apenas as janelas da tela sob o cursor. Se essa tela não tiver janelas, o alternador não abre.",
-        smoothScrollResponseLabel: "Resposta",
-        smoothScrollCoastLabel: "Inércia",
         mouseAccelerationName: "Desativar aceleração do mouse",
         mouseAccelerationCaption: "Remove a aceleração do cursor para os mouses conectados. A configuração anterior volta ao desligar esta opção ou sair do Vorssaint.",
         linearScrollName: "Rolagem linear",
@@ -2528,9 +2518,6 @@ extension Strings {
         scrollTrackpadNote: "The trackpad is untouched: it keeps macOS natural scrolling.",
         scrollActiveNow: "Inverting mouse scrolling right now",
         mouseNavigationActiveNow: "Side buttons active right now",
-        smoothScrollName: "Smooth scrolling",
-        smoothScrollCaption: "Turns each mouse wheel step into a short, gentle glide. The trackpad is not affected.",
-        smoothScrollStepLabel: "Scrolling speed",
         mouseNavigationSection: "Navigation",
         mouseNavigationEnable: "Use side buttons for Back and Forward",
         mouseNavigationCaption: "Turns the mouse Back and Forward buttons into navigation commands in Finder, browsers and compatible apps.",
@@ -3424,8 +3411,6 @@ extension Strings {
         switcherScreenPlacementCaption: "Which display the switcher opens on when more than one is connected.",
         switcherCurrentDisplayOnly: "Show only the current display",
         switcherCurrentDisplayOnlyCaption: "Lists only windows on the display under the pointer. If that display has no windows, the switcher does not open.",
-        smoothScrollResponseLabel: "Response",
-        smoothScrollCoastLabel: "Coast",
         mouseAccelerationName: "Disable mouse acceleration",
         mouseAccelerationCaption: "Removes pointer acceleration for connected mice. Your previous setting returns when this is turned off or Vorssaint quits.",
         linearScrollName: "Linear scrolling",

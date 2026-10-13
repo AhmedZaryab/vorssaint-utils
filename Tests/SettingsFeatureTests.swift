@@ -438,11 +438,11 @@ enum SettingsFeatureTests {
         // The complement, so the filter cannot be mutated into dropping the
         // whole list and stay green.
         let bundleOnlyBackup = SettingsBackupSupport.payload(appVersion: "test") { key in
-            key == MouseExceptionScope.smoothScroll.defaultsKey
+            key == MouseExceptionScope.linearScroll.defaultsKey
                 ? ["com.apple.Safari", "com.apple.Terminal"] : nil
         }
         suite.expect((bundleOnlyBackup[SettingsBackupSupport.settingsKey] as? [String: Any])?[
-                    MouseExceptionScope.smoothScroll.defaultsKey] as? [String]
+                    MouseExceptionScope.linearScroll.defaultsKey] as? [String]
                     == ["com.apple.Safari", "com.apple.Terminal"],
                "an exception list of only bundle ids survives a backup unchanged")
         // Filtering the export is only half the job: applying a backup clears
@@ -518,10 +518,10 @@ enum SettingsFeatureTests {
         let stringVersionBackup: [String: Any] = [
             SettingsBackupSupport.formatVersionKey: "1",
             SettingsBackupSupport.settingsKey: [
-                DefaultsKey.smoothScrollStep: 60,
+                DefaultsKey.linearScrollLines: 60,
             ] as [String: Any],
         ]
-        suite.expect(SettingsBackupSupport.sanitizedSettings(from: stringVersionBackup)?[DefaultsKey.smoothScrollStep] as? Int == 60,
+        suite.expect(SettingsBackupSupport.sanitizedSettings(from: stringVersionBackup)?[DefaultsKey.linearScrollLines] as? Int == 60,
                "a backup with a string-encoded format version restores correctly")
 
         // A backup file can be edited by hand, and a value of the wrong shape
@@ -529,20 +529,20 @@ enum SettingsFeatureTests {
         let wrongShapes: [String: Any] = [
             SettingsBackupSupport.formatVersionKey: 1,
             SettingsBackupSupport.settingsKey: [
-                DefaultsKey.smoothScrollEnabled: "yes please",
+                DefaultsKey.linearScrollEnabled: "yes please",
                 DefaultsKey.monitorInterval: "soon",
-                DefaultsKey.smoothScrollStep: 60,
+                DefaultsKey.linearScrollLines: 60,
                 DefaultsKey.switcherAppRules: "not a rule dictionary",
             ] as [String: Any],
         ]
         let shapeChecked = SettingsBackupSupport.sanitizedSettings(from: wrongShapes)
-        suite.expect(shapeChecked?[DefaultsKey.smoothScrollEnabled] == nil,
+        suite.expect(shapeChecked?[DefaultsKey.linearScrollEnabled] == nil,
                "text where a switch belongs is dropped on import")
         suite.expect(shapeChecked?[DefaultsKey.monitorInterval] == nil,
                "text where a number belongs is dropped on import")
         suite.expect(shapeChecked?[DefaultsKey.switcherAppRules] == nil,
                "text where a per-app rule dictionary belongs is dropped on import")
-        suite.expect(shapeChecked?[DefaultsKey.smoothScrollStep] as? Int == 60,
+        suite.expect(shapeChecked?[DefaultsKey.linearScrollLines] as? Int == 60,
                "a value of the right shape still restores")
         let bridgedInput: [String: Any] = [
             SettingsBackupSupport.formatVersionKey: 1,
@@ -550,9 +550,9 @@ enum SettingsFeatureTests {
                 DefaultsKey.switcherEnabled: 1,
                 DefaultsKey.monitorInterval: true,
                 DefaultsKey.dockPreviewBackgroundOpacity: true,
-                DefaultsKey.smoothScrollStep: 60,
+                DefaultsKey.linearScrollLines: 60,
                 DefaultsKey.scratchpadBackgroundOpacity: 0.5,
-                DefaultsKey.smoothScrollExceptions: [1],
+                DefaultsKey.linearScrollExceptions: [1],
                 DefaultsKey.autoQuitExceptions: ["com.example.editor"],
                 DefaultsKey.switcherAppRules: ["com.example.editor": 1],
                 DefaultsKey.mouseButtonShortcuts: ["4": "command:0"],
@@ -572,10 +572,10 @@ enum SettingsFeatureTests {
                 && bridgedSettings?[DefaultsKey.monitorInterval] == nil
                 && bridgedSettings?[DefaultsKey.dockPreviewBackgroundOpacity] == nil,
                "property-list numbers and booleans do not cross scalar setting types")
-        suite.expect(bridgedSettings?[DefaultsKey.smoothScrollExceptions] == nil
+        suite.expect(bridgedSettings?[DefaultsKey.linearScrollExceptions] == nil
                 && bridgedSettings?[DefaultsKey.switcherAppRules] == nil,
                "wrong collection element types are dropped on import")
-        suite.expect(bridgedSettings?[DefaultsKey.smoothScrollStep] as? Int == 60
+        suite.expect(bridgedSettings?[DefaultsKey.linearScrollLines] as? Int == 60
                 && bridgedSettings?[DefaultsKey.scratchpadBackgroundOpacity] as? Double == 0.5
                 && bridgedSettings?[DefaultsKey.autoQuitExceptions] as? [String]
                     == ["com.example.editor"]
