@@ -154,7 +154,7 @@ final class SongPeekController {
 
     // MARK: The band
 
-    /// The closed notch grows downward by one notch height and shows the band.
+    /// The closed notch grows down by the band's measured height and shows it.
     private func show(_ track: SpotifyQueueService.Track, endsAt: Date, key: String) {
         hideWork?.cancel()
         model.title = track.title

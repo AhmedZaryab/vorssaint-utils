@@ -75,12 +75,19 @@ struct NotchView: View {
     }
 
     @ViewBuilder private var surface: some View {
-        ZStack(alignment: .top) {
-            baseSurface
-            if service.songPeekBandActive, let peek = service.songPeek {
+        if service.songPeekBandActive, let peek = service.songPeek {
+            // The strip keeps its closed frame; the band fills the body below,
+            // inside the silhouette's shoulders.
+            let base = service.baseSurfaceSize
+            let inset = NotchLayout.shoulder(height: service.surfaceSize.height)
+            VStack(spacing: 0) {
+                baseSurface.frame(width: base.width, height: base.height)
                 NotchSongPeekBand(model: peek)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+                    .padding(.horizontal, inset)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             }
+        } else {
+            baseSurface
         }
     }
 
