@@ -1284,11 +1284,6 @@ enum UpdateFeatureTests {
 
         Signed with an Apple Developer ID and notarized by Apple, so it downloads and opens normally. Requires macOS 14 or later. Open the .dmg below and drag Vorssaint to Applications.
         """
-        let inAppUpdateBody = ReleaseNotes.inAppUpdateNotes(from: githubReleaseBodyWithFooter) ?? ""
-        suite.expect(!inAppUpdateBody.contains("Signed with an Apple Developer ID"),
-               "in-app update notes remove the GitHub installation footer")
-        let githubPreviewNotes = ReleaseNotes.notes(for: "2.17.4",
-                                                    changelog: "## [2.17.4]\n\n" + inAppUpdateBody)
         suite.expect(githubPreviewNotes.sections.first?.bulletItems == ["Update preview stays focused on changes."],
                "in-app update notes keep release changes after removing the footer")
         let unreleasedChangelog = """
@@ -1311,51 +1306,6 @@ enum UpdateFeatureTests {
         suite.expect(ReleaseNotes.rawNotes(for: "dev", changelog: unreleasedChangelog).contains("Feature pending release."),
                "rawNotes for dev falls back to the unreleased block")
 
-        // MARK: App updates
-
-        suite.expect(AppUpdatesSupport.compare("1.130.0", "1.129.0") == .orderedDescending
-                && AppUpdatesSupport.compare("0.730.0.7300790", "0.731.0") == .orderedAscending
-                && AppUpdatesSupport.compare("26.084.0504", "26.119.0622.0003") == .orderedAscending,
-               "versions compare part by part, as numbers")
-        suite.expect(AppUpdatesSupport.compare("1.2", "1.2.0") == .orderedSame
-                && AppUpdatesSupport.compare("1.2", "1.2.1") == .orderedAscending
-                && AppUpdatesSupport.compare("3.5.230", "3.5.230") == .orderedSame,
-               "a missing part counts as zero")
-        suite.expect(AppUpdatesSupport.compare("2026.723.1724", "2026.714.1952") == .orderedDescending
-                && AppUpdatesSupport.compare("00123", "123") == .orderedSame,
-               "leading zeros never decide a comparison")
-        suite.expect(AppUpdatesSupport.compare("1.0Beta", "1.0beta") == .orderedSame
-                && AppUpdatesSupport.compare("1.0beta", "1.0Beta") == .orderedSame
-                && !AppUpdatesSupport.isNewer("1.0Beta", than: "1.0beta")
-                && !AppUpdatesSupport.isNewer("1.0beta", than: "1.0Beta"),
-               "a version spelled with different case is the same release, so neither side reports as newer")
-        suite.expect(AppUpdatesSupport.compare("2.0", "1.9") == .orderedDescending
-                && AppUpdatesSupport.compare("2024.1", "2024.10") == .orderedAscending,
-               "folding case into a tie still leaves a genuinely newer version ranked above the older one")
-        suite.expect(!AppUpdatesSupport.isNewer("1.9a", than: "1.10")
-                && AppUpdatesSupport.isNewer("1.10", than: "1.9a")
-                && !AppUpdatesSupport.isNewer("3.5beta", than: "3.5")
-                && AppUpdatesSupport.isNewer("3.5", than: "3.5beta")
-                && AppUpdatesSupport.isNewer("1.9b", than: "1.9a"),
-               "a lettered part compares by its number first, and the bare number outranks its own suffixed run")
-        suite.expect(AppUpdatesSupport.versionCore("3.5.262,260717dcrpwg7m0") == "3.5.262"
-                && AppUpdatesSupport.versionCore("0.0.402") == "0.0.402",
-               "the revision after a comma is not part of the version")
-        suite.expect(AppUpdatesSupport.versionCore(" v2.0.11.1,260925abc ") == "2.0.11.1"
-                && AppUpdatesSupport.versionCore("V2.0.11.1") == "2.0.11.1"
-                && !AppUpdatesSupport.isNewer("v2.0.11.1", than: "2.0.11.1")
-                && !AppUpdatesSupport.isNewer("2.0.11.1", than: "V2.0.11.1"),
-               "a leading v/V and surrounding whitespace normalize before numeric comparison")
-        suite.expect(!AppUpdatesSupport.isNewer("2.0.11.1", than: "v2.0.11.1")
-                && AppUpdatesSupport.isNewer("v2.0.11.2", than: "2.0.11.1")
-                && AppUpdatesSupport.versionCore("version1") == "version1",
-               "only a v/V directly before a number is removed, and prefixed versions compare by value")
-        suite.expect(AppUpdatesSupport.isNewer("3.5.262,260717dcrpwg7m0", than: "3.5.230")
-                && !AppUpdatesSupport.isNewer("1.130.0", than: "1.130.0"),
-               "an update is only newer when the number really grew")
-        suite.expect(AppUpdatesSupport.isUncomparable("latest") && AppUpdatesSupport.isUncomparable("")
-                && !AppUpdatesSupport.isUncomparable("1.0"),
-               "a package without a version number cannot be judged")
 
         func caskUpdate(_ token: String, installed: String, current: String,
                         pinned: Bool = false) -> HomebrewPackageUpdate {
@@ -1370,73 +1320,20 @@ enum UpdateFeatureTests {
             HomebrewCaskRecord(token: "installer", displayName: "Installer",
                                installedVersion: "26.078", appFileNames: []),
         ]
-        // The receipt says 1.129 while the app on disk already updated itself
-        // to 1.130: believing the receipt would offer an update that happened.
-        let packageApps = [
-            AppUpdatesSupport.InstalledApp(name: "Editor", bundleID: "com.vendor.editor",
-                                           path: "/Applications/Editor.app", version: "1.130.0",
-                                           isFromAppStore: false),
-            AppUpdatesSupport.InstalledApp(name: "Chat", bundleID: "com.vendor.chat",
-                                           path: "/Applications/Chat.app", version: "0.0.401",
-                                           isFromAppStore: false),
         ]
-        let packageRows = AppUpdatesSupport.packageUpdates(
-            outdated: [caskUpdate("editor", installed: "1.129.0", current: "1.130.0"),
-                       caskUpdate("chat", installed: "0.0.374", current: "0.0.402"),
-                       caskUpdate("installer", installed: "26.078", current: "26.119"),
-                       caskUpdate("pinnedApp", installed: "1.0", current: "2.0", pinned: true),
-                       caskUpdate("rolling", installed: "latest", current: "latest")],
-            installed: caskRecords,
-            apps: packageApps)
         suite.expect(!packageRows.contains { $0.token == "editor" },
                "an app that already updated itself is not offered again")
         suite.expect(packageRows.contains { $0.token == "chat" && $0.installedVersion == "0.0.401" },
                "the version the app reports wins over the package receipt")
         suite.expect(!packageRows.contains { $0.token == "installer" },
                "a package record without an app bundle is not presented as an installed app")
-        // Packages that install through an installer declare no app, so the
-        // catalog name is tried as a bundle name before giving up.
-        let namedRows = AppUpdatesSupport.packageUpdates(
-            outdated: [caskUpdate("installer", installed: "26.078", current: "26.119")],
-            installed: caskRecords,
-            apps: [AppUpdatesSupport.InstalledApp(name: "Installer", bundleID: "com.vendor.installer",
-                                                  path: "/Applications/Installer.app", version: "26.084",
-                                                  isFromAppStore: false)])
         suite.expect(namedRows.first?.installedVersion == "26.084",
                "a package with no declared app is matched by its catalog name")
         let exactPathRecord = HomebrewCaskRecord(token: "editor", displayName: "Editor",
                                                  installedVersion: "1.0",
                                                  appFileNames: ["Editor.app"],
                                                  appPaths: ["/Users/test/Applications/Editor.app"])
-        let duplicateNamedApps = [
-            AppUpdatesSupport.InstalledApp(name: "Editor system", bundleID: "com.vendor.editor",
-                                           path: "/Applications/Editor.app", version: "9.0",
-                                           isFromAppStore: false),
-            AppUpdatesSupport.InstalledApp(name: "Editor managed", bundleID: "com.vendor.editor",
-                                           path: "/Users/test/Applications/Editor.app", version: "1.0",
-                                           isFromAppStore: false),
         ]
-        suite.expect(AppUpdatesSupport.packageBundle(for: exactPathRecord,
-                                               apps: duplicateNamedApps)?.version == "1.0",
-               "package updates use the exact managed app path when same-named copies exist")
-        suite.expect(AppUpdatesSupport.packageBundle(for: caskRecords[0],
-                                               apps: duplicateNamedApps,
-                                               homeDirectory: "/Users/test") == nil,
-               "a name-only package record never guesses between same-named app copies")
-        let downloadOnlyCopy = AppUpdatesSupport.InstalledApp(
-            name: "Editor download", bundleID: "com.vendor.editor",
-            path: "/Users/test/Downloads/Editor.app", version: "1.0",
-            isFromAppStore: false)
-        suite.expect(AppUpdatesSupport.packageBundle(for: caskRecords[0],
-                                               apps: [downloadOnlyCopy],
-                                               homeDirectory: "/Users/test") == nil,
-               "a name-only package record never claims a homonymous app outside standard app folders")
-        let alreadyCurrent = AppUpdatesSupport.packageUpdates(
-            outdated: [caskUpdate("installer", installed: "26.078", current: "26.119")],
-            installed: caskRecords,
-            apps: [AppUpdatesSupport.InstalledApp(name: "Installer", bundleID: "com.vendor.installer",
-                                                  path: "/Applications/Installer.app", version: "26.200",
-                                                  isFromAppStore: false)])
         suite.expect(alreadyCurrent.isEmpty,
                "the name match also suppresses an app that ran ahead of its package")
         suite.expect(!packageRows.contains { $0.token == "pinnedApp" }
@@ -1444,161 +1341,49 @@ enum UpdateFeatureTests {
                "pinned packages and packages without a version stay out")
         suite.expect(packageRows.allSatisfy { $0.canInstallInPlace },
                "package rows can be installed on the spot")
-        let ownPackageRows = AppUpdatesSupport.packageUpdates(
-            outdated: [caskUpdate("vorssaint", installed: "3.1.12", current: "3.2.0")],
-            installed: [],
-            ignoredTokens: ["vorssaint"],
-            apps: [])
         suite.expect(ownPackageRows.isEmpty,
                "the app update list never offers to replace Vorssaint through its own package")
 
-        let storeApps = [
-            AppUpdatesSupport.InstalledApp(name: "Blocker", bundleID: "net.example.blocker",
-                                           path: "/Applications/Blocker.app",
-                                           version: "2026.714.1952", isFromAppStore: true),
-            AppUpdatesSupport.InstalledApp(name: "Sheets", bundleID: "com.example.sheets",
-                                           path: "/Applications/Sheets.app",
-                                           version: "16.111.1", isFromAppStore: true),
-            AppUpdatesSupport.InstalledApp(name: "Chat", bundleID: "com.example.chat",
-                                           path: "/Applications/Chat.app",
-                                           version: "0.0.401", isFromAppStore: false),
-            AppUpdatesSupport.InstalledApp(name: "Future", bundleID: "com.example.future",
-                                           path: "/Applications/Future.app",
-                                           version: "1.0", isFromAppStore: true),
         ]
-        let candidates = AppUpdatesSupport.appStoreCandidates(apps: storeApps,
-                                                              coveredPaths: ["/Applications/Chat.app"])
         suite.expect(candidates.count == 3 && !candidates.contains { $0.bundleID == "com.example.chat" },
                "only store purchases are asked about, and never one the package manager answers for")
-        let storeVersions = [
-            "net.example.blocker": AppUpdatesSupport.StoreEntry(bundleID: "net.example.blocker",
-                                                                version: "2026.723.1724",
-                                                                minimumOSVersion: "14.0",
-                                                                page: "https://apps.apple.com/app"),
-            "com.example.sheets": AppUpdatesSupport.StoreEntry(bundleID: "com.example.sheets",
-                                                               version: "16.111.1",
-                                                               minimumOSVersion: nil, page: nil),
-            "com.example.future": AppUpdatesSupport.StoreEntry(bundleID: "com.example.future",
-                                                               version: "2.0",
-                                                               minimumOSVersion: "26.0", page: nil),
         ]
-        let storeRows = AppUpdatesSupport.appStoreUpdates(apps: candidates,
-                                                         storeVersions: storeVersions,
-                                                         operatingSystemVersion: "15.7")
         suite.expect(storeRows.count == 1 && storeRows[0].name == "Blocker"
                 && !storeRows[0].canInstallInPlace,
                "a store app is listed only when its newer version runs on this macOS")
 
-        let mergedRows = AppUpdatesSupport.merged(storeRows, packageRows)
         suite.expect(mergedRows.count == packageRows.count + storeRows.count
                 && mergedRows.first?.canInstallInPlace == true
                 && mergedRows.last?.canInstallInPlace == false,
                "the merged list puts what can be updated here first")
         let everything = Set(mergedRows.map(\.id))
-        suite.expect(AppUpdatesSupport.tokens(in: mergedRows, selection: everything).count == packageRows.count
-                && AppUpdatesSupport.hasStoreSelection(in: mergedRows, selection: everything),
-               "the selection splits into package tokens and store hand-offs")
-        suite.expect(AppUpdatesSupport.tokens(in: mergedRows, selection: []).isEmpty
-                && !AppUpdatesSupport.hasStoreSelection(in: mergedRows, selection: []),
-               "an empty selection asks for nothing")
-        suite.expect(AppUpdatesSupport.singleStorePage(in: mergedRows, selection: everything)
-                == "https://apps.apple.com/app",
-               "one ticked store row hands off to its own page, where its own button goes")
-        let secondStoreRow = AppUpdatesSupport.Item(id: "store:com.example.notes",
-                                                    source: .appStore,
-                                                    name: "Notes",
-                                                    installedVersion: "1.0",
-                                                    latestVersion: "2.0",
-                                                    token: nil,
-                                                    bundlePath: nil,
-                                                    storePage: "https://apps.apple.com/notes")
         let twoStoreRows = mergedRows + [secondStoreRow]
-        suite.expect(AppUpdatesSupport.singleStorePage(in: twoStoreRows,
-                                                 selection: Set(twoStoreRows.map(\.id))) == nil
-                && AppUpdatesSupport.singleStorePage(in: mergedRows, selection: []) == nil,
-               "two store rows, or none, have no single page to land on")
 
-        let keptSelection = AppUpdatesSupport.reconciledSelection(
-            previous: [mergedRows[0].id, "gone:row"],
-            knownIDs: Set(mergedRows.map(\.id)),
-            items: mergedRows)
         suite.expect(keptSelection == [mergedRows[0].id],
                "a row that disappeared leaves the selection behind")
-        let withNewFinding = AppUpdatesSupport.reconciledSelection(
-            previous: [], knownIDs: [], items: mergedRows)
         suite.expect(withNewFinding == Set(mergedRows.map(\.id)),
                "findings the person has not seen yet arrive already ticked")
 
-        suite.expect(AppUpdatesSupport.storeLookupURL(bundleIDs: [], country: "BR") == nil,
-               "no identifiers means no request")
-        let lookup = AppUpdatesSupport.storeLookupURL(bundleIDs: ["a.b", "c.d"], country: "BR")?
-            .absoluteString ?? ""
         suite.expect(lookup.contains("bundleId=a.b,c.d") && lookup.contains("country=BR")
                 && lookup.contains("entity=macSoftware"),
                "several apps are asked about in one request")
-        let noCountry = AppUpdatesSupport.storeLookupURL(bundleIDs: ["a.b"], country: nil)?
-            .absoluteString ?? ""
         suite.expect(!noCountry.contains("country="), "without a region the request carries none")
         let lookupBody = Data(#"{"resultCount":2,"results":[{"kind":"mac-software","bundleId":"a.b","version":"2.0","minimumOsVersion":"15.0","trackViewUrl":"https://x"},{"kind":"software","bundleId":"c.d","version":"9.0","minimumOsVersion":"12.0"}]}"#.utf8)
-        let lookupEntries = AppUpdatesSupport.parseStoreLookup(lookupBody)
         let lookupEntry = lookupEntries["a.b"]
         suite.expect(lookupEntry?.version == "2.0" && lookupEntry?.minimumOSVersion == "15.0",
                "the store answer is read back")
         suite.expect(lookupEntries["c.d"] == nil,
                "another platform's listing is not the installed Mac app's version")
-        suite.expect(AppUpdatesSupport.parseStoreLookup(Data("not json".utf8)).isEmpty,
-               "a broken store answer yields nothing instead of throwing")
 
-        let completeLookup = AppUpdatesSupport.storeLookupResponse(
-            lookupBody, statusCode: 200)
-        suite.expect(AppUpdatesSupport.hasStoreCoverage(bundleIDs: ["a.b"], entries: completeLookup)
-                && completeLookup["a.b"]?.version == "2.0",
-               "a successful Mac listing covers its requested app")
-        let partialLookup = AppUpdatesSupport.storeLookupResponse(
-            lookupBody, statusCode: 200)
-        suite.expect(!AppUpdatesSupport.hasStoreCoverage(bundleIDs: ["a.b", "c.d"], entries: partialLookup)
-                && partialLookup["a.b"]?.version == "2.0",
-               "another platform's listing leaves coverage incomplete without losing valid results")
-        suite.expect(!AppUpdatesSupport.hasStoreCoverage(bundleIDs: ["a.b", "missing.app"], entries: partialLookup),
-               "a catalog omission cannot mean the missing app is up to date")
         let storeFailures: [(Data?, Int?)] = [
             (nil, 200), (lookupBody, nil), (lookupBody, 429), (lookupBody, 500),
             (Data("not json".utf8), 200), (Data("{}".utf8), 200),
             (Data(#"{"resultCount":0,"results":[]}"#.utf8), 200),
             (Data(#"{"results":[{"kind":"mac-software","bundleId":"a.b","version":""}]}"#.utf8), 200),
         ]
-        for (body, status) in storeFailures {
-            let result = AppUpdatesSupport.storeLookupResponse(body, statusCode: status)
-            suite.expect(!AppUpdatesSupport.hasStoreCoverage(bundleIDs: ["a.b"], entries: result) && result.isEmpty,
-                   "failed, malformed and empty store responses never certify an app as checked")
-        }
-        let partiallyCheckedApps = [AppUpdatesSupport.InstalledApp(
-            name: "Editor", bundleID: "a.b", path: "/Applications/Editor.app",
-            version: "1.0", isFromAppStore: true)]
-        let partialStoreRows = AppUpdatesSupport.appStoreUpdates(
-            apps: partiallyCheckedApps, storeVersions: partialLookup,
-            operatingSystemVersion: "26.0")
         suite.expect(partialStoreRows.count == 1 && partialStoreRows[0].latestVersion == "2.0",
                "a partial store check still offers the updates it could verify")
-        let uncheckedReader = AppUpdatesSupport.InstalledApp(
-            name: "Reader", bundleID: "reader.example", path: "/Applications/Reader.app",
-            version: "1.0", isFromAppStore: false)
-        suite.expect(AppUpdatesSupport.uncheckedAppNames(
-            partiallyCheckedApps + [uncheckedReader, uncheckedReader],
-            checkedPaths: [partiallyCheckedApps[0].path]) == ["Reader"],
-               "partial checks name only pending apps and coalesce repeated source failures")
-        suite.expect(AppUpdatesSupport.uncheckedAppNames(
-            [uncheckedReader], checkedPaths: [uncheckedReader.path]).isEmpty,
-               "a successful publisher answer removes the app from failed catalog details")
 
-        suite.expect(AppUpdatesSupport.storeIDLookupURL(ids: ["123", "456"], country: "BR")?
-            .absoluteString.contains("id=123,456") == true
-                && AppUpdatesSupport.storeIDLookupURL(ids: ["123"], country: "BR")?
-                    .absoluteString.contains("platform=macappstore") == true,
-               "store lookups use the product identity and explicitly request Mac metadata")
-        suite.expect(AppUpdatesSupport.storeIDLookupURL(ids: [], country: nil) == nil
-                && AppUpdatesSupport.storeIDLookupURL(ids: ["12&country=US"], country: nil) == nil,
-               "store identifiers cannot add query parameters or create an empty request")
         let universalStoreBody = Data(#"""
         {"results":{
           "123":{"bundleId":"com.example.universal","kind":"iosSoftware","deviceFamilies":["mac","iphone"],"minimumOSVersion":"14.0","url":"https://apps.apple.com/app/id123","offers":[{"version":{"display":"2.0"},"assets":[{"flavor":"macSoftware"}]},{"version":{"display":"9.0"},"assets":[{"flavor":"iosSoftware"}]}]},
@@ -1606,62 +1391,15 @@ enum UpdateFeatureTests {
           "789":{"bundleId":"com.example.no-mac-offer","deviceFamilies":["mac","iphone"],"minimumOSVersion":"14.0","offers":[{"version":{"display":"9.0"},"assets":[{"flavor":"iosSoftware"}]}]}
         }}
         """#.utf8)
-        let universalEntries = AppUpdatesSupport.storeMetadataResponse(universalStoreBody, statusCode: 200)
         suite.expect(universalEntries.count == 1 && universalEntries["com.example.universal"]?.version == "2.0"
                 && universalEntries["com.example.universal"]?.minimumOSVersion == "14.0",
                "universal store apps use the Mac offer and Mac OS requirement, not the mobile version")
-        let universalApp = AppUpdatesSupport.InstalledApp(name: "Universal", bundleID: "com.example.universal",
-            path: "/Applications/Universal.app", version: "1.0", isFromAppStore: true)
-        suite.expect(AppUpdatesSupport.appStoreUpdates(apps: [universalApp], storeVersions: universalEntries,
-                                                operatingSystemVersion: "15.0").count == 1
-                && AppUpdatesSupport.appStoreUpdates(apps: [universalApp], storeVersions: universalEntries,
-                                                    operatingSystemVersion: "13.0").isEmpty,
-               "a universal app update is detected only on a compatible Mac")
-        suite.expect(AppUpdatesSupport.storeMetadataResponse(universalStoreBody, statusCode: 500).isEmpty
-                && AppUpdatesSupport.storeMetadataResponse(Data("{}".utf8), statusCode: 200).isEmpty,
-               "failed platform-specific lookups cannot create updates")
-        let renamedStoreApp = AppUpdatesSupport.InstalledApp(
-            name: "Editor", bundleID: "com.vendor.editor", path: "/Applications/Editor.app",
-            version: "1.0", isFromAppStore: true)
-        suite.expect(AppUpdatesSupport.packageUpdates(
-            outdated: [caskUpdate("editor", installed: "1.0", current: "2.0")],
-            installed: caskRecords, apps: [renamedStoreApp]).isEmpty,
-               "an old package receipt cannot claim the store edition of an app")
 
-        let publisherFeed = AppUpdateFeedSupport.feed(
-            info: ["SUFeedURL": "https://updates.example.com/feed.xml"], configuration: nil)
         suite.expect(publisherFeed?.format == .appcast, "the app's declared feed is a supported source")
-        suite.expect(AppUpdateFeedSupport.feedIsAbsent(statusCode: 404)
-                && AppUpdateFeedSupport.feedIsAbsent(statusCode: 410)
-                && !AppUpdateFeedSupport.feedIsAbsent(statusCode: 200)
-                && !AppUpdateFeedSupport.feedIsAbsent(statusCode: 403)
-                && !AppUpdateFeedSupport.feedIsAbsent(statusCode: 500)
-                && !AppUpdateFeedSupport.feedIsAbsent(statusCode: 503)
-               && !AppUpdateFeedSupport.feedIsAbsent(statusCode: nil),
-               "only missing publisher responses can use catalog coverage")
-        let packagedFeed = AppUpdateFeedSupport.feed(info: [:], configuration:
-            "provider: generic\nurl: 'https://updates.example.com/stable'\n")
         suite.expect(packagedFeed?.url.absoluteString == "https://updates.example.com/stable/latest-mac.yml",
                "packaged update configuration selects the Mac release manifest")
-        let hostedFeed = AppUpdateFeedSupport.feed(info: [:], configuration:
-            "provider: github\nowner: example\nrepo: editor\n")
         suite.expect(hostedFeed?.url.absoluteString == "https://github.com/example/editor/releases/latest/download/latest-mac.yml",
                "an explicitly declared release repository supplies its Mac metadata")
-        for invalid in ["file:///tmp/feed.xml", "http://example.com/feed.xml",
-                        "https://user:password@example.com/feed.xml", "https://localhost/feed.xml",
-                        "https://127.0.0.1/feed.xml", "https://192.168.1.1/feed.xml"] {
-            suite.expect(AppUpdateFeedSupport.publicURL(invalid) == nil,
-                   "feed discovery rejects local, insecure and credential-bearing URLs")
-        }
-        for invalid in ["provider: github\nowner: ../user\nrepo: editor",
-                        "provider: github\nowner: user\nrepo: editor\nprivate: true",
-                        "provider: generic\nurl: https://example.com\nchannel: beta",
-                        "provider: generic\nurl: https://example.com\nrequestHeaders:\n  Authorization: secret",
-                        "provider: custom\nurl: https://example.com",
-                        "provider: generic\nurl: https://example.com\nurl: https://other.example.com"] {
-            suite.expect(AppUpdateFeedSupport.feed(info: [:], configuration: invalid) == nil,
-                   "private, ambiguous and unsupported update configuration is not guessed")
-        }
         let appcast = Data(#"""
         <rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle"><channel>
           <item><sparkle:version>110</sparkle:version><sparkle:shortVersionString>1.1</sparkle:shortVersionString><sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion><enclosure url="https://example.com/app.zip" /></item>
@@ -1671,16 +1409,6 @@ enum UpdateFeatureTests {
           <item><sparkle:deltas><enclosure sparkle:version="500" sparkle:deltaFrom="100" url="https://example.com/app.delta" /></sparkle:deltas></item>
         </channel></rss>
         """#.utf8)
-        let feedApp = AppUpdatesSupport.InstalledApp(
-            name: "Editor", bundleID: "com.example.editor", path: "/Applications/Editor.app",
-            version: "1.0", isFromAppStore: false, buildVersion: "100")
-        let releases = AppUpdateFeedSupport.releases(data: appcast, format: .appcast) ?? []
-        func feedUpdate(_ releases: [AppUpdateFeedSupport.Release],
-                        format: AppUpdateFeedSupport.Format = .appcast) -> AppUpdatesSupport.Item? {
-            AppUpdateFeedSupport.update(app: feedApp, releases: releases, format: format,
-                                        operatingSystemVersion: "15.7", kernelVersion: "24.6.0",
-                                        architecture: "arm64")
-        }
         suite.expect(feedUpdate(releases)?.latestVersion == "1.1",
                "feeds choose the newest compatible stable Mac release, not the first or largest entry")
         suite.expect(feedUpdate(releases)?.isSelectable == false && feedUpdate(releases)?.token == nil,
@@ -1688,59 +1416,28 @@ enum UpdateFeatureTests {
         suite.expect(feedUpdate([.init(version: "101", displayVersion: "1.0", hasDownload: true)])?
             .latestVersion == "1.0 (101)",
                "new builds with the same visible version are detected and distinguished")
-        for excluded in [
-            AppUpdateFeedSupport.Release(version: "99", displayVersion: "2.0", hasDownload: true),
-            .init(version: "110", displayVersion: "1.1beta", hasDownload: true),
-            .init(version: "110", displayVersion: "1.1", maximumOS: "14.0", hasDownload: true),
-            .init(version: "110", displayVersion: "1.1", minimumInstalledVersion: "105", hasDownload: true),
-            .init(version: "110", displayVersion: "1.1", hardware: "x86_64", hasDownload: true),
         ] {
             suite.expect(feedUpdate([excluded]) == nil,
                    "older builds, preview releases and incompatible update paths are excluded")
         }
-        for invalid in [Data("<rss><channel><item>".utf8), Data("<html/>".utf8),
-                        Data(#"<!DOCTYPE rss [<!ENTITY x "110">]><rss><channel><item><version>&x;</version></item></channel></rss>"#.utf8),
-                        Data(repeating: 32, count: AppUpdateFeedSupport.byteLimit + 1)] {
-            suite.expect(AppUpdateFeedSupport.releases(data: invalid, format: .appcast) == nil,
-                   "malformed, non-feed, entity-bearing and oversized responses are rejected")
-        }
         let manifest = Data("version: 1.2\nfiles:\n  - url: app.zip\nminimumSystemVersion: 24.0.0\n".utf8)
-        let manifestReleases = AppUpdateFeedSupport.releases(data: manifest, format: .manifest) ?? []
         suite.expect(feedUpdate(manifestReleases, format: .manifest)?.latestVersion == "1.2",
                "Mac manifests compare visible app versions and use the kernel version for their OS requirement")
-        let absentFindings = AppUpdateFeedSupport.findings(
-            loadResult: .absent, format: .manifest, apps: [feedApp],
-            operatingSystemVersion: "15.7", kernelVersion: "24.6.0", architecture: "arm64")
         suite.expect(absentFindings.complete && absentFindings.checkedPaths.isEmpty
                 && absentFindings.uncheckedPaths.isEmpty
                 && absentFindings.catalogFallbackPaths == [feedApp.path],
                "an absent publisher manifest requires catalog coverage before clearing its warning")
-        let failedFindings = AppUpdateFeedSupport.findings(
-            loadResult: .failed, format: .manifest, apps: [feedApp],
-            operatingSystemVersion: "15.7", kernelVersion: "24.6.0", architecture: "arm64")
         suite.expect(!failedFindings.complete && failedFindings.checkedPaths.isEmpty
                 && failedFindings.uncheckedPaths == [feedApp.path],
                "a failed publisher manifest remains incomplete and names the app")
-        let successfulFindings = AppUpdateFeedSupport.findings(
-            loadResult: .data(manifest), format: .manifest, apps: [feedApp],
-            operatingSystemVersion: "15.7", kernelVersion: "24.6.0", architecture: "arm64")
         suite.expect(successfulFindings.complete && successfulFindings.checkedPaths == [feedApp.path]
                 && successfulFindings.uncheckedPaths.isEmpty
                && successfulFindings.items.first?.latestVersion == "1.2",
                "a readable publisher manifest still reports its newer release")
-        let unparseableFindings = AppUpdateFeedSupport.findings(
-            loadResult: .data(Data("not a manifest".utf8)), format: .manifest, apps: [feedApp],
-            operatingSystemVersion: "15.7", kernelVersion: "24.6.0", architecture: "arm64")
         suite.expect(!unparseableFindings.complete && unparseableFindings.checkedPaths.isEmpty
                 && unparseableFindings.uncheckedPaths == [feedApp.path]
                 && unparseableFindings.items.isEmpty,
                "an unreadable publisher manifest stays a failure and is not treated as absent")
-        let unstableFeedApp = AppUpdatesSupport.InstalledApp(
-            name: "Preview", bundleID: "com.example.preview", path: "/Applications/Preview.app",
-            version: "1.2b", isFromAppStore: false)
-        let unstableFindings = AppUpdateFeedSupport.findings(
-            loadResult: .data(manifest), format: .manifest, apps: [unstableFeedApp],
-            operatingSystemVersion: "15.7", kernelVersion: "24.6.0", architecture: "arm64")
         suite.expect(!unstableFindings.complete && unstableFindings.checkedPaths.isEmpty
                 && unstableFindings.uncheckedPaths == [unstableFeedApp.path],
                "a publisher feed cannot check an app with an unstable installed version")
@@ -1763,50 +1460,13 @@ enum UpdateFeatureTests {
           {"token":"own-tool","version":"9.0","artifacts":[{"app":["Own.app"]}]}
         ]
         """#.utf8)
-        let onlineCatalog = AppUpdatesSupport.parseOnlineCatalog(onlineCatalogBody) ?? []
         suite.expect(onlineCatalog.count == 11
                 && onlineCatalog.first?.bundleIDs == ["com.example.notes"]
                 && onlineCatalog.first?.minimumOSVersions == ["14"]
                 && onlineCatalog.first { $0.token == "writer" }?.appNames == ["Writer.app"],
                "the online catalog keeps final app names, explicit bundle identifiers and OS rules")
-        suite.expect(AppUpdatesSupport.parseOnlineCatalogResponse(onlineCatalogBody, statusCode: 200)?.count == 11
-                && AppUpdatesSupport.parseOnlineCatalogResponse(nil, statusCode: 200) == nil
-                && AppUpdatesSupport.parseOnlineCatalogResponse(onlineCatalogBody, statusCode: 500) == nil
-                && AppUpdatesSupport.parseOnlineCatalogResponse(Data("broken".utf8), statusCode: 200) == nil,
-               "missing, failed and malformed network responses never become successful empty coverage")
 
-        let onlineApps = [
-            AppUpdatesSupport.InstalledApp(name: "Notes", bundleID: "com.example.notes",
-                                           path: "/Applications/Notes.app", version: "1.0",
-                                           isFromAppStore: false),
-            AppUpdatesSupport.InstalledApp(name: "Writer", bundleID: "com.example.writer",
-                                           path: "/Applications/Writer.app", version: "1.0",
-                                           isFromAppStore: false),
-            AppUpdatesSupport.InstalledApp(name: "Duplicate", bundleID: "com.example.other",
-                                           path: "/Applications/Duplicate.app", version: "1.0",
-                                           isFromAppStore: false),
-            AppUpdatesSupport.InstalledApp(name: "Future", bundleID: "com.example.future",
-                                           path: "/Applications/Future.app", version: "1.0",
-                                           isFromAppStore: false),
-            AppUpdatesSupport.InstalledApp(name: "Exact", bundleID: "com.example.exact",
-                                           path: "/Applications/Exact.app", version: "1.0",
-                                           isFromAppStore: false),
-            AppUpdatesSupport.InstalledApp(name: "Rolling", bundleID: "com.example.rolling",
-                                           path: "/Applications/Rolling.app", version: "1.0",
-                                           isFromAppStore: false),
-            AppUpdatesSupport.InstalledApp(name: "Case", bundleID: "com.example.case",
-                                           path: "/Applications/case.app", version: "1.0",
-                                           isFromAppStore: false),
-            AppUpdatesSupport.InstalledApp(name: "Older", bundleID: "com.example.older",
-                                           path: "/Applications/Older.app", version: "2.0",
-                                           isFromAppStore: false),
-            AppUpdatesSupport.InstalledApp(name: "Own", bundleID: "com.example.own",
-                                           path: "/Applications/Own.app", version: "1.0",
-                                           isFromAppStore: false),
         ]
-        let onlineRows = AppUpdatesSupport.onlineCatalogFindings(
-            apps: onlineApps, catalog: onlineCatalog, operatingSystemVersion: "15.7",
-            ignoredTokens: ["own-tool"]).items
         suite.expect(Set(onlineRows.map(\.name)) == ["Notes", "Writer", "Exact"]
                 && onlineRows.allSatisfy { $0.source == .onlineCatalog && !$0.isSelectable },
                "online matching requires an exact unique bundle name, uses an explicit ID to resolve ambiguity and keeps rows action-only")
@@ -1818,44 +1478,20 @@ enum UpdateFeatureTests {
           {"token":"companion","version":"99.0","artifacts":[{"app":["Companion.app"]},{"uninstall":[{"quit":["com.example.companion","com.example.renamed"]}]}]}
         ]
         """#.utf8)
-        let expandedCatalog = AppUpdatesSupport.parseOnlineCatalog(expandedCatalogBody) ?? []
         suite.expect(expandedCatalog.first?.appNames == ["Installed.app"],
                "installer removal metadata supplies exact app names without treating globs or temporary paths as installed apps")
-        let expandedApps = [
-            AppUpdatesSupport.InstalledApp(name: "Installer", bundleID: "com.example.installer",
-                path: "/Applications/Installed.app", version: "1.0", isFromAppStore: false),
-            AppUpdatesSupport.InstalledApp(name: "Renamed", bundleID: "com.example.renamed",
-                path: "/Applications/My App.app", version: "1.0", isFromAppStore: false),
-            AppUpdatesSupport.InstalledApp(name: "Unrelated", bundleID: "com.example.unrelated",
-                path: "/Applications/Unrelated.app", version: "1.0", isFromAppStore: false),
         ]
-        let expandedRows = AppUpdatesSupport.onlineCatalogFindings(
-            apps: expandedApps, catalog: expandedCatalog, operatingSystemVersion: "15.7").items
         suite.expect(Set(expandedRows.map(\.name)) == ["Installer", "Renamed"],
                "identity matching finds installer-based and renamed apps without accepting a conflicting same-name app")
         suite.expect(expandedRows.allSatisfy { $0.latestVersion == "2.0" },
                "a companion app's quit list cannot take over another app's identity")
-        suite.expect(AppUpdatesSupport.onlineCatalogFindings(
-            apps: expandedApps, catalog: expandedCatalog + expandedCatalog,
-            operatingSystemVersion: "15.7").items.isEmpty,
-               "multiple catalog entries claiming the same identity cannot choose an update by guesswork")
         suite.expect(!onlineRows.contains { $0.name == "Duplicate" || $0.name == "Future"
                 || $0.name == "Rolling" || $0.name == "Case" || $0.name == "Older"
                 || $0.name == "Own" },
                "ambiguous, incompatible, uncomparable, differently cased, current and ignored catalog entries stay out")
-        let externalCandidates = AppUpdatesSupport.onlineCatalogCandidates(
-            apps: [onlineApps[0],
-                   AppUpdatesSupport.InstalledApp(name: "Store", bundleID: "com.example.store",
-                                                  path: "/Applications/Store.app", version: "1.0",
-                                                  isFromAppStore: true),
-                   onlineApps[1]],
-            coveredPaths: [onlineApps[1].path])
         suite.expect(externalCandidates == [onlineApps[0]],
                "store receipts and package-managed paths never reach the online catalog source")
 
-        let listWithOnline = AppUpdatesSupport.merged(mergedRows, onlineRows)
-        let selectionWithOnline = AppUpdatesSupport.reconciledSelection(
-            previous: Set(onlineRows.map(\.id)), knownIDs: [], items: listWithOnline)
         suite.expect(selectionWithOnline == Set(mergedRows.map(\.id))
                 && listWithOnline.suffix(onlineRows.count).allSatisfy { $0.source == .onlineCatalog },
                "online rows remain outside bulk selection and follow the managed sources in the list")
@@ -1874,35 +1510,6 @@ enum UpdateFeatureTests {
                "shared app discovery keeps installed apps and rejects system, transient, nested and duplicate copies")
 
         let noon = Date(timeIntervalSince1970: 1_800_000_000)
-        suite.expect(AppUpdatesSupport.nextCheckDate(lastCheck: noon, frequency: .off, now: noon) == nil,
-               "with the schedule off nothing is armed")
-        suite.expect(AppUpdatesSupport.nextCheckDate(lastCheck: nil, frequency: .daily, now: noon)
-                == noon.addingTimeInterval(AppUpdatesSupport.catchUpDelay),
-               "a schedule that never ran starts shortly after launch")
-        suite.expect(AppUpdatesSupport.nextCheckDate(lastCheck: noon, frequency: .daily, now: noon)
-                == noon.addingTimeInterval(86_400),
-               "the next daily check follows the last one")
-        suite.expect(AppUpdatesSupport.nextCheckDate(lastCheck: noon.addingTimeInterval(-200_000),
-                                               frequency: .daily, now: noon)
-                == noon.addingTimeInterval(AppUpdatesSupport.catchUpDelay),
-               "a check missed while the Mac was off runs soon, not instantly")
-        suite.expect(AppUpdatesSupport.shouldRecheck(hasCheckedThisSession: false, handoffPending: false,
-                                               lastCheck: noon, now: noon),
-               "a session that never scanned always scans on opening")
-        suite.expect(AppUpdatesSupport.shouldRecheck(hasCheckedThisSession: true, handoffPending: true,
-                                               lastCheck: noon, now: noon),
-               "coming back from the store always re-reads the list")
-        suite.expect(!AppUpdatesSupport.shouldRecheck(hasCheckedThisSession: true, handoffPending: false,
-                                                lastCheck: noon, now: noon.addingTimeInterval(60)),
-               "reopening the panel right away costs nothing")
-        suite.expect(AppUpdatesSupport.shouldRecheck(hasCheckedThisSession: true, handoffPending: false,
-                                               lastCheck: noon,
-                                               now: noon.addingTimeInterval(AppUpdatesSupport.staleAfter)),
-               "an old answer is read again")
-        suite.expect(AppUpdatesSupport.CheckFrequency.sanitized("weekly") == .weekly
-                && AppUpdatesSupport.CheckFrequency.sanitized("nonsense") == .off
-                && AppUpdatesSupport.CheckFrequency.sanitized(nil) == .off,
-               "a damaged frequency falls back to off")
 
         suite.expect(HomebrewCommandBuilder.upgradeCasks(brewPath: "/opt/x/brew", tokens: [])?.arguments == nil
                 && HomebrewCommandBuilder.upgradeCasks(brewPath: "/opt/x/brew",
@@ -1952,25 +1559,8 @@ enum UpdateFeatureTests {
         ) == nil,
         "ambiguous package ownership is never used for uninstall")
 
-        suite.expect(Defaults.utilityOrderWithAppUpdates("screenshot,quickLauncher,cleaner,homebrew")
-                == ["screenshot", "quickLauncher", "appUpdates", "cleaner", "homebrew"],
-               "app updates joins a saved panel order next to its siblings")
-        suite.expect(Defaults.utilityOrderWithAppUpdates("media,clipboard")
-                == ["media", "appUpdates", "clipboard"],
-               "without the cleaner to anchor to, it still lands near the top")
-        suite.expect(Defaults.utilityOrderWithAppUpdates("cleaner,appUpdates,media")
-                == ["cleaner", "appUpdates", "media"],
-               "an order that already has it is left alone")
-        suite.expect(Defaults.utilityOrderWithAppUpdates("") == ["appUpdates"],
-               "an empty saved order does not lose the entry")
         suite.expect(Defaults.registeredDefaults[DefaultsKey.appUpdatesCheckFrequency] as? String == "off",
                "the background check starts off")
-        suite.expect(Defaults.registeredDefaults[DefaultsKey.appUpdatesIncludeHomebrewApps] as? Bool == true
-                && Defaults.registeredDefaults[DefaultsKey.appUpdatesIncludeAppStore] as? Bool == true
-                && Defaults.registeredDefaults[DefaultsKey.appUpdatesIncludeOnlineCatalog] as? Bool == true
-                && Defaults.registeredDefaults[DefaultsKey.appUpdatesNotify] as? Bool == true
-                && Defaults.registeredDefaults[DefaultsKey.panelUtilityAppUpdates] as? Bool == true,
-               "the app update defaults are registered")
         suite.expect(SettingsBackupSupport.exportKeys().contains(DefaultsKey.appUpdatesCheckFrequency)
                 && SettingsBackupSupport.exportKeys().contains(DefaultsKey.appUpdatesIncludeHomebrewApps)
                 && SettingsBackupSupport.exportKeys().contains(DefaultsKey.appUpdatesIncludeOnlineCatalog)

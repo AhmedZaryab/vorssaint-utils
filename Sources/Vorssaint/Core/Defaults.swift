@@ -226,24 +226,8 @@ enum DefaultsKey {
     static let windowMaximizeExcludedApps = "windowMaximizeExcludedApps" // [bundle id] whose green button stays native
     static let panelUtilityCleaning = "panelUtilityCleaning"
     static let cleaningModeKeepScreenVisible = "cleaningModeKeepScreenVisible"
-    static let panelUtilityUninstaller = "panelUtilityUninstaller"
-    static let uninstallerCommandBarEnabled = "uninstallerCommandBarEnabled"
-    static let killProcessCommandBarEnabled = "killProcessCommandBarEnabled"
-    static let killProcessGroupRelated = "killProcessGroupRelated"
-    static let killProcessSortBy = "killProcessSortBy" // cpu | memory | name | pid
-    static let killProcessSortAscending = "killProcessSortAscending"
-    static let panelUtilityAppUpdates = "panelUtilityAppUpdates"
-    static let appUpdatesCheckFrequency = "appUpdatesCheckFrequency"  // off | daily | weekly
-    static let appUpdatesIncludeHomebrewApps = "appUpdatesIncludeHomebrewApps"
-    static let appUpdatesIncludeAppStore = "appUpdatesIncludeAppStore"
-    static let appUpdatesIncludeOnlineCatalog = "appUpdatesIncludeOnlineCatalog"
-    static let appUpdatesNotify = "appUpdatesNotify"
-    static let appUpdatesRules = "appUpdatesRules" // JSON, portable bundle-ID rules
-    static let appUpdatesLastCheck = "appUpdatesLastCheck"            // Double, epoch seconds
-    static let appUpdatesLastCount = "appUpdatesLastCount"
     // Findings already announced once, so a pending update nobody installs
     // does not speak up again after every relaunch.
-    static let appUpdatesNotifiedIDs = "appUpdatesNotifiedIDs"
     static let panelUtilityClipboard = "panelUtilityClipboard"
     static let panelUtilityWindowLayout = "panelUtilityWindowLayout"
     static let panelControlMouseScroll = "panelControlMouseScroll"
@@ -395,29 +379,11 @@ enum DefaultsKey {
     // paths hidden from folder scans (does not delete files)
     static let scratchpadShortcutEnabled = "scratchpadShortcutEnabled"
     static let scratchpadShortcut = "scratchpadShortcut"
-    static let commandBarShortcutEnabled = "commandBarShortcutEnabled"
-    static let commandBarShortcut = "commandBarShortcut"
     /// Compact mode: an empty field shows nothing but itself. Off by default
-    static let commandBarCompactMode = "commandBarCompactMode"
     /// The ASCII layout borrowed while the bar is open, restored on close. Off by default
-    static let commandBarASCIILayoutEnabled = "commandBarASCIILayoutEnabled"
-    static let commandBarUsage = "commandBarUsage"           // per-command run counts, never queries
-    static let commandBarQueryHabits = "commandBarQueryHabits" // keyed query digests → selected row ids
-    static let commandBarQueryHabitKey = "commandBarQueryHabitKey" // local key for stable digests
-    static let commandBarDisabledSources = "commandBarDisabledSources" // kinds of result switched off
-    static let commandBarAliases = "commandBarAliases"       // {row id: the name the person gave it}
-    static let commandBarPins = "commandBarPins"             // row keys kept at the top, in order
-    static let commandBarHidden = "commandBarHidden"         // row keys the person never wants offered
-    static let commandBarLinks = "commandBarLinks"           // Data: [CommandBarLink] JSON
-    static let commandBarRowShortcuts = "commandBarRowShortcuts" // {row key: shortcut}
-    static let commandBarPositionOffset = "commandBarPositionOffset" // "dx,dy" from the default spot
-    static let commandBarEmojiSkinTone = "commandBarEmojiSkinTone" // "" is the yellow default
     // The folders a file search looks in, one per line, written with a tilde
     // so an exported list still points somewhere on another Mac. Empty means
     // the bar looks for no files at all, which is the setting out of the box.
-    static let commandBarFileScopes = "commandBarFileScopes"
-    static let commandBarFileIgnores = "commandBarFileIgnores" // names a file search never shows
-    static let panelUtilityCommandBar = "panelUtilityCommandBar"
     static let scratchpadRetention = "scratchpadRetention"   // never | day | week | month
     static let scratchpadCloseOnClickOutside = "scratchpadCloseOnClickOutside"
     static let scratchpadBackgroundOpacity = "scratchpadBackgroundOpacity" // opaque fill over the pad material (ScratchpadSupport.backgroundOpacityRange)
@@ -530,7 +496,6 @@ enum DefaultsKey {
     static let recorderEditorPresets = "recorderEditorPresets"
     static let recorderSharingEnabled = "recorderSharingEnabled"
     static let panelUtilityScreenRecorder = "panelUtilityScreenRecorder"
-    static let panelUtilityPortManager = "panelUtilityPortManager"
 
     // Window Layout — snapping, global shortcuts and optional pointer gestures.
     static let windowLayoutShortcutsEnabled = "windowLayoutShortcutsEnabled"
@@ -1225,24 +1190,8 @@ enum Defaults {
         DefaultsKey.windowMaximizeExcludedApps: [String](),
         DefaultsKey.panelUtilityCleaning: true,
         DefaultsKey.cleaningModeKeepScreenVisible: false,
-        DefaultsKey.panelUtilityUninstaller: true,
-        DefaultsKey.uninstallerCommandBarEnabled: false,
-        DefaultsKey.killProcessCommandBarEnabled: true,
-        DefaultsKey.killProcessGroupRelated: true,
-        DefaultsKey.killProcessSortBy: "cpu",
-        DefaultsKey.killProcessSortAscending: false,
-        DefaultsKey.panelUtilityAppUpdates: true,
         // The list itself costs nothing until it is opened; only the
         // background check keeps a timer, so it starts off.
-        DefaultsKey.appUpdatesCheckFrequency: AppUpdatesSupport.CheckFrequency.off.rawValue,
-        DefaultsKey.appUpdatesIncludeHomebrewApps: true,
-        DefaultsKey.appUpdatesIncludeAppStore: true,
-        DefaultsKey.appUpdatesIncludeOnlineCatalog: true,
-        DefaultsKey.appUpdatesNotify: true,
-        DefaultsKey.appUpdatesRules: "[]",
-        DefaultsKey.appUpdatesLastCheck: 0.0,
-        DefaultsKey.appUpdatesLastCount: 0,
-        DefaultsKey.appUpdatesNotifiedIDs: [String](),
         DefaultsKey.panelUtilityClipboard: true,
         DefaultsKey.panelUtilityWindowLayout: true,
         DefaultsKey.panelControlMouseScroll: true,
@@ -1367,19 +1316,6 @@ enum Defaults {
         DefaultsKey.cameraPreviewShortcut: GlobalShortcut.cameraPreviewDefault.storageValue,
         DefaultsKey.scratchpadShortcutEnabled: false,
         DefaultsKey.scratchpadShortcut: GlobalShortcut.scratchpadDefault.storageValue,
-        DefaultsKey.commandBarShortcutEnabled: false,
-        DefaultsKey.commandBarCompactMode: false,
-        DefaultsKey.commandBarASCIILayoutEnabled: false,
-        DefaultsKey.commandBarDisabledSources: "",
-        DefaultsKey.commandBarAliases: "",
-        DefaultsKey.commandBarPins: "",
-        DefaultsKey.commandBarHidden: "",
-        DefaultsKey.commandBarFileScopes: "",
-        DefaultsKey.commandBarFileIgnores: "",
-        DefaultsKey.commandBarShortcut: GlobalShortcut.commandBarDefault.storageValue,
-        DefaultsKey.commandBarPositionOffset: "",
-        DefaultsKey.commandBarEmojiSkinTone: "",
-        DefaultsKey.panelUtilityCommandBar: true,
         DefaultsKey.scratchpadRetention: ScratchpadRetention.never.rawValue,
         DefaultsKey.scratchpadCloseOnClickOutside: true,
         DefaultsKey.scratchpadBackgroundOpacity: 0.0,
@@ -1412,7 +1348,6 @@ enum Defaults {
         DefaultsKey.recorderEditorPresets: Data(),
         DefaultsKey.recorderSharingEnabled: true,
         DefaultsKey.panelUtilityScreenRecorder: true,
-        DefaultsKey.panelUtilityPortManager: true,
         DefaultsKey.screenshotShowCaptureMenuOnShortcut: true,
         DefaultsKey.recorderShowCaptureMenuOnShortcut: true,
         DefaultsKey.screenOCRShowCaptureMenuOnShortcut: true,
@@ -1546,7 +1481,6 @@ enum Defaults {
         activateBetaChannelIfRunningBeta(in: defaults)
         migrateLegacySwitcherWindowShortcut(in: defaults)
         migrateUtilityOrderForScreenshot(in: defaults)
-        migrateUtilityOrderForAppUpdates(in: defaults)
         migrateScreenshotOpenEditorDirectly(in: defaults)
         migrateUnifiedScreenCaptureShortcut(in: defaults)
         migrateRestoredScreenCaptureShortcuts(in: defaults)
@@ -1905,25 +1839,6 @@ enum Defaults {
         guard !ids.contains("screenshot") else { return }
         defaults.set((["screenshot"] + ids).joined(separator: ","),
                      forKey: DefaultsKey.panelUtilityOrder)
-    }
-
-    /// App updates joins the panel next to the other app-management tools
-    /// instead of at the end of a long list, without disturbing the rest of
-    /// a layout the user arranged.
-    static func migrateUtilityOrderForAppUpdates(in defaults: UserDefaults) {
-        guard let storedOrder = defaults.object(forKey: DefaultsKey.panelUtilityOrder) as? String else {
-            return
-        }
-        defaults.set(utilityOrderWithAppUpdates(storedOrder).joined(separator: ","),
-                     forKey: DefaultsKey.panelUtilityOrder)
-    }
-
-    static func utilityOrderWithAppUpdates(_ storedOrder: String) -> [String] {
-        var ids = storedOrder.split(separator: ",").map(String.init)
-        guard !ids.contains("appUpdates") else { return ids }
-        let anchor = ids.firstIndex(of: "cleaner") ?? min(1, ids.count)
-        ids.insert("appUpdates", at: anchor)
-        return ids
     }
 
     static func sanitizedDefaultDuration(_ minutes: Int) -> Int {

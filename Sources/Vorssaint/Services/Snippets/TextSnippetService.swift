@@ -55,8 +55,7 @@ final class TextSnippetService {
                                                accessibilityGranted: AXIsProcessTrusted(),
                                                sessionIsActive: SessionActivity.shared.isActive) {
             let libraryIsVisible = SnippetLibraryService.shared.isVisible
-            let commandBarIsVisible = AppFeature.commandBar.isAvailable
-                && CommandBarService.shared.isVisible
+            let commandBarIsVisible = false
             inputLock.withLock {
                 libraryVisible = libraryIsVisible
                 commandBarVisible = commandBarIsVisible

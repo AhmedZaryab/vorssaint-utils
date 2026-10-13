@@ -37,7 +37,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSW
     private var popoverCloseReason: PanelCloseReason?
     private var popoverCloseCompletions: [() -> Void] = []
     private var isTerminating = false
-    private var inputSourceRestorationPending = false
     private var cancellables = Set<AnyCancellable>()
     private var settingsWindow: NSWindow?
     private var settingsKeepsAppRegular = false
@@ -259,23 +258,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSW
         UserDefaults.standard.removeObject(forKey: DefaultsKey.startupDidNotFinish)
     }
 
-    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
-        if inputSourceRestorationPending { return .terminateLater }
-        guard CommandBarService.shared.hasBorrowedInputSource else { return .terminateNow }
-        inputSourceRestorationPending = true
-        // Terminate-later runs a modal loop, which may be nested inside a
-        // main-queue callback. Schedule in both modes before approving quit.
-        RunLoop.main.perform(inModes: [.default, .modalPanel]) { [weak self] in
-            CommandBarService.shared.restoreBorrowedInputSource()
-            self?.inputSourceRestorationPending = false
-            sender.reply(toApplicationShouldTerminate: true)
-        }
-        return .terminateLater
-    }
-
     func applicationWillTerminate(_ notification: Notification) {
         isTerminating = true
-        CommandBarService.shared.restoreBorrowedInputSource()
         if AppFeature.notch.isAvailable { NotchService.shared.stop(restoreCapture: false) }
         // Quitting properly means the start worked, whenever it happened.
         endStartupWatch()
@@ -1020,24 +1004,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSW
         // (Menu bar icon recovery happens on a deliberate reopen, not here: this
         // fires on every activation, so rebuilding here would cause churn/flicker.)
         UpdateService.shared.checkIfStale()
-        restoreAfterAppUpdateHandoff()
         if settingsWindow?.isVisible == true {
             NotificationCenter.default.post(name: LaunchAtLoginSupport.settingsRefreshRequested, object: nil)
         }
-    }
-
-    /// Some updates finish in another app. With no Dock icon there is no way
-    /// back to the window that sent the person there, so returning brings it
-    /// forward again, on the same page, while the list reads the truth again.
-    private func restoreAfterAppUpdateHandoff() {
-        guard AppFeature.appUpdates.isAvailable else { return }
-        let service = AppUpdatesService.shared
-        service.applicationBecameActive()
-        // Only a window still on screen is brought back. A Settings window the
-        // person closed themselves stays closed.
-        guard service.consumeUpdateHandoffReturn(),
-              settingsWindow?.isVisible == true else { return }
-        openSettingsWindow()
     }
 
     /// Callers other than the dismissal paths are panel actions, so `reason`
@@ -1371,13 +1340,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSW
         aboutItem.target = self
         menu.addItem(aboutItem)
 
-        if AppFeature.uninstaller.isAvailable {
-            let uninstallItem = NSMenuItem(title: strings.uninstallerMenuItem,
-                                           action: #selector(menuOpenUninstaller), keyEquivalent: "")
-            uninstallItem.target = self
-            menu.addItem(uninstallItem)
-        }
-
         if AppFeature.shelf.isAvailable, UserDefaults.standard.bool(forKey: DefaultsKey.shelfEnabled) {
             let shelfItem = NSMenuItem(title: strings.shelfMenuItem,
                                        action: #selector(menuOpenShelf), keyEquivalent: "")
@@ -1416,11 +1378,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSW
     }
 
     @objc private func menuOpenSettings() {
-        openSettingsWindow()
-    }
-
-    @objc private func menuOpenUninstaller() {
-        SettingsRouter.shared.page = .uninstaller
         openSettingsWindow()
     }
 

@@ -80,7 +80,6 @@ struct MetricsTests {
                 RecorderExportSpeedTests.run(suite)
                 RecorderExportRenderingTests.run(suite)
             }),
-            ("command-bar", { CommandBarFeatureTests.run(suite) }),
             ("notch", {
                 NotchTests.run(suite)
                 NotchCompactTests.run(suite)
@@ -98,7 +97,6 @@ struct MetricsTests {
             ("utilities", {
                 UtilitiesFeatureTests.run(suite)
                 QuickTogglesAlertTests.run(suite)
-                PortManagerRefreshTests.run(suite)
             }),
             ("settings", {
                 SettingsFeatureTests.run(suite)
@@ -129,17 +127,11 @@ struct MetricsTests {
                 RecorderWriterTests.run(suite)
                 RecorderExportChipTests.run { suite.expect($0, $1) }
             }),
-            ("app-updates", {
-                AppUpdatesContract.run(suite)
-                AppUpdateRulesContract.run(suite)
-            }),
             ("localization", {
                 LocalizationTests.run(suite)
                 LocalizationFeatureContractTests.run(suite)
             }),
             ("uninstaller", {
-                UninstallerFlowTests.run(suite)
-                UninstallerCommandBarCleanupTests.run(suite)
                 SelfUninstallContract.run(suite)
             }),
             ("launcher", { QuickLauncherContract.run(suite) }),
@@ -155,12 +147,10 @@ struct MetricsTests {
                 WindowServerCaptureContract.run(suite)
             }),
             ("keep-awake", {
-                KeepAwakeCatalogContract.run(suite)
                 MenuPanelToggleLabelContract.run(suite)
                 KeepAwakeLidSleepTests.run { suite.expect($0, $1) }
                 KeepAwakeTimerHandoffTests.run { suite.expect($0, $1) }
             }),
-            ("emoji", { CommandBarEmojiContract.run(suite) }),
         ]
         var selected = Set<String>()
         var listOnly = false

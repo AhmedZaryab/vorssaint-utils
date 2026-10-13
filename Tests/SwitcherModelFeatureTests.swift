@@ -2067,8 +2067,6 @@ enum SwitcherModelFeatureTests {
                "panel cleaning utility is visible by default")
         suite.expect(registeredDefaults[DefaultsKey.cleaningModeKeepScreenVisible] as? Bool == false,
                "cleaning mode keep screen visible is disabled by default")
-        suite.expect(registeredDefaults[DefaultsKey.panelUtilityUninstaller] as? Bool == true,
-               "panel uninstaller utility is visible by default")
         suite.expect(registeredDefaults[DefaultsKey.panelControlMouseScroll] as? Bool == true,
                "panel mouse scroll control is visible by default")
         suite.expect(registeredDefaults[DefaultsKey.panelControlMouseNavigation] as? Bool == true,
@@ -5175,26 +5173,6 @@ enum SwitcherModelFeatureTests {
                        && !$0.prefix(200).contains(" sourcePID:")
                },
                "Dock Preview passes the frontmost app only as a focus handoff source")
-        let commandBarWindowActivate: String = {
-            let source = ((try? String(
-                contentsOfFile: "Sources/Vorssaint/Services/CommandBar/CommandBarCatalog.swift",
-                encoding: .utf8)) ?? "")
-                .components(separatedBy: "\n")
-                .filter { !$0.trimmingCharacters(in: .whitespaces).hasPrefix("//") }
-                .joined(separator: "\n")
-            guard let start = source.range(of: "WindowActivator.activate(pid:") else { return "" }
-            let before = source[..<start.lowerBound]
-            let sourceCapture = before.range(of: "let handoffSourcePID = NSWorkspace.shared.frontmostApplication",
-                                             options: .backwards)
-            let afterBeat = before.range(of: "afterBeat(", options: .backwards)
-            let call = String(source[start.lowerBound...].prefix(320))
-            guard let sourceCapture, let afterBeat,
-                  sourceCapture.lowerBound < afterBeat.lowerBound,
-                  call.contains("handoffSourcePID: handoffSourcePID") else { return "" }
-            return call
-        }()
-        suite.expect(!commandBarWindowActivate.isEmpty,
-               "Command Bar captures its handoff source before the activation beat")
         let commitSessionCode: String = {
             let source = ((try? String(
                 contentsOfFile: "Sources/Vorssaint/Services/Switcher/AppSwitcher.swift",

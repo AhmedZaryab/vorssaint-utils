@@ -30,6 +30,23 @@ enum FeatureCatalogTests {
     }
 
     static func run(_ suite: TestSuite) {
+        suite.expect(AppFeature.allCases.map(\.rawValue) == [
+            "switcher", "dockPreview", "dockClick", "windowMaximizer", "windowLayout", "autoQuit",
+            "scrollInverter", "scrollHorizontal", "focusFollowsMouse", "linearScroll", "mouseAcceleration", "mouseNavigation", "mouseButtonShortcuts", "middleClick",
+            "mouseClickDebounce", "textSnippets",
+            "clipboardHistory", "pastePlain", "finderCutPaste", "finderRename", "shelf",
+            "mixer", "micMute",
+            "keepAwake", "brightness",
+            "quickLauncher", "quickToggles", "colorPicker", "screenOCR", "cleaningMode", "mediaTools",
+            "homebrew", "screenshot", "cameraPreview",
+            "radialMenu", "scratchpad", "screenRecorder", "menuBarTidy", "notch", "notchCalendar", "notchNotifications", "notchGestures", "notchTimer", "notchAccessories", "notchLyrics", "notchQueue", "spotifyQueue", "notchLiveEqualizer", "notchDownloads", "notchAgents", "notchWatch", "notchMascot",
+            "monitorPower",
+        ], "feature ids are stable (they persist inside availability keys)")
+        for language in AppLanguage.allCases {
+            suite.expect(FeatureStrings.backup(language).description.contains(
+                FeatureStrings.scratchpad(language).pageTitle),
+                   "every backup description accounts for the Scratchpad text (\(language.rawValue))")
+        }
         func expectFormat(_ format: String, _ expected: [String], _ label: String,
                           file: StaticString = #filePath, line: UInt = #line) {
             let actual = TestFormat.parse(format)?.conversions ?? ["invalid format"]
@@ -314,8 +331,8 @@ enum FeatureCatalogTests {
             "clipboardHistory", "pastePlain", "shelf",
             "mixer", "micMute",
             "keepAwake", "brightness",
-            "quickLauncher", "quickToggles", "colorPicker", "screenOCR", "cleaningMode", "uninstaller", "appUpdates", "screenshot", "cameraPreview",
-            "radialMenu", "scratchpad", "commandBar", "screenRecorder", "killProcess", "portManager", "menuBarTidy", "notch", "notchCalendar", "notchNotifications", "notchGestures", "notchTimer", "notchAccessories", "notchLyrics", "notchQueue", "spotifyQueue", "notchLiveEqualizer", "notchDownloads", "notchAgents", "notchWatch",
+            "quickLauncher", "quickToggles", "colorPicker", "screenOCR", "cleaningMode", "screenshot", "cameraPreview",
+            "radialMenu", "scratchpad", "screenRecorder", "menuBarTidy", "notch", "notchCalendar", "notchNotifications", "notchGestures", "notchTimer", "notchAccessories", "notchLyrics", "notchQueue", "spotifyQueue", "notchLiveEqualizer", "notchDownloads", "notchAgents", "notchWatch",
             "monitorPower",
         ], "feature ids are stable (they persist inside availability keys)")
         suite.expect(MouseAccelerationSupport.validatedRegistryID(nil) == nil
@@ -483,8 +500,8 @@ enum FeatureCatalogTests {
             "clipboardHistory", "pastePlain", "shelf",
             "mixer", "micMute",
             "keepAwake", "brightness",
-            "quickLauncher", "quickToggles", "colorPicker", "screenOCR", "cleaningMode", "uninstaller", "appUpdates", "screenshot", "cameraPreview", "radialMenu",
-            "scratchpad", "commandBar", "screenRecorder",
+            "quickLauncher", "quickToggles", "colorPicker", "screenOCR", "cleaningMode", "screenshot", "cameraPreview", "radialMenu",
+            "scratchpad", "screenRecorder",
             "notch", "notchCalendar", "notchNotifications", "notchGestures", "notchTimer", "notchAccessories",
             "notchLyrics", "notchQueue", "spotifyQueue", "notchLiveEqualizer", "notchDownloads", "notchAgents", "notchWatch",
             "monitorPower",
@@ -727,7 +744,7 @@ enum FeatureCatalogTests {
                "Window Layout does not poll permissions when every snap zone is off")
 
         suite.expect(activeSet(.accessibility)
-                == [.windowLayout, .cleaningMode, .commandBar, .screenRecorder],
+                == [.windowLayout, .cleaningMode, .screenRecorder],
                "with nothing enabled only on-demand features use accessibility")
         func radialMenuUsesAccessibility(_ profile: RadialMenuProfile, legacyItems: [RadialMenuItem]) -> Bool {
             let stored = [DefaultsKey.radialMenuProfiles: RadialMenuSupport.encodeProfiles([profile]),
@@ -934,70 +951,12 @@ enum FeatureCatalogTests {
         suite.expect(FeatureStrings.hub(.ptBR).pageTitle == "Recursos"
                 && FeatureStrings.hub(.enUS).pageTitle == "Features",
                "hub page title reads naturally in the owner languages")
-        for language in AppLanguage.allCases {
-            suite.expect(FeatureStrings.backup(language).description.contains(
-                FeatureStrings.scratchpad(language).pageTitle),
-                   "every backup description accounts for the Scratchpad text (\(language.rawValue))")
-            suite.expect(FeatureStrings.appUpdates(language).updateSelectedFormat.contains("%d")
-                    && FeatureStrings.appUpdates(language).lastCheckFormat.contains("%@")
-                    && FeatureStrings.appUpdates(language).nextCheckFormat.contains("%@")
-                    && FeatureStrings.appUpdates(language).notificationBodyFormat.contains("%@"),
-                   "app update formats keep their placeholders (\(language.rawValue))")
-            suite.expect(!FeatureStrings.appUpdates(language).notificationBodyOne.contains("%"),
-                   "the single-app note carries no placeholder (\(language.rawValue))")
-            suite.expect(FeatureStrings.killProcess(language).pidLabelFormat.contains("%d")
-                    && FeatureStrings.killProcess(language).processCountFormat.contains("%d")
-                    && FeatureStrings.killProcess(language).killAllFormat.contains("%@")
-                    && FeatureStrings.killProcess(language).confirmKillFormat.contains("%@")
-                    && FeatureStrings.killProcess(language).confirmForceKillFormat.contains("%@")
-                    && FeatureStrings.killProcess(language).confirmKillAllFormat.contains("%@")
-                    && FeatureStrings.killProcess(language).confirmKillTreeFormat.contains("%@")
-                    && FeatureStrings.killProcess(language).adminPromptFormat.contains("%@"),
-                   "kill process formats keep their placeholders (\(language.rawValue))")
-        }
 
-        // MARK: Kill Process safety
-        suite.expect(KillProcessSupport.isProtected(pid: 0, name: "kernel_task", path: "/System/Library/"),
-               "PID 0 is protected")
-        suite.expect(KillProcessSupport.isProtected(pid: 1, name: "launchd", path: "/sbin/launchd"),
-               "PID 1 is protected")
-        suite.expect(KillProcessSupport.isProtected(pid: 9999, name: "WindowServer", path: "/System/Library/Frameworks/WindowServer"),
-               "WindowServer is protected")
-        suite.expect(KillProcessSupport.isProtected(pid: 9999, name: "loginwindow", path: "/System/Library/CoreServices/loginwindow.app/Contents/MacOS/loginwindow"),
-               "loginwindow is protected")
-        suite.expect(KillProcessSupport.isProtected(pid: ProcessInfo.processInfo.processIdentifier, name: "Vorssaint"),
-               "current app PID is protected")
-        suite.expect(!KillProcessSupport.isProtected(pid: 12345, name: "Safari", path: "/Applications/Safari.app/Contents/MacOS/Safari"),
-               "ordinary user app is not protected")
-        suite.expect(KillProcessSupport.numberComesBefore(90, 10, lhsPID: 2, rhsPID: 1,
-                                                    ascending: false)
-               && KillProcessSupport.numberComesBefore(10, 90, lhsPID: 2, rhsPID: 1,
-                                                       ascending: true)
-               && !KillProcessSupport.numberComesBefore(10, 10, lhsPID: 2, rhsPID: 1,
-                                                        ascending: true),
-               "Kill Process numeric sorting is strict and follows the selected direction")
-        suite.expect(KillProcessSupport.nameComesBefore("Alpha", "Zulu", lhsPID: 2, rhsPID: 1,
-                                                  ascending: true)
-               && KillProcessSupport.nameComesBefore("Zulu", "Alpha", lhsPID: 2, rhsPID: 1,
-                                                     ascending: false)
-               && !KillProcessSupport.nameComesBefore("Same", "same", lhsPID: 2, rhsPID: 1,
-                                                      ascending: true),
-               "Kill Process name sorting is A to Z by default and strict for ties")
-        suite.expect(KillProcessSupport.normalizedStartDescription(" Thu  Aug 27  10:20:30 2026 \n")
-                == "Thu Aug 27 10:20:30 2026"
-               && KillProcessSupport.normalizedStartDescription("bad'; kill 1") == nil,
-               "Kill Process accepts only safe normalized start identities for the admin command")
         // pid 1 -> 10 -> {20, 21} -> 30, with 40 on an unrelated branch, 50
         // its own parent and 21 <-> 22 pointing at each other.
         let processTable: [(pid: pid_t, ppid: pid_t)] = [
             (10, 1), (20, 10), (21, 10), (30, 20), (40, 1), (50, 50), (22, 21), (21, 22),
         ]
-        let treeBelowTen = KillProcessSupport.descendants(of: 10, parents: processTable)
-        suite.expect(treeBelowTen == [20, 21, 30, 22],
-               "Kill Process collects a whole process tree breadth first so the caller kills deepest first")
-        suite.expect(KillProcessSupport.descendants(of: 30, parents: processTable).isEmpty
-               && KillProcessSupport.descendants(of: 50, parents: processTable).isEmpty,
-               "Kill Process reports no descendants for a leaf and never follows a self-parenting row")
 
         for language in AppLanguage.allCases {
             let shortcutValues = Mirror(reflecting: FeatureStrings.shortcuts(language)).children

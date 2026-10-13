@@ -221,12 +221,6 @@ struct GlobalShortcut: Equatable, Hashable {
     // same free control-option-command layer.
     static let snippetLibraryDefault = GlobalShortcut(keyCode: Int64(kVK_ANSI_L),
                                                       modifiers: [.control, .option, .command])
-    // Option-Space, the combination mature launchers settled on: one thumb
-    // and one finger, mirroring the system search's Command-Space without
-    // fighting it for the key. Registered as a hotkey it never types the
-    // narrow space some layouts put on that combination.
-    static let commandBarDefault = GlobalShortcut(keyCode: Int64(kVK_Space),
-                                                  modifiers: [.option])
     // Next to the screenshot's 4, on the same free control-option-command
     // layer, matching how the system numbers its own capture keys.
     static let screenRecorderDefault = GlobalShortcut(keyCode: Int64(kVK_ANSI_5),
@@ -700,7 +694,6 @@ enum GlobalShortcutRole: CaseIterable, Identifiable {
     case radialMenu
     case scratchpad
     case snippetLibrary
-    case commandBar
     case screenRecorder
     case displayBrightnessDecrease
     case displayBrightnessIncrease
@@ -732,7 +725,6 @@ enum GlobalShortcutRole: CaseIterable, Identifiable {
         case .radialMenu: return DefaultsKey.radialMenuShortcut
         case .scratchpad: return DefaultsKey.scratchpadShortcut
         case .snippetLibrary: return DefaultsKey.snippetLibraryShortcut
-        case .commandBar: return DefaultsKey.commandBarShortcut
         case .screenRecorder: return DefaultsKey.recorderShortcut
         case .displayBrightnessDecrease: return DefaultsKey.displayBrightnessDecreaseShortcut
         case .displayBrightnessIncrease: return DefaultsKey.displayBrightnessIncreaseShortcut
@@ -764,7 +756,6 @@ enum GlobalShortcutRole: CaseIterable, Identifiable {
         case .radialMenu: return .radialMenuDefault
         case .scratchpad: return .scratchpadDefault
         case .snippetLibrary: return .snippetLibraryDefault
-        case .commandBar: return .commandBarDefault
         case .screenRecorder: return .screenRecorderDefault
         case .displayBrightnessDecrease: return .displayBrightnessDecreaseDefault
         case .displayBrightnessIncrease: return .displayBrightnessIncreaseDefault
@@ -821,7 +812,6 @@ enum GlobalShortcutRole: CaseIterable, Identifiable {
         case .radialMenu: return FeatureStrings.radialMenu(L10n.shared.language).pageTitle
         case .scratchpad: return FeatureStrings.scratchpad(L10n.shared.language).pageTitle
         case .snippetLibrary: return FeatureStrings.snippets(L10n.shared.language).libraryTitle
-        case .commandBar: return FeatureStrings.commandBar(L10n.shared.language).pageTitle
         case .screenRecorder: return FeatureStrings.recorder(L10n.shared.language).pageTitle
         case .displayBrightnessDecrease:
             return FeatureStrings.brightness(L10n.shared.language).displayBrightnessDecrease
@@ -880,7 +870,6 @@ enum GlobalShortcutRole: CaseIterable, Identifiable {
         case .radialMenu: return [DefaultsKey.radialMenuEnabled]
         case .scratchpad: return [DefaultsKey.scratchpadShortcutEnabled]
         case .snippetLibrary: return [DefaultsKey.snippetLibraryEnabled]
-        case .commandBar: return [DefaultsKey.commandBarShortcutEnabled]
         case .screenRecorder: return [DefaultsKey.recorderShortcutEnabled]
         case .displayBrightnessDecrease, .displayBrightnessIncrease:
             return [DefaultsKey.brightnessControlEnabled, DefaultsKey.displayBrightnessShortcutsEnabled]
@@ -911,7 +900,6 @@ enum GlobalShortcutRole: CaseIterable, Identifiable {
         case .radialMenu: return .radialMenu
         case .scratchpad: return .scratchpad
         case .snippetLibrary: return .textSnippets
-        case .commandBar: return .commandBar
         case .screenRecorder: return .screenRecorder
         case .displayBrightnessDecrease, .displayBrightnessIncrease: return .brightness
         case .keyboardBrightnessDecrease, .keyboardBrightnessIncrease: return .brightness

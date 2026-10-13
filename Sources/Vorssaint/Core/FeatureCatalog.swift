@@ -25,8 +25,8 @@ enum AppFeature: String, CaseIterable {
     // Energy and display
     case keepAwake, brightness
     // Tools
-    case quickLauncher, quickToggles, colorPicker, screenOCR, cleaningMode, uninstaller, appUpdates, screenshot, cameraPreview, radialMenu, scratchpad,
-         commandBar, screenRecorder, killProcess, portManager, menuBarTidy
+    case quickLauncher, quickToggles, colorPicker, screenOCR, cleaningMode, screenshot, cameraPreview, radialMenu, scratchpad,
+         screenRecorder, menuBarTidy
     // Dynamic Island, then its extensions
     case notch, notchCalendar, notchNotifications, notchGestures, notchTimer, notchAccessories, notchLyrics,
          notchQueue, spotifyQueue, notchLiveEqualizer, notchDownloads, notchAgents, notchWatch
@@ -80,7 +80,7 @@ extension AppFeature {
                         from: edgeSnapDisabledZones
                     ).isEmpty)
         // Watch asks when an area is chosen and checks on every reading.
-        case .screenOCR, .cleaningMode, .screenshot, .commandBar, .screenRecorder, .notchWatch:
+        case .screenOCR, .cleaningMode, .screenshot, .screenRecorder, .notchWatch:
             return false
         default:
             return true
@@ -109,8 +109,8 @@ extension AppFeature {
             return .sound
         case .keepAwake, .brightness:
             return .energyDisplay
-        case .quickLauncher, .quickToggles, .colorPicker, .screenOCR, .cleaningMode, .uninstaller, .appUpdates, .screenshot, .cameraPreview, .radialMenu,
-             .scratchpad, .commandBar, .screenRecorder, .killProcess, .portManager, .menuBarTidy:
+        case .quickLauncher, .quickToggles, .colorPicker, .screenOCR, .cleaningMode, .screenshot, .cameraPreview, .radialMenu,
+             .scratchpad, .screenRecorder, .menuBarTidy:
             return .tools
         case .notch, .notchCalendar, .notchNotifications, .notchGestures, .notchTimer, .notchAccessories,
              .notchLyrics, .notchQueue, .spotifyQueue, .notchLiveEqualizer, .notchDownloads, .notchAgents, .notchWatch:
@@ -150,8 +150,6 @@ extension AppFeature {
         case .colorPicker: return "eyedropper"
         case .screenOCR: return "text.viewfinder"
         case .cleaningMode: return "bubbles.and.sparkles"
-        case .uninstaller: return "trash"
-        case .appUpdates: return "arrow.down.app"
         case .screenshot: return "camera.viewfinder"
         case .screenRecorder: return "record.circle"
         case .cameraPreview: return "web.camera"
@@ -170,9 +168,6 @@ extension AppFeature {
         case .notch: return "macbook"
         case .radialMenu: return "circle.grid.cross"
         case .scratchpad: return "note.text"
-        case .commandBar: return "command"
-        case .killProcess: return "xmark.octagon"
-        case .portManager: return "network"
         case .menuBarTidy: return "chevron.left.2"
         case .monitorPower: return "bolt.fill"
         }
@@ -180,7 +175,7 @@ extension AppFeature {
 
     var availabilityKey: String { DefaultsKey.featureAvailable(rawValue) }
 
-    var isBeta: Bool { self == .killProcess }
+    var isBeta: Bool { false }
 
     /// Availability read straight from defaults. Existing features stay
     /// available on update; explicit beta opt-ins may start unavailable.
@@ -237,8 +232,8 @@ extension AppFeature {
         case .shelf: return [DefaultsKey.shelfEnabled]
         case .brightness: return [DefaultsKey.brightnessControlEnabled]
         case .windowLayout, .mixer, .micMute, .keepAwake,
-             .quickLauncher, .quickToggles, .colorPicker, .screenOCR, .cleaningMode, .uninstaller, .appUpdates, .screenshot, .cameraPreview, .scratchpad,
-             .commandBar, .screenRecorder, .killProcess, .portManager,
+             .quickLauncher, .quickToggles, .colorPicker, .screenOCR, .cleaningMode, .screenshot, .cameraPreview, .scratchpad,
+             .screenRecorder,
              .monitorPower:
             return []
         }
@@ -300,10 +295,7 @@ extension AppFeature {
         case .scrollInverter, .scrollHorizontal, .focusFollowsMouse, .linearScroll, .mouseNavigation, .mouseButtonShortcuts, .middleClick,
              .textSnippets, .mouseClickDebounce,
              .dockClick, .windowMaximizer, .windowLayout,
-             .autoQuit, .cleaningMode, .pastePlain, .radialMenu,
-             // The bar reads other apps' menus and windows and types at the
-             // caret, all of it through Accessibility.
-             .commandBar:
+             .autoQuit, .cleaningMode, .pastePlain, .radialMenu:
             return [.accessibility]
         // Only emptying the Trash asks the Finder; every other quick toggle
         // (dark mode included) works without a permission.
@@ -319,12 +311,10 @@ extension AppFeature {
         case .cameraPreview: return [.camera]
         case .keepAwake: return [.accessibility]
         case .brightness: return [.accessibility]
-        case .uninstaller: return [.fullDiskAccess, .automationFinder]
-        case .appUpdates: return [.notifications, .appManagement]
         case .mixer: return [.audioCapture, .accessibility]
         case .clipboardHistory, .shelf,
              .quickLauncher, .colorPicker, .micMute,
-             .scratchpad, .monitorPower, .killProcess,
+             .scratchpad, .monitorPower,
              .portManager:
             return []
         }
@@ -336,7 +326,7 @@ extension AppFeature {
     var onboardingPermissions: [AppPermission] {
         switch self {
         case .keepAwake, .brightness, .radialMenu, .quickToggles,
-             .uninstaller, .appUpdates, .mixer, .cameraPreview,
+             .mixer, .cameraPreview,
              .micMute, .notchWatch:
             return []
         default:
@@ -413,14 +403,14 @@ extension AppFeature {
              .clipboardHistory, .pastePlain, .shelf,
              .mixer, .micMute,
              .keepAwake, .brightness,
-             .quickLauncher, .quickToggles, .colorPicker, .screenOCR, .cleaningMode, .uninstaller, .appUpdates, .screenshot, .cameraPreview, .radialMenu,
-             .scratchpad, .commandBar, .screenRecorder,
+             .quickLauncher, .quickToggles, .colorPicker, .screenOCR, .cleaningMode, .screenshot, .cameraPreview, .radialMenu,
+             .scratchpad, .screenRecorder,
              .notch, .notchCalendar, .notchNotifications, .notchGestures, .notchTimer, .notchAccessories,
              .notchLyrics, .notchQueue, .spotifyQueue, .notchLiveEqualizer, .notchDownloads, .notchAgents, .notchWatch,
              .monitorPower:
             return true
         case .focusFollowsMouse, .scrollHorizontal, .linearScroll,
-             .killProcess, .portManager, .menuBarTidy:
+             .menuBarTidy:
             return false
         }
     }
@@ -483,10 +473,6 @@ extension AppFeature {
                 return boolFor(DefaultsKey.brightnessKeysEnabled)
                     || boolFor(DefaultsKey.brightnessOSDEnabled)
                     || BrightnessSupport.KeyStep.sanitized(stringFor(DefaultsKey.brightnessKeyStep)) != .standard
-            case (.appUpdates, .notifications):
-                return AppUpdatesSupport.CheckFrequency
-                    .sanitized(stringFor(DefaultsKey.appUpdatesCheckFrequency)) != .off
-                    && boolFor(DefaultsKey.appUpdatesNotify)
             case (.notchLiveEqualizer, .audioCapture):
                 return isAvailable(.notch) && boolFor(DefaultsKey.notchEnabled)
                     && !(stringFor(DefaultsKey.notchHiddenModules) ?? "").split(separator: ",").contains("music")

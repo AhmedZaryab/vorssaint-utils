@@ -294,22 +294,6 @@ enum SettingsDirectory {
             // Everything about the apps installed on the Mac lives together:
             // what is out of date, what is junk and what should go.
             (categories.appManagement, [
-                SettingsDirectoryItem(page: .appUpdates,
-                                      title: FeatureStrings.appUpdates(language).pageTitle,
-                                      icon: "arrow.down.app",
-                                      keywords: [FeatureStrings.appUpdates(language).checkNow,
-                                                 FeatureStrings.appUpdates(language).frequencyLabel,
-                                                 FeatureStrings.appUpdates(language).appStoreBadge,
-                                                 s.homebrewName]),
-                SettingsDirectoryItem(page: .uninstaller, title: s.uninstallerName, icon: "trash"),
-                SettingsDirectoryItem(page: .killProcess,
-                                      title: FeatureStrings.killProcess(language).pageTitle,
-                                      icon: "xmark.octagon",
-                                      keywords: ["force quit", "process", "cpu", "memory", "kill"]),
-                SettingsDirectoryItem(page: .portManager,
-                                      title: FeatureStrings.portManager(language).title,
-                                      icon: "network",
-                                      keywords: ["port", "ports", "listening", "socket", "PID", "kill port"]),
             ]),
             (categories.utilities, [
                 SettingsDirectoryItem(page: .notch,
@@ -330,13 +314,6 @@ enum SettingsDirectory {
                                           + (NotchSupport.hasDisplayWithoutNotch
                                              ? [FeatureStrings.notch(language).withoutNotch,
                                                 FeatureStrings.notch(language).capsuleFit] : [])),
-                SettingsDirectoryItem(page: .commandBar,
-                                      title: FeatureStrings.commandBar(language).pageTitle,
-                                      icon: "command",
-                                      keywords: [FeatureStrings.commandBar(language).openButton,
-                                                 FeatureStrings.commandBar(language).searchPlaceholder,
-                                                 FeatureStrings.commandBar(language).appCenterTitle,
-                                                 FeatureStrings.commandBar(language).appAliasLabel]),
                 SettingsDirectoryItem(page: .quickTools, title: s.quickToolsTab, icon: "wand.and.rays",
                                        featureKeywords: [
                                         (.quickLauncher, [s.launcherName]),

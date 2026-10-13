@@ -29,16 +29,8 @@ final class PanelInteractionState {
             || isPresentingPopoverModal
             || AirPlayRouteManager.isPresentingPicker
             || HomebrewManager.shared.operationStatus?.isActive == true
-            || uninstallerIsRunning
     }
 
-
-    private var uninstallerIsRunning: Bool {
-        switch AppUninstaller.shared.phase {
-        case .scanning, .removing: return true
-        case .empty, .results, .done: return false
-        }
-    }
 
     /// The screen the menu bar icon is on, so the panel caps its height against
     /// that display instead of whichever one happens to be main. Deliberately

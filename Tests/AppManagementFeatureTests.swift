@@ -190,319 +190,9 @@ enum AppManagementFeatureTests {
                "system domains and this app can never be junk owners")
         suite.expect(!CleanerSupport.isProtectedBundleID("com.vendor.editor"),
                "third party identifiers are eligible for the leftover check")
-        suite.expect(UninstallerSupport.verifiedBundleID("com.vendor.editor") == "com.vendor.editor"
-               && UninstallerSupport.verifiedBundleID("com.vendor.editor.helper") == "com.vendor.editor.helper"
-               && UninstallerSupport.verifiedBundleID("test.editor") == "test.editor"
-               && UninstallerSupport.verifiedBundleID("editor.test") == "editor.test",
-               "the uninstaller accepts exact third party bundle identifiers, two-component IDs, and embedded helpers")
-        suite.expect(UninstallerSupport.verifiedBundleID(nil) == nil
-               && UninstallerSupport.verifiedBundleID("") == nil
-               && UninstallerSupport.verifiedBundleID("plain-name") == nil
-               && UninstallerSupport.verifiedBundleID("com.vendor../escape") == nil
-               && UninstallerSupport.verifiedBundleID("com.vorssaint.utils") == nil
-               && UninstallerSupport.verifiedBundleID("com.apple.system") == nil,
-               "malformed, protected and current app identifiers never enter uninstall paths")
-        let selectionFixture = FileManager.default.temporaryDirectory
-            .appendingPathComponent("vorssaint-uninstaller-selection-\(UUID().uuidString)",
-                                    isDirectory: true)
-        try? FileManager.default.createDirectory(at: selectionFixture, withIntermediateDirectories: true)
-        func selectionBundle(_ name: String, bundleID: String) -> URL {
-            let app = selectionFixture.appendingPathComponent(name, isDirectory: true)
-            let info = app.appendingPathComponent("Contents/Info.plist")
-            try? FileManager.default.createDirectory(at: info.deletingLastPathComponent(),
-                                                     withIntermediateDirectories: true)
-            let plist: [String: Any] = ["CFBundleIdentifier": bundleID]
-            if let data = try? PropertyListSerialization.data(fromPropertyList: plist,
-                                                               format: .xml, options: 0) {
-                try? data.write(to: info)
-            }
-            return app
-        }
-        let editorApp = selectionBundle("Editor.app", bundleID: "com.vendor.editor")
-        suite.expect(UninstallerSupport.selection(for: URL(string: "https://example.com/App.app")!) == nil,
-               "a web address is refused before loading an app bundle")
-        let editorSelection = UninstallerSupport.selection(for: editorApp)
-        suite.expect(editorSelection?.bundleID == "com.vendor.editor"
-               && editorSelection?.url == editorApp.standardizedFileURL,
-               "a complete third party app bundle is accepted with its standardized path")
-        let appleEditorApp = selectionBundle("AppleEditor.app", bundleID: "com.apple.editor")
-        suite.expect(UninstallerSupport.selection(for: appleEditorApp) == nil,
-               "an Apple bundle identifier is refused before it can claim uninstall paths")
-        let aliasApp = selectionFixture.appendingPathComponent("Alias.app")
-        try? FileManager.default.createSymbolicLink(at: aliasApp, withDestinationURL: editorApp)
-        suite.expect(UninstallerSupport.selection(for: aliasApp) == nil,
-               "an app symlink is refused instead of selecting its destination")
-        let bareApp = selectionFixture.appendingPathComponent("Bare.app", isDirectory: true)
-        try? FileManager.default.createDirectory(at: bareApp, withIntermediateDirectories: true)
-        suite.expect(UninstallerSupport.selection(for: bareApp) == nil,
-               "a bundle without Info.plist is refused before a scan starts")
-        // An iPhone or iPad app on a Mac carries its Info.plist at the top of
-        // the bundle and has no Contents folder for the uninstaller to remove.
-        let wrappedApp = selectionFixture.appendingPathComponent("Wrapped.app", isDirectory: true)
-        try? FileManager.default.createDirectory(at: wrappedApp, withIntermediateDirectories: true)
-        if let data = try? PropertyListSerialization.data(
-            fromPropertyList: ["CFBundleIdentifier": "com.vendor.wrapped"], format: .xml, options: 0) {
-            try? data.write(to: wrappedApp.appendingPathComponent("Info.plist"))
-        }
-        suite.expect(Bundle(url: wrappedApp)?.bundleIdentifier == "com.vendor.wrapped"
-               && UninstallerSupport.selection(for: wrappedApp) == nil,
-               "a bundle with a valid identifier but no Contents/Info.plist is refused")
-        let listedApps = [editorApp, appleEditorApp, bareApp, wrappedApp].map {
-            InstalledApps.InstalledApp(id: $0.standardizedFileURL.path, name: $0.lastPathComponent,
-                                      bundleID: nil, url: $0, isSystem: false)
-        }
-        suite.expect(UninstallerSupport.acceptedApplicationIDs(listedApps)
-                == [editorApp.standardizedFileURL.path],
-               "the command bar's uninstall list keeps only the apps the uninstaller accepts")
-        try? FileManager.default.removeItem(at: selectionFixture)
-        for path in ["Sources/Vorssaint/UI/Uninstall/UninstallerView.swift",
-                     "Sources/Vorssaint/UI/MenuPanel/PanelUninstallerView.swift"] {
-            let pickerSource = (try? String(contentsOfFile: path, encoding: .utf8)) ?? ""
-            suite.expect(pickerSource.contains("UninstallerSupport.offeredApplications()"),
-                   "\(path) offers only the apps the shared selection checks accept")
-            suite.expect(pickerSource.contains("return uninstaller.select(appURL: app)"),
-                   "\(path) springs a refused drop back instead of accepting it")
-        }
         let uninstallAppURL = URL(fileURLWithPath: "/Applications/Editor.app")
-        suite.expect(UninstallerSupport.isNestedBundle(
-                   URL(fileURLWithPath: "/Applications/Editor.app/Contents/Library/LoginItems/Background.app"),
-                   in: uninstallAppURL)
-               && !UninstallerSupport.isNestedBundle(uninstallAppURL, in: uninstallAppURL)
-               && !UninstallerSupport.isNestedBundle(
-                   URL(fileURLWithPath: "/Applications/Editor.app-copy/Contents/Background.app"),
-                   in: uninstallAppURL)
-               && !UninstallerSupport.isNestedBundle(nil, in: uninstallAppURL),
-               "the uninstaller stops only background apps nested inside the selected bundle")
-        suite.expect(!UninstallerSupport.sharedDataIsExclusive(
-            selectedURL: URL(fileURLWithPath: "/Users/test/Downloads/Editor.app"),
-            bundleID: "com.vendor.editor",
-            knownApplications: [
-                (URL(fileURLWithPath: "/Users/test/Downloads/Editor.app"), "com.vendor.editor"),
-                (URL(fileURLWithPath: "/Applications/Editor.app"), "com.vendor.editor"),
-            ])
-            && UninstallerSupport.sharedDataIsExclusive(
-                selectedURL: URL(fileURLWithPath: "/Applications/Editor.app"),
-                bundleID: "com.vendor.editor",
-                knownApplications: [
-                    (URL(fileURLWithPath: "/Applications/Editor.app"), "com.vendor.editor"),
-                    (URL(fileURLWithPath: "/Applications/Other.app"), "com.vendor.other"),
-                ]),
-               "shared app data is eligible only when no other installed copy owns the bundle identifier")
-        suite.expect(UninstallerSupport.sharedDataIsExclusive(
-            selectedURL: URL(fileURLWithPath: "/Applications/Editor.app"),
-            bundleID: "com.vendor.editor.helper",
-            knownApplications: [
-                (URL(fileURLWithPath: "/Applications/Editor.app/Contents/Helpers/Helper.app"),
-                 "com.vendor.editor.helper"),
-            ])
-            && UninstallerSupport.applicationIsInTrustedInstallRoot(
-                URL(fileURLWithPath: "/Applications/Editor.app"),
-                home: URL(fileURLWithPath: "/Users/test"))
-            && !UninstallerSupport.applicationIsInTrustedInstallRoot(
-                URL(fileURLWithPath: "/Users/test/Downloads/Editor.app"),
-                home: URL(fileURLWithPath: "/Users/test")),
-               "embedded helpers belong to the selected app while unregistered download copies never own shared data")
         let uninstallCandidateIDs: Set<String> = ["com.vendor.editor", "com.vendor.editor.helper"]
-        suite.expect(UninstallerSupport.exclusiveBundleIDs(
-                   uninstallCandidateIDs,
-                   selectedURL: uninstallAppURL,
-                   knownApplications: []) == uninstallCandidateIDs
-               && UninstallerSupport.exclusiveBundleIDs(
-                   uninstallCandidateIDs,
-                   selectedURL: uninstallAppURL,
-                   knownApplications: [
-                       (URL(fileURLWithPath: "/Applications/Other.app"),
-                        "com.vendor.editor.helper"),
-                   ]) == ["com.vendor.editor"],
-               "package removal preserves helper candidates while excluding an owner installed elsewhere")
         let uninstallIDs: Set<String> = ["com.vendor.editor", "com.vendor.editor.helper"]
-        let leftoverIdentity = UninstallerSupport.identity(
-            bundleIDs: uninstallIDs, displayNames: ["Editor", "Editor.app"])
-        suite.expect(leftoverIdentity.nameTokens.contains("editor")
-               && !leftoverIdentity.nameTokens.contains("helper"),
-               "display names become match tokens and helper suffixes do not")
-        suite.expect(UninstallerSupport.leftoverMatch("Editor", identity: leftoverIdentity) == .related
-               && UninstallerSupport.leftoverMatch("com.vendor.editor.plist", identity: leftoverIdentity) == .exact
-               && UninstallerSupport.leftoverMatch(
-                   "com.vendor.editor.B787EFF9-B8E2-5296-96AF-DF9D3CD3AC4F.plist",
-                   identity: leftoverIdentity) == .exact
-               && UninstallerSupport.leftoverMatch("COM.VENDOR.EDITOR.PLIST", identity: leftoverIdentity) == .exact
-               && UninstallerSupport.leftoverMatch("Editor.prefPane", identity: leftoverIdentity) == .related
-               && UninstallerSupport.leftoverMatch(
-                   "ABCD123456.com.vendor.editor", identity: leftoverIdentity) == .none
-               && UninstallerSupport.leftoverMatch(
-                   "group.com.vendor.editor", identity: leftoverIdentity) == .none
-               && UninstallerSupport.leftoverMatch(
-                   "com.wrapper.com.vendor.editor", identity: leftoverIdentity) == .none
-               && UninstallerSupport.leftoverMatch("Google", identity: leftoverIdentity) == .none
-               && UninstallerSupport.leftoverMatch("com.vendor.editor2", identity: leftoverIdentity) == .none
-               && UninstallerSupport.leftoverMatch(
-                   "com.vendor.editor.extra", identity: leftoverIdentity) == .related
-               && UninstallerSupport.leftoverMatch(
-                   "com.vendor.editor.helper.plist", identity: leftoverIdentity) == .exact
-               && UninstallerSupport.leftoverMatch("Editorial", identity: leftoverIdentity) == .related
-               && UninstallerSupport.leftoverMatch("Editor/Nested", identity: leftoverIdentity) == .none,
-               "owned identifiers are exact, while prefixes and names stay optional without unsigned wrappers")
-        let technicalIdentity = UninstallerSupport.technicalIdentity(leftoverIdentity)
-        suite.expect(UninstallerSupport.leftoverMatch("Editor", identity: technicalIdentity) == .none
-               && UninstallerSupport.leftoverMatch(
-                   "com.vendor.editor.plist", identity: technicalIdentity) == .exact,
-               "sensitive roots accept technical ownership and never a display name")
-        suite.expect(UninstallerSupport.leftoverEntryMatches(
-                   "Editor_2024-01-01-120000_Mac.plist",
-                   identity: leftoverIdentity, crashReporter: true)
-               && !UninstallerSupport.leftoverEntryMatches(
-                   "Editor_2024-01-01-120000_Mac.plist",
-                   identity: leftoverIdentity, crashReporter: false),
-               "crash reports may use the app name as a prefix only in that folder")
-        suite.expect(UninstallerSupport.ownerBundleID(for: "com.vendor.editor.helper.plist",
-                                                identity: leftoverIdentity)
-                == "com.vendor.editor.helper"
-               && UninstallerSupport.ownerBundleID(for: "Editor", identity: leftoverIdentity)
-                == "com.vendor.editor",
-               "a helper identifier wins when it is in the name, otherwise the app identifier owns a name match")
-        suite.expect(UninstallerSupport.normalizedToken("Example App 2") == "exampleapp2"
-               && UninstallerSupport.nameWithoutTrailingVersion("Example App 2") == "Example App"
-               && UninstallerSupport.nameWithoutTrailingVersion("Example App Nightly") == "Example App"
-               && UninstallerSupport.leftoverMatch(
-                   "Example App",
-                   identity: UninstallerSupport.identity(bundleIDs: ["com.vendor.exampleapp"],
-                                                         displayNames: ["Example App 2"])) == .related
-               && UninstallerSupport.leftoverEntryMatches(
-                   "ExampleApp2.plist",
-                   identity: UninstallerSupport.identity(bundleIDs: ["com.vendor.exampleapp"],
-                                                         displayNames: ["Example App 2"])),
-               "spaces and trailing version numbers do not hide a leftover named after the app")
-        let twoPartIdentity = UninstallerSupport.identity(
-            primaryBundleID: "test.editor",
-            bundleIDs: ["test.editor"],
-            displayNames: ["Editor", "Editor.app"])
-        suite.expect(twoPartIdentity.nameTokens.contains("editor")
-               && twoPartIdentity.bundleIDs.contains("test.editor"),
-               "two-part bundle identifiers yield both display name tokens and exact bundle IDs")
-        suite.expect(UninstallerSupport.leftoverMatch("Editor", identity: twoPartIdentity) == .related
-               && UninstallerSupport.leftoverMatch("editor", identity: twoPartIdentity) == .related
-               && UninstallerSupport.leftoverMatch("test.editor.plist", identity: twoPartIdentity) == .exact
-               && UninstallerSupport.leftoverMatch("test.editor", identity: twoPartIdentity) == .exact
-               && UninstallerSupport.leftoverMatch("test.editor.helper", identity: twoPartIdentity) == .related
-               && UninstallerSupport.leftoverMatch("Unrelated", identity: twoPartIdentity) == .none,
-               "two-part bundle identifiers match exact and related leftovers correctly")
-        suite.expect(UninstallerSupport.identity(primaryBundleID: "com.vendor.browser",
-                                           bundleIDs: ["com.vendor.browser"],
-                                           displayNames: ["Vendor Browser"]).nameTokens.contains("browser"),
-               "the last identifier component is a token when it names the app")
-        let browserIdentity = UninstallerSupport.identity(primaryBundleID: "com.vendor.browser",
-                                                          bundleIDs: ["com.vendor.browser"],
-                                                          displayNames: ["Vendor Browser"])
-        let browserListings = [
-            UninstallerSupport.DirListing(name: "Vendor", children: [
-                UninstallerSupport.DirListing(name: "Browser", children: []),
-                UninstallerSupport.DirListing(name: "Docs", children: []),
-            ]),
-            UninstallerSupport.DirListing(name: "SuiteApp", children: [
-                UninstallerSupport.DirListing(name: "logs", children: []),
-            ]),
-            UninstallerSupport.DirListing(name: "com.vendor.browser", children: []),
-        ]
-        suite.expect(UninstallerSupport.leftoverHitRecords(
-                   listings: browserListings,
-                   identity: browserIdentity,
-                   extraChildDepth: 1).map(\.path) == ["Vendor/Browser", "com.vendor.browser"],
-               "a leftover nested under a vendor folder is found without taking the whole vendor folder")
-        suite.expect(UninstallerSupport.leftoverHitRecords(
-                   listings: browserListings,
-                   identity: browserIdentity,
-                   extraChildDepth: 0).map(\.path) == ["com.vendor.browser"],
-               "vendor nesting is not searched when the folder is a leaf location")
-        suite.expect(UninstallerSupport.leftoverHitRecords(
-                   listings: [UninstallerSupport.DirListing(name: "Browser", children: [
-                       UninstallerSupport.DirListing(name: "com.vendor.browser", children: [])
-                   ])],
-                   identity: browserIdentity,
-                   extraChildDepth: 1).map(\.path) == ["Browser/com.vendor.browser"],
-               "an exact child wins over a broader related parent folder")
-        suite.expect(UninstallerSupport.leftoverHitRecords(
-                   listings: [UninstallerSupport.DirListing(
-                       name: "Unrelated.component", children: [],
-                       bundleIdentifier: "com.vendor.browser")],
-                   identity: browserIdentity,
-                   extraChildDepth: 0).first?.confidence == .exact,
-               "plugin bundle metadata finds a component whose filename does not identify the app")
-        suite.expect(UninstallerSupport.leftoverHitRecords(
-                   listings: [UninstallerSupport.DirListing(name: "Vendor", children: [
-                       UninstallerSupport.DirListing(name: "Mid", children: [
-                           UninstallerSupport.DirListing(name: "Editor", children: [])
-                       ])
-                   ])],
-                   identity: leftoverIdentity,
-                   extraChildDepth: 2).map(\.path) == ["Vendor/Mid/Editor"],
-               "Application Support is searched two levels for vendor/mid/app nesting")
-        let teamedIdentity = UninstallerSupport.identity(
-            bundleIDs: ["com.vendor.editor"], displayNames: [],
-            teamIDs: ["abcd123456"], groupIDs: ["group.com.vendor.editor"])
-        suite.expect(UninstallerSupport.leftoverMatch("ABCD123456.com.other", identity: teamedIdentity) == .related
-               && UninstallerSupport.leftoverMatch(
-                   "ABCD123456.com.vendor.editor", identity: teamedIdentity) == .exact
-               && UninstallerSupport.leftoverMatch(
-                   "ZZZZ123456.com.vendor.editor", identity: teamedIdentity) == .none
-               && UninstallerSupport.leftoverMatch("group.com.vendor.editor", identity: teamedIdentity) == .exact
-               && UninstallerSupport.matchingGroupID(
-                   "group.com.vendor.editor", identity: teamedIdentity) == "group.com.vendor.editor"
-               && UninstallerSupport.containerMetadataMatches("com.vendor.editor",
-                                                              identity: leftoverIdentity) == .exact,
-               "team prefixes are related, app groups and container metadata keep the exact owner")
-        let leftoverFolders = UninstallerSupport.searchFolders(
-            home: URL(fileURLWithPath: "/Users/tester"), darwinCache: nil, darwinTemp: nil)
-        suite.expect(leftoverFolders.contains(where: {
-                   $0.url.path == "/Users/tester/Library/Group Containers" && $0.kind == .containers
-                   && $0.readsContainerMetadata && !$0.allowsNameMatches
-                   && $0.requiresSignedGroup
-               })
-               && leftoverFolders.contains(where: {
-                   $0.url.path == "/Users/tester/Library/PreferencePanes" && $0.kind == .other
-               })
-               && leftoverFolders.contains(where: {
-                   $0.url.path.hasSuffix("CrashReporter") && $0.crashReporter
-               })
-               && leftoverFolders.contains(where: { $0.url.path == "/private/var/db/receipts" })
-               && leftoverFolders.contains(where: { $0.url.path.hasSuffix("/Automator") })
-               && leftoverFolders.contains(where: { $0.url.path.hasSuffix("/Frameworks") })
-               && leftoverFolders.contains(where: {
-                   $0.url.path == "/Users/tester/.config" && !$0.allowsNameMatches
-               })
-               && leftoverFolders.contains(where: {
-                   $0.url.path == "/Users/tester/Library/Preferences/ByHost"
-                       && !$0.allowsNameMatches
-               })
-               && leftoverFolders.contains(where: {
-                   $0.url.path == "/Users/tester/Library/Caches/com.apple.nsurlsessiond/Downloads"
-                       && !$0.allowsNameMatches
-               })
-               && !leftoverFolders.contains(where: { $0.url.path.contains("/Desktop") })
-               && leftoverFolders.contains(where: {
-                   $0.url.path == "/Users/tester/Library/Application Support" && $0.extraChildDepth == 2
-               }),
-               "leftover search covers Library support, plugins and receipts, not the Desktop")
-        let spotlightQuery = UninstallerSupport.leftoverSpotlightExpression(identity: leftoverIdentity) ?? ""
-        suite.expect(spotlightQuery.contains("com.vendor.editor")
-               && spotlightQuery.contains("editor")
-               && UninstallerSupport.leftoverSpotlightPathIsAllowed(
-                    "/Users/tester/Library/Caches/Editor",
-                    roots: [URL(fileURLWithPath: "/Users/tester/Library")])
-               && !UninstallerSupport.leftoverSpotlightPathIsAllowed(
-                    "/Users/tester/Desktop/Editor",
-                    roots: [URL(fileURLWithPath: "/Users/tester/Library")]),
-               "Spotlight leftovers stay inside Library-like roots")
-        let spotlightGroupIdentity = UninstallerSupport.spotlightIdentity(
-            for: "/Users/tester/Library/Group Containers/group.com.vendor.editor",
-            identity: teamedIdentity)
-        let spotlightLaunchIdentity = UninstallerSupport.spotlightIdentity(
-            for: "/Users/tester/Library/LaunchAgents/Editor.plist",
-            identity: teamedIdentity)
-        suite.expect(spotlightGroupIdentity.bundleIDs.isEmpty
-               && spotlightGroupIdentity.groupIDs == ["group.com.vendor.editor"]
-               && spotlightLaunchIdentity.nameTokens.isEmpty,
-               "Spotlight preserves signed-group and technical-only rules for sensitive roots")
         let safetyFixture = FileManager.default.temporaryDirectory
             .appendingPathComponent("vorssaint-uninstaller-\(UUID().uuidString)", isDirectory: true)
         let safetyRoot = safetyFixture.appendingPathComponent("root", isDirectory: true)
@@ -517,16 +207,8 @@ enum AppManagementFeatureTests {
         _ = FileManager.default.createFile(atPath: replacementFile.path, contents: Data("new".utf8))
         _ = FileManager.default.createFile(atPath: outsideFile.path, contents: Data("foreign".utf8))
         try? FileManager.default.createSymbolicLink(at: link, withDestinationURL: outsideRoot)
-        let originalFileIdentity = UninstallerSupport.fileIdentity(at: safeFile)
-        let safePathWasAccepted = UninstallerSupport.removalPathIsSafe(safeFile, within: safetyRoot)
-        let linkedPathWasRejected = !UninstallerSupport.removalPathIsSafe(
-            link.appendingPathComponent("foreign.plist"), within: safetyRoot)
         try? FileManager.default.removeItem(at: safeFile)
         try? FileManager.default.moveItem(at: replacementFile, to: safeFile)
-        suite.expect(safePathWasAccepted && linkedPathWasRejected
-               && originalFileIdentity != nil
-               && UninstallerSupport.fileIdentity(at: safeFile) != originalFileIdentity,
-               "removal stays inside its scan root, rejects symlink escapes and detects path replacement")
         // A failed lookup is not necessarily absence, and links can remain
         // even after their destination has disappeared.
         let absentFixture = FileManager.default.temporaryDirectory
@@ -534,52 +216,25 @@ enum AppManagementFeatureTests {
         try? FileManager.default.createDirectory(at: absentFixture, withIntermediateDirectories: true)
         let presentChild = absentFixture.appendingPathComponent("StillHere.app")
         try? "bundle".write(to: presentChild, atomically: true, encoding: .utf8)
-        suite.expect(!UninstallerSupport.isConfirmedAbsent(at: presentChild),
-               "a path that still exists is not confirmed absent")
         try? FileManager.default.removeItem(at: presentChild)
-        suite.expect(UninstallerSupport.isConfirmedAbsent(at: presentChild),
-               "a missing child under a readable parent is confirmed absent")
         let danglingLink = absentFixture.appendingPathComponent("Dangling.app")
         let danglingMade = symlink("/tmp/vorssaint-missing-target-\(UUID().uuidString)",
                                    danglingLink.path) == 0
-        suite.expect(danglingMade
-               && !UninstallerSupport.isConfirmedAbsent(at: danglingLink),
-               "a dangling symlink still occupies an entry and is not confirmed absent")
         try? FileManager.default.removeItem(at: danglingLink)
         let nestedParent = absentFixture.appendingPathComponent("NestedParent", isDirectory: true)
         let nestedChild = nestedParent.appendingPathComponent("Gone.app")
         try? FileManager.default.createDirectory(at: nestedParent, withIntermediateDirectories: true)
         try? "x".write(to: nestedChild, atomically: true, encoding: .utf8)
         try? FileManager.default.removeItem(at: nestedParent)
-        suite.expect(UninstallerSupport.isConfirmedAbsent(at: nestedChild),
-               "when the item and its parent folder are both gone, absence is confirmed")
         let inaccessibleParent = absentFixture.appendingPathComponent("Restricted", isDirectory: true)
         let inaccessibleChild = inaccessibleParent.appendingPathComponent("StillHere.app")
         try? FileManager.default.createDirectory(at: inaccessibleParent, withIntermediateDirectories: true)
         let restrictedCreated = FileManager.default.createFile(atPath: inaccessibleChild.path, contents: Data("x".utf8))
         suite.expect(restrictedCreated, "the permission fixture exists before access changes")
-        if geteuid() != 0 {
-            let accessRestricted = chmod(inaccessibleParent.path, 0) == 0
-            suite.expect(accessRestricted && !UninstallerSupport.isConfirmedAbsent(at: inaccessibleChild),
-                   "a file that becomes inaccessible after selection remains a failure")
-            let missingInRestrictedParent = inaccessibleParent.appendingPathComponent("Absent.app")
-            suite.expect(!UninstallerSupport.isConfirmedAbsent(at: missingInRestrictedParent),
-                   "absence below an inaccessible parent is not assumed")
-            suite.expect(chmod(inaccessibleParent.path, 0o700) == 0,
-                   "the permission fixture restores access")
-        }
-        suite.expect(UninstallerSupport.fileIdentity(at: inaccessibleChild) != nil,
-               "the inaccessible file remains present")
         let invalidChild = inaccessibleChild.appendingPathComponent("Child")
-        suite.expect(!UninstallerSupport.isConfirmedAbsent(at: invalidChild),
-               "a parent replaced by a regular file is not treated as a confirmed removal")
         let loop = absentFixture.appendingPathComponent("Loop")
         let loopCreated = symlink("Loop", loop.path) == 0
-        suite.expect(loopCreated && !UninstallerSupport.isConfirmedAbsent(at: loop.appendingPathComponent("Child")),
-               "a symbolic link loop is an error, not confirmed absence")
         try? FileManager.default.removeItem(at: inaccessibleChild)
-        suite.expect(UninstallerSupport.isConfirmedAbsent(at: inaccessibleChild),
-               "the previously inaccessible file is recognized as absent only after removal")
         try? FileManager.default.removeItem(at: absentFixture)
         try? FileManager.default.removeItem(at: safetyFixture)
         func sourceBody(of source: String, from opening: String, to closing: String) -> String {
@@ -588,66 +243,6 @@ enum AppManagementFeatureTests {
             else { return "" }
             return String(source[start.upperBound..<end.lowerBound])
         }
-        // Building the installed-apps oracle walks the application folders, and
-        // the removal guard reads it under `.leftovers` alone — with leftover
-        // rows unchecked by default, the common clean must not pay for that
-        // walk. JunkCleaner is not part of this test binary, so pin the gate
-        // and the premise that makes an empty oracle safe at their source.
-        // The known-application roster opens every installed app, and only the
-        // shared-data claims read it. AppUninstaller is not part of this test
-        // binary either, so pin the gate that keeps a removal that cannot claim
-        // shared data from paying for the roster.
-        let appUninstallerSource = (try? String(
-            contentsOfFile: "Sources/Vorssaint/Services/Uninstall/AppUninstaller.swift",
-            encoding: .utf8)) ?? ""
-        let removeSelectedBody = sourceBody(of: appUninstallerSource, from: "func removeSelected()",
-                                            to: "func removeSelectedWithHomebrew(")
-        suite.expect(removeSelectedBody.contains("let knownApplications = mayClaimSharedData"),
-               "a removal builds the known-application roster only when it may claim shared data")
-        let finishHomebrewBody = sourceBody(of: appUninstallerSource,
-                                            from: "private func finishRemovalAfterHomebrew",
-                                            to: "private static func removeCommandBarState")
-        suite.expect(!finishHomebrewBody.isEmpty,
-               "the Homebrew follow-up removal source reads back for its shape check")
-        // Package completion must preserve ownership of the remaining choices
-        // while counting the app only after its removal is confirmed.
-        let markedPackageRemoval = finishHomebrewBody.range(of: "homebrewRemovedApplication = true")
-        let firstRemoveSelected = finishHomebrewBody.range(of: "removeSelected()")
-        suite.expect(markedPackageRemoval != nil
-                && firstRemoveSelected.map { markedPackageRemoval!.upperBound < $0.lowerBound } == true
-                && finishHomebrewBody.contains("setInclude(false, for: app.id)")
-                && finishHomebrewBody.contains("isConfirmedAbsent")
-                && finishHomebrewBody.contains("homebrewRemovalSize = app.size"),
-               "after package removal the flag is set before trash, and size is credited only after confirmed absence")
-        suite.expect(removeSelectedBody.contains("try fm.trashItem(at: item.url, resultingItemURL: nil)")
-                && removeSelectedBody.contains("isConfirmedAbsent")
-                && removeSelectedBody.contains("stubborn.append(item)")
-                && removeSelectedBody.contains("freed += item.size"),
-               "a path is counted freed only when its absence is confirmed, not on a bare fileExists miss")
-        // Copy detection belongs to the background cleanup shared by both
-        // removal paths, and is needed only for bundle-wide preferences.
-        let cleanupBody = sourceBody(of: appUninstallerSource,
-                                     from: "private static func removeCommandBarState",
-                                     to: "private static func trashViaFinder")
-        let storedStateCheck = cleanupBody.range(of: "hasStoredApplicationState(")
-        let leavesMainThread = cleanupBody.range(of: "DispatchQueue.global(")
-        let absenceCheck = cleanupBody.range(of: "isConfirmedAbsent")
-        let folderWalk = cleanupBody.range(of: "installedApplications(")
-        suite.expect(storedStateCheck != nil && leavesMainThread != nil
-                && storedStateCheck!.upperBound < leavesMainThread!.lowerBound
-                && cleanupBody.contains("bundleIDs.isEmpty ? []"),
-               "a removal scans for another copy only when the app has shared Command Bar state")
-        suite.expect(absenceCheck != nil && folderWalk != nil
-                && absenceCheck!.upperBound < folderWalk!.lowerBound,
-               "a removed app's shortcut is freed only after its absence is confirmed")
-        // The bar also lists apps Spotlight finds in the home folder, such as
-        // a second copy in Downloads, and that copy answers to the same row.
-        suite.expect(cleanupBody.contains(
-                    "spotlightPaths: CommandBarService.spotlightApplicationPaths()"),
-               "a copy the Command Bar finds through Spotlight keeps the removed app's shortcut")
-        suite.expect(removeSelectedBody.components(separatedBy: "Self.removeCommandBarState(").count == 2
-                && finishHomebrewBody.components(separatedBy: "Self.removeCommandBarState(").count == 2,
-               "both the Trash and the Homebrew removals schedule the same cleanup exactly once")
         suite.expect(CleanerSupport.bundleIDCandidate(fromEntryName: "com.vendor.editor.prefPane")
                 == "com.vendor.editor",
                "preference panes map to their owning bundle identifier")
@@ -685,18 +280,6 @@ enum AppManagementFeatureTests {
                && !CleanerSupport.hasSharedContainerWrapper("abcd123456.com.vendor.editor")
                && !CleanerSupport.hasSharedContainerWrapper("com.vendor.editor"),
                "the general Cleaner leaves shared-container wrappers to signed app-specific scans")
-        let helperAppIdentity = UninstallerSupport.identity(
-            primaryBundleID: "com.vendor.chat",
-            bundleIDs: ["com.vendor.chat", "com.vendor.chat.helper.Renderer", "com.vendor.chat.helper.GPU"],
-            displayNames: ["Chat App"])
-        suite.expect(!helperAppIdentity.nameTokens.contains("renderer")
-               && !helperAppIdentity.nameTokens.contains("gpu")
-               && helperAppIdentity.nameTokens.contains("chatapp")
-               && UninstallerSupport.leftoverMatch("renderer.log", identity: helperAppIdentity) == .none
-               && !UninstallerSupport.leftoverSpotlightPathIsAllowed(
-                    "/Users/tester/Library/Application Support/OtherApp/logs/sub/renderer.log",
-                    roots: [URL(fileURLWithPath: "/Users/tester/Library/Application Support")]),
-               "helper subprocess roles and deeply nested foreign logs are never claimed as leftovers")
         suite.expect(CleanerSupport.isProtectedBundleID("systemgroup.com.apple.icloud.searchpartyd.sharedsettings")
                && CleanerSupport.isProtectedBundleID("243LU875E5.groups.com.apple.podcasts")
                && CleanerSupport.isProtectedBundleID("developer.apple.wwdc")
@@ -711,13 +294,6 @@ enum AppManagementFeatureTests {
                && CleanerSupport.isProtectedBundleID("ORG.SPARKLE-PROJECT.Sparkle")
                && CleanerSupport.isProtectedBundleID("com.google.Keystone.Agent"),
                "anything inside a shared infrastructure domain stays protected, in any letter case")
-        suite.expect(!CleanerSupport.isProtectedBundleID("com.segmentfault.reader")
-               && !CleanerSupport.isProtectedBundleID("com.amplitudestudios.Humankind")
-               && !CleanerSupport.isProtectedBundleID("io.sentrybox.Mac")
-               && !CleanerSupport.isProtectedBundleID("org.swiftbar.app")
-               && UninstallerSupport.verifiedBundleID("com.amplitudestudios.Humankind")
-                == "com.amplitudestudios.Humankind",
-               "another vendor whose name merely starts like a shared domain is an ordinary app")
         suite.expect(CleanerSupport.bundleIDCandidate(fromEntryName: "systemgroup.com.apple.icloud.sharedsettings.plist")
                == "com.apple.icloud.sharedsettings",
                "systemgroup wrappers unwrap to the real owner")

@@ -22,8 +22,7 @@ enum PreferencesFeatureTests {
                "a chosen screenshot save folder is authority on one Mac and must not travel in a settings backup")
         suite.expect(SettingsBackupSupport.exportKeys().contains(DefaultsKey.screenshotSaveSubfolder),
                "a screenshot subfolder name is a pattern rather than a path, so it still follows settings backups")
-        suite.expect(!SettingsBackupSupport.exportKeys().contains(DefaultsKey.commandBarFileScopes)
-            && !SettingsBackupSupport.exportKeys().contains(DefaultsKey.whatsAppOrganizerDestinationPath)
+        suite.expect(!SettingsBackupSupport.exportKeys().contains(DefaultsKey.whatsAppOrganizerDestinationPath)
             && !SettingsBackupSupport.exportKeys().contains(DefaultsKey.notchDownloadsFolderBookmark)
             && !SettingsBackupSupport.exportKeys().contains(DefaultsKey.mediaImageWatermarkLogoPath),
                "every chosen folder already excluded from backups stays excluded")

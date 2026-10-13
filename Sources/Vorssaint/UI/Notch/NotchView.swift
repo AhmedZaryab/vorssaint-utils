@@ -97,11 +97,7 @@ struct NotchView: View {
                 NotchCaptureControlsView(options: options, service: service, layout: service.captureControlsLayout)
             }
         } else if service.expanded {
-            if service.showingCommandBar {
-                commandBarPage
-            } else {
-                expanded
-            }
+            expanded
         } else if service.dragPlaceholder {
             Label(text.dropHint, systemImage: "tray.and.arrow.down")
                 .font(.system(size: 13, weight: .medium)).foregroundStyle(.white)
@@ -238,14 +234,8 @@ struct NotchView: View {
 
     private var compact: some View { NotchRestingStrip(service: service) }
 
-    /// The Command Bar in the open island: its field below the camera, its
-    /// list below the field, and the island as tall as the two.
-    private var commandBarPage: some View {
-        CommandBarView(presentation: .island)
-            .fixedSize(horizontal: false, vertical: true)
-            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { service.updateCommandBarHeight($0) }
-            .padding(.top, service.geometry.safeContentTop)
-            .frame(width: service.surfaceSize.width, height: service.surfaceSize.height, alignment: .top)
+    }
+
     }
 
     private var showsDetail: Bool { service.showingAppPanel }

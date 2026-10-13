@@ -36,7 +36,6 @@ enum OverlayPanelTests {
             "Sources/Vorssaint/Services/QuickTools/ScratchpadService.swift",
             "Sources/Vorssaint/Services/Snippets/SnippetLibraryService.swift",
             "Sources/Vorssaint/Services/Clipboard/ClipboardHistoryService.swift",
-            "Sources/Vorssaint/Services/CommandBar/CommandBarService.swift",
             "Sources/Vorssaint/Services/Switcher/AppSwitcher.swift",
             "Sources/Vorssaint/Services/RadialMenu/RadialMenuService.swift",
             "Sources/Vorssaint/Services/RadialMenu/RadialNowPlayingService.swift",

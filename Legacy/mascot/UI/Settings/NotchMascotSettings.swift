@@ -23,8 +23,6 @@ struct NotchMascotSettings: View {
     @AppStorage(DefaultsKey.notchMascotPalette) private var palette = NotchMascotPalette.pearl.rawValue
     @AppStorage(DefaultsKey.notchMascotSide) private var side = NotchMascotSide.left.rawValue
     @AppStorage(DefaultsKey.notchMascotVisitFrequency) private var frequency = NotchMascotVisitFrequency.normal.rawValue
-    @AppStorage(DefaultsKey.notchCommandBar) private var commandBar = true
-    @AppStorage(DefaultsKey.notchCommandBarStyle) private var commandBarStyle = NotchCommandBarStyle.droplet.rawValue
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var text: NotchMascotStrings { FeatureStrings.notchMascot(l10n.language) }
@@ -59,7 +57,6 @@ struct NotchMascotSettings: View {
                                      language: l10n.language)
                 appearance
                 behavior
-                commandBarCard
             }
             .padding(embedded ? [.bottom] : .all, 22)
         }
@@ -222,34 +219,6 @@ struct NotchMascotSettings: View {
             switchRow("theatermasks", text.reactions, caption: text.reactionsHint, isOn: $reactions)
         }
         .animation(animation, value: visits)
-    }
-
-    // MARK: Command Bar
-
-    private var commandBarCard: some View {
-        let available = features.isAvailable(.commandBar)
-        let bar = FeatureStrings.commandBar(l10n.language)
-        return SettingsCard(title: bar.pageTitle) {
-            SettingsFeatureSwitchRow(symbol: "command", title: text.commandBar, caption: text.commandBarHint,
-                                     isOn: $commandBar, feature: .commandBar)
-            if available, commandBar {
-                SettingsRow(symbol: "drop", title: text.opensAs) { EmptyView() }
-                    .transition(.opacity)
-                HStack(spacing: 10) {
-                    ForEach(NotchCommandBarStyle.allCases) { item in
-                        NotchMascotChoiceTile(title: text.commandBarStyle(item),
-                                              selected: (NotchCommandBarStyle(rawValue: commandBarStyle) ?? .droplet) == item) {
-                            commandBarStyle = item.rawValue
-                        } preview: {
-                            NotchCommandBarStyleSample(style: item, look: look)
-                        }
-                    }
-                }
-                .padding(.leading, settingsRowTextInset)
-                .transition(.opacity)
-            }
-        }
-        .animation(animation, value: available && commandBar)
     }
 
     /// An option with its icon, a line about it and a switch, like the rest of Settings.

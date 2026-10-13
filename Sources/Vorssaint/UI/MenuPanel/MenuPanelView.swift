@@ -391,9 +391,9 @@ private enum UtilityPanelItem: String, PanelOrderItem, Identifiable {
     // Case order IS the default panel order (PanelLayout.itemOrder falls back
     // to allCases). Screenshot leads in 3.1.13; existing orders that predate it
     // are migrated once without disturbing the rest of the user's layout.
-    case screenshot, quickLauncher, appUpdates, clipboard, windowLayout,
-         uninstaller, cleaning, screenOCR, colorPicker, cameraPreview, scratchpad,
-         commandBar, screenRecorder, portManager
+    case screenshot, quickLauncher, clipboard, windowLayout,
+         cleaning, screenOCR, colorPicker, cameraPreview, scratchpad,
+         screenRecorder
 
     var id: String { rawValue }
 
@@ -402,10 +402,8 @@ private enum UtilityPanelItem: String, PanelOrderItem, Identifiable {
     var feature: AppFeature {
         switch self {
         case .quickLauncher: return .quickLauncher
-        case .appUpdates: return .appUpdates
         case .clipboard: return .clipboardHistory
         case .windowLayout: return .windowLayout
-        case .uninstaller: return .uninstaller
         case .cleaning: return .cleaningMode
         case .screenOCR: return .screenOCR
         case .colorPicker: return .colorPicker
@@ -413,8 +411,6 @@ private enum UtilityPanelItem: String, PanelOrderItem, Identifiable {
         case .screenRecorder: return .screenRecorder
         case .cameraPreview: return .cameraPreview
         case .scratchpad: return .scratchpad
-        case .commandBar: return .commandBar
-        case .portManager: return .portManager
         }
     }
 }
@@ -423,15 +419,10 @@ struct UtilitiesSection: View {
     @ObservedObject private var l10n = L10n.shared
     @ObservedObject private var permissions = Permissions.shared
     @ObservedObject private var features = FeatureRuntime.shared
-    @State private var showUninstaller = false
-    @State private var showAppUpdatesPanel = false
     @State private var showClipboardPanel = false
     @State private var showRecentCapturesPanel = false
     @State private var showWindowLayoutPanel = false
-    @State private var showPortManagerPanel = false
     @AppStorage(DefaultsKey.panelUtilityCleaning) private var showCleaning = true
-    @AppStorage(DefaultsKey.panelUtilityUninstaller) private var showUninstallerAction = true
-    @AppStorage(DefaultsKey.panelUtilityAppUpdates) private var showAppUpdates = true
     @AppStorage(DefaultsKey.panelUtilityClipboard) private var showClipboard = true
     @AppStorage(DefaultsKey.panelUtilityWindowLayout) private var showWindowLayout = true
     @AppStorage(DefaultsKey.panelUtilityScreenOCR) private var showScreenOCR = true
@@ -440,9 +431,7 @@ struct UtilitiesSection: View {
     @AppStorage(DefaultsKey.panelUtilityColorPicker) private var showColorPicker = true
     @AppStorage(DefaultsKey.panelUtilityCameraPreview) private var showCameraPreview = true
     @AppStorage(DefaultsKey.panelUtilityScratchpad) private var showScratchpad = true
-    @AppStorage(DefaultsKey.panelUtilityCommandBar) private var showCommandBar = true
     @AppStorage(DefaultsKey.panelUtilityScreenRecorder) private var showScreenRecorder = true
-    @AppStorage(DefaultsKey.panelUtilityPortManager) private var showPortManager = true
     @ObservedObject private var recorder = ScreenRecorderService.shared
     @AppStorage(DefaultsKey.clipboardHistoryEnabled) private var clipboardEnabled = false
     @AppStorage(DefaultsKey.panelUtilityOrder) private var utilityOrderRaw = ""
@@ -455,11 +444,7 @@ struct UtilitiesSection: View {
                      supportsEditing: true,
                      editButtonVisible: !isHostingUtility,
                      resetAction: resetPanelDefaults) { editing in
-            if showUninstaller {
-                PanelUninstallerView {
-                    showUninstaller = false
-                }
-            } else if showClipboardPanel {
+            if showClipboardPanel {
                 PanelClipboardView {
                     PanelInteractionState.shared.viewKeepsPopoverOpen = false
                     showClipboardPanel = false
@@ -473,16 +458,6 @@ struct UtilitiesSection: View {
                 PanelWindowLayoutView {
                     PanelInteractionState.shared.viewKeepsPopoverOpen = false
                     showWindowLayoutPanel = false
-                }
-            } else if showAppUpdatesPanel {
-                PanelAppUpdatesView {
-                    PanelInteractionState.shared.viewKeepsPopoverOpen = false
-                    showAppUpdatesPanel = false
-                }
-            } else if showPortManagerPanel {
-                PanelPortManagerView {
-                    PanelInteractionState.shared.viewKeepsPopoverOpen = false
-                    showPortManagerPanel = false
                 }
             } else {
                 PanelRowGroup(items: items(editing: editing), showsDragHandles: editing) { item in
@@ -515,12 +490,9 @@ struct UtilitiesSection: View {
     /// hosted tool is covered by the one list. Mirrored by the `onChange`
     /// beside it, and cleared only where this section leaves the screen.
     private var hostedSettingsPage: SettingsPage? {
-        if showUninstaller { return .uninstaller }
         if showClipboardPanel { return .clipboard }
         if showRecentCapturesPanel { return .screenshot }
         if showWindowLayoutPanel { return .windowLayout }
-        if showAppUpdatesPanel { return .appUpdates }
-        if showPortManagerPanel { return .portManager }
         return nil
     }
 
@@ -528,9 +500,8 @@ struct UtilitiesSection: View {
     /// list. A hosted tool turns the panel into a work surface, so clicks
     /// elsewhere in the app must not dismiss it.
     private var isHostingUtility: Bool {
-        showUninstaller
-            || showMediaPanel || showClipboardPanel || showRecentCapturesPanel
-            || showWindowLayoutPanel || showAppUpdatesPanel || showPortManagerPanel
+        showClipboardPanel || showRecentCapturesPanel
+            || showWindowLayoutPanel
     }
 
     private var cleaningNeedsAccessibility: Bool {
@@ -562,35 +533,33 @@ struct UtilitiesSection: View {
 
     private func isVisible(_ item: UtilityPanelItem) -> Bool {
         switch item {
-        case .appUpdates: return showAppUpdates
         case .clipboard: return showClipboard
         case .windowLayout: return showWindowLayout
-        case .uninstaller: return showUninstallerAction
         case .cleaning: return showCleaning
         case .screenOCR: return showScreenOCR
         case .colorPicker: return showColorPicker
         case .cameraPreview: return showCameraPreview
         case .scratchpad: return showScratchpad
-        case .commandBar: return showCommandBar
         case .quickLauncher: return showQuickLauncher
         case .screenshot: return showScreenshot
         case .screenRecorder: return showScreenRecorder
-        case .portManager: return showPortManager
         }
     }
 
     @ViewBuilder
     private func itemView(_ item: UtilityPanelItem, editing: Bool) -> some View {
         switch item {
-        case .appUpdates:
-            UtilityActionButton(title: FeatureStrings.appUpdates(l10n.language).pageTitle,
-                                caption: FeatureStrings.appUpdates(l10n.language).panelCaption,
-                                systemImage: "arrow.down.app",
                                 isEditing: editing,
                                 showsDragHandle: true,
-                                visibility: $showAppUpdates,
                                 action: {
-                                    showAppUpdatesPanel = true
+                                })
+                                isEditing: editing,
+                                showsDragHandle: true,
+                                action: {
+                                })
+                                isEditing: editing,
+                                showsDragHandle: true,
+                                action: {
                                 })
         case .clipboard:
             UtilityActionButton(title: FeatureStrings.clipboard(l10n.language).title,
@@ -615,16 +584,6 @@ struct UtilitiesSection: View {
                                 visibility: $showWindowLayout,
                                 action: {
                                     showWindowLayoutPanel = true
-                                })
-        case .uninstaller:
-            UtilityActionButton(title: l10n.s.uninstallerName,
-                                caption: l10n.s.uninstallerEnableCaption,
-                                systemImage: "trash",
-                                isEditing: editing,
-                                showsDragHandle: true,
-                                visibility: $showUninstallerAction,
-                                action: {
-                                    showUninstaller = true
                                 })
         case .cleaning:
             UtilityActionButton(title: l10n.s.cleaningMenuItem,
@@ -758,28 +717,6 @@ struct UtilitiesSection: View {
                                         QuickLauncherService.shared.show()
                                     }
                                 })
-        case .commandBar:
-            UtilityActionButton(title: FeatureStrings.commandBar(l10n.language).pageTitle,
-                                caption: FeatureStrings.commandBar(l10n.language).panelCaption,
-                                systemImage: "command",
-                                isEditing: editing,
-                                showsDragHandle: true,
-                                visibility: $showCommandBar,
-                                shortcutHint: shortcutHint(.commandBar),
-                                action: {
-                                    appDelegate()?.closePopover()
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-                                        CommandBarService.shared.show()
-                                    }
-                                })
-        case .portManager:
-            UtilityActionButton(title: FeatureStrings.portManager(l10n.language).title,
-                                caption: FeatureStrings.portManager(l10n.language).listeningCaption,
-                                systemImage: "network",
-                                isEditing: editing,
-                                showsDragHandle: true,
-                                visibility: $showPortManager,
-                                action: { showPortManagerPanel = true })
         }
     }
 
@@ -840,10 +777,8 @@ struct UtilitiesSection: View {
     private func resetPanelDefaults() {
         PanelLayout.resetItemOrder(key: DefaultsKey.panelUtilityOrder)
         utilityOrderRaw = ""
-        showAppUpdates = true
         showClipboard = true
         showWindowLayout = true
-        showUninstallerAction = true
         showCleaning = true
         showScreenOCR = true
         showScreenshot = true
@@ -851,8 +786,6 @@ struct UtilitiesSection: View {
         showCameraPreview = true
         showScratchpad = true
         showQuickLauncher = true
-        showCommandBar = true
-        showPortManager = true
     }
 
     private func grantAccessibility() {

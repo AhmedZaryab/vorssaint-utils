@@ -225,11 +225,9 @@ final class FeatureRuntime: ObservableObject {
         }
     }
 
-    /// One bump for Settings, and the Command Bar drops rows of features that
-    /// just left the hub so a pin cannot linger as a bare id.
+    /// One bump for Settings.
     private func finishAvailabilityChange() {
         revision += 1
-        CommandBarService.shared.noteHubChange()
         if AppFeature.notch.isAvailable { NotchService.shared.syncWithPreferences() }
     }
 
@@ -345,8 +343,6 @@ final class FeatureRuntime: ObservableObject {
             else { NotchWatchService.shared.stop() }
         },
         .scratchpad: { ScratchpadService.shared.syncWithPreferences() },
-        .commandBar: { CommandBarService.shared.syncWithPreferences() },
-        .appUpdates: { AppUpdatesService.shared.syncWithPreferences() },
     ]
 }
 

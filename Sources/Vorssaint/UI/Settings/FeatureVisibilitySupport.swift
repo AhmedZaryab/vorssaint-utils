@@ -8,7 +8,7 @@ import Foundation
 /// below and the unit tests can reason about pages without pulling UI in.
 enum SettingsPage: Hashable {
     case general, features, energy
-    case mouse, switcher, dock, autoQuit, uninstaller, appUpdates, clipboard, windowLayout, shelf, quickTools, textSnippets, screenshot, radialMenu, commandBar, killProcess, portManager, notch
+    case mouse, switcher, dock, autoQuit, clipboard, windowLayout, shelf, quickTools, textSnippets, screenshot, radialMenu, notch
     case shortcuts, advanced, about, releaseNotes, support
 }
 
@@ -309,10 +309,6 @@ extension AppFeature {
             return FeatureSettingsDestination(.screenshot, sectionAnchor: .screenOCR)
         case .cleaningMode:
             return FeatureSettingsDestination(.quickTools, sectionAnchor: .cleaningMode)
-        case .uninstaller: return FeatureSettingsDestination(.uninstaller)
-        case .killProcess: return FeatureSettingsDestination(.killProcess)
-        case .portManager: return FeatureSettingsDestination(.portManager)
-        case .appUpdates: return FeatureSettingsDestination(.appUpdates)
         case .screenshot:
             return FeatureSettingsDestination(.screenshot, sectionAnchor: .screenshot)
         case .cameraPreview:
@@ -321,7 +317,6 @@ extension AppFeature {
         case .radialMenu: return FeatureSettingsDestination(.radialMenu)
         case .scratchpad:
             return FeatureSettingsDestination(.quickTools, sectionAnchor: .scratchpad)
-        case .commandBar: return FeatureSettingsDestination(.commandBar)
         case .screenRecorder:
             return FeatureSettingsDestination(.screenshot, sectionAnchor: .screenRecorder)
 
@@ -351,15 +346,10 @@ enum FeatureVisibilitySupport {
         case .shelf: return [.shelf]
         case .quickTools: return [.quickLauncher, .quickToggles, .micMute,
                                   .cameraPreview, .scratchpad, .cleaningMode, .menuBarTidy]
-        case .appUpdates: return [.appUpdates]
-        case .uninstaller: return [.uninstaller]
-        case .killProcess: return [.killProcess]
-        case .portManager: return [.portManager]
         case .textSnippets: return [.textSnippets]
         case .screenshot: return [.screenshot, .screenRecorder, .screenOCR, .colorPicker]
         case .notch: return [.notch, .notchCalendar, .notchNotifications, .notchGestures, .notchTimer, .notchAccessories, .notchLyrics, .notchQueue, .spotifyQueue, .notchLiveEqualizer, .notchDownloads, .notchAgents, .notchWatch]
         case .radialMenu: return [.radialMenu]
-        case .commandBar: return [.commandBar]
         case .general, .features, .shortcuts, .advanced, .about, .releaseNotes, .support:
             return []
         }

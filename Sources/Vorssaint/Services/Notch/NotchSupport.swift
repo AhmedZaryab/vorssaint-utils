@@ -1062,8 +1062,8 @@ enum NotchControlSetupRequirement: Equatable {
 }
 
 enum NotchControlItem: String, CaseIterable, Identifiable {
-    case volume, brightness, keyboardLight, music, mixer, keepAwake, timer, calendar, microphone, screenshot, recording, panel, commandBar, scratchpad
-    static let defaultHidden = "keyboardLight,microphone,screenshot,recording,panel,commandBar,scratchpad"
+    case volume, brightness, keyboardLight, music, mixer, keepAwake, timer, calendar, microphone, screenshot, recording, panel, scratchpad
+    static let defaultHidden = "keyboardLight,microphone,screenshot,recording,panel,scratchpad"
     var id: String { rawValue }
 
     /// A level draws as a slider in the card row; everything else is a tile.
@@ -1087,7 +1087,6 @@ enum NotchControlItem: String, CaseIterable, Identifiable {
         // The app panel opens as a bubble under the menu bar icon.
         case .panel: return "bubble.middle.top"
         case .mixer: return NotchModule.mixer.symbol
-        case .commandBar: return "command"
         case .scratchpad: return "note.text"
         case .music: return NotchModule.music.symbol
         case .timer: return NotchModule.timer.symbol
@@ -1103,7 +1102,6 @@ enum NotchControlItem: String, CaseIterable, Identifiable {
         case .microphone: return .feature(.micMute)
         case .screenshot: return .feature(.screenshot)
         case .recording: return .feature(.screenRecorder)
-        case .commandBar: return .feature(.commandBar)
         case .scratchpad: return .feature(.scratchpad)
         case .panel: return .none
         case .mixer: return .page(.mixer, feature: .mixer)
@@ -1123,7 +1121,6 @@ enum NotchControlItem: String, CaseIterable, Identifiable {
         case .microphone: return AppFeature.micMute.isAvailable(in: defaults)
         case .screenshot: return AppFeature.screenshot.isAvailable(in: defaults)
         case .recording: return AppFeature.screenRecorder.isAvailable(in: defaults)
-        case .commandBar: return AppFeature.commandBar.isAvailable(in: defaults)
         case .scratchpad: return AppFeature.scratchpad.isAvailable(in: defaults)
         case .panel: return true
         case .music: return NotchSupport.modules(in: defaults).contains(.music)

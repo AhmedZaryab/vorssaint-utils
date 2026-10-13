@@ -143,15 +143,9 @@ extension AppFeature {
                 ? .keyboard : .idle
         case .mouseAcceleration, .pastePlain, .micMute,
              .keepAwake, .quickLauncher, .quickToggles, .colorPicker,
-             .screenOCR, .cleaningMode, .uninstaller, .screenshot,
-             .cameraPreview, .scratchpad, .commandBar, .screenRecorder,
-             .killProcess, .portManager:
+             .screenOCR, .cleaningMode, .screenshot,
+             .cameraPreview, .scratchpad, .screenRecorder:
             return .idle
-        case .appUpdates:
-            // The list is on demand; only a background schedule keeps a timer.
-            return AppUpdatesSupport.CheckFrequency.sanitized(
-                UserDefaults.standard.string(forKey: DefaultsKey.appUpdatesCheckFrequency)) == .off
-                ? .idle : .periodic
         }
     }
 }

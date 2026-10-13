@@ -12,7 +12,7 @@ enum QuickLauncherItem: String, PanelOrderItem, Identifiable {
     // after Keep awake, by the owner's decision. Saved orders are untouched
     // (a case added later joins a saved order at the end).
     case keepAwake, toggles, micMute, screenOCR, colorPicker, clipboard, windowLayout,
-         cleaning, uninstaller, screenshot, screenRecorder,
+         cleaning, screenshot, screenRecorder,
          cameraPreview, scratchpad
 
     var id: String { rawValue }
@@ -29,7 +29,6 @@ enum QuickLauncherItem: String, PanelOrderItem, Identifiable {
         case .clipboard: return .clipboardHistory
         case .windowLayout: return .windowLayout
         case .cleaning: return .cleaningMode
-        case .uninstaller: return .uninstaller
         case .screenshot: return .screenshot
         case .screenRecorder: return .screenRecorder
         case .cameraPreview: return .cameraPreview
@@ -53,7 +52,7 @@ final class QuickLauncherService: ObservableObject {
     /// (not in the view) so the Esc key monitor can close the card first,
     /// before leaving edit mode and before hiding the panel.
     @Published var editingOptionsItem: QuickLauncherItem?
-    /// A utility view (Homebrew, Uninstaller…) currently hosted INSIDE the
+    /// A utility view (Homebrew, Media…) currently hosted INSIDE the
     /// launcher, replacing the grid. Everything happens in this panel; the
     /// menu bar popover is never involved.
     @Published private(set) var activeUtility: QuickLauncherItem?
@@ -314,7 +313,7 @@ final class QuickLauncherService: ObservableObject {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 CleaningModeManager.shared.activate()
             }
-        case .windowLayout, ..uninstaller, .toggles:
+        case .windowLayout, .toggles:
             activeUtility = item
         }
     }
@@ -431,7 +430,7 @@ final class QuickLauncherService: ObservableObject {
             guard let self, let panel, event.window === panel else { return event }
             return self.handlePanelKey(event)
         }
-        // With a utility hosted inside (Media, Homebrew, Uninstaller…) the
+        // With a utility hosted inside (Media, Homebrew…) the
         // launcher is a small working window, not a transient HUD: it must
         // survive its own file dialogs and admin prompts, and clicks in other
         // apps to drag a file onto its drop zones. Only the bare grid keeps
