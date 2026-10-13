@@ -147,7 +147,7 @@ extension AppFeature {
                 || BrightnessSupport.KeyStep.sanitized(
                     defaults.string(forKey: DefaultsKey.brightnessKeyStep)) != .standard
                 ? .keyboard : .idle
-        case .mouseAcceleration, .pastePlain, .soundOutputSwitcher, .micMute,
+        case .mouseAcceleration, .pastePlain, .micMute,
              .keepAwake, .quickLauncher, .quickToggles, .colorPicker,
              .screenOCR, .cleaningMode, .mediaTools, .cleaner, .uninstaller, .homebrew, .screenshot,
              .cameraPreview, .scratchpad, .commandBar, .screenRecorder, .wallpaper, .fanControl,

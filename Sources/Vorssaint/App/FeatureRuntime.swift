@@ -292,10 +292,6 @@ final class FeatureRuntime: ObservableObject {
             AppVolumeMixer.shared.syncWithPreferences()
             AudioInputDeviceManager.shared.syncWithPreferences()
         },
-        .soundOutputSwitcher: {
-            AppVolumeMixer.shared.syncWithPreferences()
-            SoundOutputSwitcher.shared.syncWithPreferences()
-        },
         .micMute: { MicMuteService.shared.syncWithPreferences() },
         .keepAwake: {
             KeepAwakeManager.shared.syncWithFeatures()

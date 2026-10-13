@@ -565,20 +565,6 @@ enum CommandBarCatalog {
                 }))
         }
 
-        if AppFeature.soundOutputSwitcher.isAvailable, AppFeature.mixer.isAvailable {
-            let devices = AppVolumeMixer.shared.outputDevices.filter(\.canBeDefaultOutput)
-            for device in devices {
-                entries.append(CommandBarEntry(
-                    id: "action.soundOutput.\(device.uid)",
-                    title: device.name,
-                    subtitle: device.isDefault ? bar.soundOutputCurrent : bar.soundOutputSubtitle,
-                    keywords: bar.soundOutputSubtitle,
-                    icon: .symbol(device.isHeadphones ? "headphones" : "hifispeaker"),
-                    isActive: device.isDefault,
-                    run: { _ in AppVolumeMixer.shared.setUniversalOutputDeviceUID(device.uid) }))
-            }
-        }
-
         if AppFeature.quickToggles.isAvailable {
             let toggles = QuickTogglesService.shared
             let togglesText = FeatureStrings.quickToggles(language)

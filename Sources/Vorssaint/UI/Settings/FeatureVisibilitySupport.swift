@@ -46,7 +46,6 @@ enum SettingsSectionAnchor: String, CaseIterable, Hashable {
     case wallpaper
     case scratchpad
     case cleaningMode
-    case soundOutputSwitcher
     case keyboardBrightnessShortcuts
     case fanControl
     case windowMaximizer
@@ -54,8 +53,7 @@ enum SettingsSectionAnchor: String, CaseIterable, Hashable {
 
     var page: SettingsPage {
         switch self {
-        case .panelConfiguration, .mixer,
-             .soundOutputSwitcher:
+        case .panelConfiguration, .mixer:
             return .general
         case .keepAwake, .brightness: return .energy
         case .scrollDirection, .focusFollowsMouse, .linearScroll, .mouseAcceleration, .mouseNavigation, .mouseButtonShortcuts,
@@ -318,8 +316,6 @@ extension AppFeature {
 
         case .mixer:
             return FeatureSettingsDestination(.general, sectionAnchor: .mixer)
-        case .soundOutputSwitcher:
-            return FeatureSettingsDestination(.general, sectionAnchor: .soundOutputSwitcher)
         case .micMute:
             return FeatureSettingsDestination(.quickTools, sectionAnchor: .micMute)
         case .menuBarTidy:

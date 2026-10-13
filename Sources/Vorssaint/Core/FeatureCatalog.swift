@@ -22,7 +22,7 @@ enum AppFeature: String, CaseIterable {
     case clipboardHistory, pastePlain, finderCutPaste, finderRename, shelf, urlCleaner,
          diskImageInstaller
     // Sound
-    case mixer, soundOutputSwitcher, micMute
+    case mixer, micMute
     // Energy and display
     case keepAwake, brightness
     // Tools
@@ -109,7 +109,7 @@ extension AppFeature {
         case .clipboardHistory, .pastePlain, .finderCutPaste, .finderRename, .shelf, .urlCleaner,
              .diskImageInstaller:
             return .clipboardFiles
-        case .mixer, .soundOutputSwitcher, .micMute:
+        case .mixer, .micMute:
             return .sound
         case .keepAwake, .brightness:
             return .energyDisplay
@@ -157,7 +157,6 @@ extension AppFeature {
         case .urlCleaner: return "link"
         case .diskImageInstaller: return "externaldrive.badge.plus"
         case .mixer: return "speaker.wave.2"
-        case .soundOutputSwitcher: return "hifispeaker"
         case .micMute: return "mic.slash"
         case .keepAwake: return "moon.zzz.fill"
         case .brightness: return "display.2"
@@ -269,7 +268,6 @@ extension AppFeature {
         case .finderRename: return [DefaultsKey.finderRenameEnabled]
         case .shelf: return [DefaultsKey.shelfEnabled]
         case .urlCleaner: return [DefaultsKey.urlCleanerEnabled]
-        case .soundOutputSwitcher: return [DefaultsKey.soundOutputSwitcherEnabled]
         case .brightness: return [DefaultsKey.brightnessControlEnabled]
         case .windowLayout, .diskImageInstaller, .mixer, .micMute, .keepAwake,
              .quickLauncher, .quickToggles, .colorPicker, .screenOCR, .cleaningMode, .mediaTools,
@@ -367,7 +365,6 @@ extension AppFeature {
         case .mixer: return [.audioCapture, .accessibility]
         case .monitorCPU, .monitorMemory, .monitorDisk, .monitorPower: return [.notifications]
         case .clipboardHistory, .shelf, .urlCleaner,
-             .soundOutputSwitcher,
              .quickLauncher, .colorPicker, .micMute, .mediaTools,
              .scratchpad, .wallpaper, .monitorGPU, .monitorNetwork, .connectedDevices, .fanControl, .killProcess,
              .portManager:
@@ -457,7 +454,7 @@ extension AppFeature {
              .scrollInverter, .mouseAcceleration, .mouseNavigation, .mouseButtonShortcuts,
              .middleClick, .mouseClickDebounce, .textSnippets, .superKey,
              .clipboardHistory, .pastePlain, .finderCutPaste, .finderRename, .shelf, .urlCleaner,
-             .mixer, .soundOutputSwitcher, .micMute,
+             .mixer, .micMute,
              .keepAwake, .brightness,
              .quickLauncher, .quickToggles, .colorPicker, .screenOCR, .cleaningMode, .mediaTools,
              .cleaner, .uninstaller, .homebrew, .appUpdates, .screenshot, .cameraPreview, .radialMenu,

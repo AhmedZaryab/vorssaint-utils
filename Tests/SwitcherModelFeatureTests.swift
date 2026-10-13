@@ -2015,11 +2015,6 @@ enum SwitcherModelFeatureTests {
                "Finder returns to the mixer by default")
         suite.expect(registeredDefaults[DefaultsKey.mixerHideInactiveApps] as? Bool == false,
                "inactive mixer apps remain visible by default")
-        suite.expect(registeredDefaults[DefaultsKey.soundOutputSwitcherEnabled] as? Bool == false,
-               "sound output switcher is opt-in")
-        suite.expect(registeredDefaults[DefaultsKey.soundOutputSwitcherShortcut] as? String
-               == GlobalShortcut.soundOutputSwitcherDefault.storageValue,
-               "sound output switcher shortcut has a registered default")
         suite.expect(registeredDefaults[DefaultsKey.shelfShortcutEnabled] as? Bool == true,
                "shelf shortcut is on by default once shelf is enabled")
         suite.expect(registeredDefaults[DefaultsKey.shelfShortcut] as? String == "control+option+command:2",

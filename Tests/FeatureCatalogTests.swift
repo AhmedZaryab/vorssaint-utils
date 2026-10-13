@@ -313,7 +313,7 @@ enum FeatureCatalogTests {
             "mouseClickDebounce", "textSnippets", "superKey",
             "clipboardHistory", "pastePlain", "finderCutPaste", "finderRename", "shelf", "urlCleaner",
             "diskImageInstaller",
-            "mixer", "soundOutputSwitcher", "micMute",
+            "mixer", "micMute",
             "keepAwake", "brightness",
             "quickLauncher", "quickToggles", "colorPicker", "screenOCR", "cleaningMode", "mediaTools",
             "cleaner", "uninstaller", "homebrew", "appUpdates", "screenshot", "cameraPreview",
@@ -484,7 +484,7 @@ enum FeatureCatalogTests {
             "scrollInverter", "mouseAcceleration", "mouseNavigation", "mouseButtonShortcuts",
             "middleClick", "mouseClickDebounce", "textSnippets", "superKey",
             "clipboardHistory", "pastePlain", "finderCutPaste", "finderRename", "shelf", "urlCleaner",
-            "mixer", "soundOutputSwitcher", "micMute",
+            "mixer", "micMute",
             "keepAwake", "brightness",
             "quickLauncher", "quickToggles", "colorPicker", "screenOCR", "cleaningMode", "mediaTools",
             "cleaner", "uninstaller", "homebrew", "appUpdates", "screenshot", "cameraPreview", "radialMenu",
@@ -1879,10 +1879,8 @@ enum FeatureCatalogTests {
                 && !dockNeedsAccessibility(available: allFeatures, on: [DefaultsKey.switcherEnabled]),
                "the Dock page asks for Accessibility while Dock Preview or any Dock click action is on")
         suite.expect(AppFeature.mixer.settingsDestination
-                == FeatureSettingsDestination(.general, sectionAnchor: .mixer)
-                && AppFeature.soundOutputSwitcher.settingsDestination
-                    == FeatureSettingsDestination(.general, sectionAnchor: .soundOutputSwitcher),
-               "Mixer and output switcher have separate General controls")
+                == FeatureSettingsDestination(.general, sectionAnchor: .mixer),
+               "Mixer has its own General controls")
         suite.expect(AppFeature.windowMaximizer.settingsDestination
                 == FeatureSettingsDestination(.windowLayout, sectionAnchor: .windowMaximizer)
                 && pageVisible(.windowLayout, available: [.windowMaximizer])

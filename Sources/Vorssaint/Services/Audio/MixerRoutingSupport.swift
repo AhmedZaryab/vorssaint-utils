@@ -164,7 +164,7 @@ enum MixerRoutingSupport {
     static func observationNeeds(isAvailable: (AppFeature) -> Bool)
         -> (devices: Bool, processes: Bool) {
         let mixer = isAvailable(.mixer)
-        return (mixer || isAvailable(.soundOutputSwitcher), mixer)
+        return (mixer, mixer)
     }
 
     static let systemDefaultSelectionID = "__system_default__"

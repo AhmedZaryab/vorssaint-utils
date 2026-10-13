@@ -1023,7 +1023,6 @@ extension AppFeature {
         case .diskImageInstaller:
             return FeatureStrings.diskImageInstaller(L10n.shared.language).title
         case .mixer: return s.mixerSection
-        case .soundOutputSwitcher: return s.soundOutputSwitcherTitle
         case .micMute: return s.micMuteName
         case .keepAwake: return s.keepAwakeTitle
         case .brightness: return FeatureStrings.brightness(L10n.shared.language).pageTitle
@@ -1101,7 +1100,6 @@ extension AppFeature {
         case .diskImageInstaller:
             return FeatureStrings.diskImageInstaller(L10n.shared.language).hubDescription
         case .mixer: return hub.descMixer
-        case .soundOutputSwitcher: return hub.descSoundOutputSwitcher
         case .micMute: return hub.descMicMute
         case .keepAwake: return hub.descKeepAwake
         case .brightness: return FeatureStrings.brightness(L10n.shared.language).hubDescription

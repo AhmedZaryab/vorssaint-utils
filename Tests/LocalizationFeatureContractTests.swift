@@ -431,7 +431,6 @@ enum LocalizationFeatureContractTests {
             ("screenshotLastCaptureDefault", GlobalShortcut.screenshotLastCaptureDefault),
             ("shelfDefault", GlobalShortcut.shelfDefault),
             ("snippetLibraryDefault", GlobalShortcut.snippetLibraryDefault),
-            ("soundOutputSwitcherDefault", GlobalShortcut.soundOutputSwitcherDefault),
             ("switcherDefault", GlobalShortcut.switcherDefault),
             ("switcherWindowDefault", GlobalShortcut.switcherWindowDefault),
             ("windowDirectionalDefault", GlobalShortcut.windowDirectionalDefault),

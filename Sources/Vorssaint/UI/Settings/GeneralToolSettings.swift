@@ -37,11 +37,6 @@ struct GeneralToolSettings: View {
                 case .mixer:
                     MixerSection(settingsMode: true)
                         .settingsSectionAnchor(.mixer, cornerRadius: 16)
-                case .soundOutputSwitcher:
-                    SettingsCard(title: l10n.s.soundOutputSwitcherTitle) {
-                        SoundOutputSwitcherControls()
-                    }
-                    .settingsSectionAnchor(.soundOutputSwitcher, cornerRadius: 16)
                 default:
                     EmptyView()
                 }

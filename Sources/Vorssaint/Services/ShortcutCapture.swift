@@ -28,7 +28,6 @@ enum ShortcutCapture {
         HotkeyManager.shared.setEnabled(false)
         ShelfService.shared.suspendShortcut()
         ClipboardHistoryService.shared.suspendShortcut()
-        SoundOutputSwitcher.shared.suspendShortcut()
         WindowLayoutService.shared.suspendShortcuts()
         QuickToolHotkey.unregisterAll()
     }

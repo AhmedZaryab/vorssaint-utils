@@ -323,7 +323,7 @@ enum UpdateFeatureTests {
             isAvailable: { quickToolFeatures.contains($0) },
             featureTitle: { $0.rawValue })
         let generalFeatures: [AppFeature] = [
-            .mixer, .soundOutputSwitcher,
+            .mixer,
         ]
         let generalRows = SettingsSidebarSupport.items(
             page: .general, title: "General", icon: "gearshape",
@@ -335,7 +335,6 @@ enum UpdateFeatureTests {
             toolRows.first { $0.id == .feature(feature) }
         }
         suite.expect(toolRow(.mixer)?.icon == AppFeature.mixer.symbolName
-                && toolRow(.soundOutputSwitcher)?.icon == AppFeature.soundOutputSwitcher.symbolName
                 && toolRow(.micMute)?.icon == AppFeature.micMute.symbolName
                 && toolRow(.scratchpad)?.icon == AppFeature.scratchpad.symbolName
                 && toolRow(.cleaningMode)?.icon == AppFeature.cleaningMode.symbolName,
@@ -344,8 +343,6 @@ enum UpdateFeatureTests {
                 && !quickToolRows.contains { $0.id == .page(.quickTools) }
                 && toolRow(.mixer)?.destination
                     == FeatureSettingsDestination(.general, sectionAnchor: .mixer)
-                && toolRow(.soundOutputSwitcher)?.destination
-                    == FeatureSettingsDestination(.general, sectionAnchor: .soundOutputSwitcher)
                 && SettingsSidebarSupport.selection(for: AppFeature.scratchpad.settingsDestination,
                                                     in: toolRows) == .feature(.scratchpad)
                 && SettingsSidebarSupport.selection(for: AppFeature.mixer.settingsDestination,

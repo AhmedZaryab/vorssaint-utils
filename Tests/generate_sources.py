@@ -538,11 +538,6 @@ def main():
           + declaration("Sources/Vorssaint/Services/Notch/NotchAudioLevelService.swift",
                         "private final class NotchAudioRing {").replace("private final class", "final class", 1)
           + "}\n")
-    write("SoundOutputSwitch.swift", "import Foundation\n"
-          + "extension SoundOutputSwitchContract {\nfinal class Mixer {\n"
-          + "var outputDevices: [Device] = []\nvar currentOutputDeviceUID: String?\nvar switchedTo: [String] = []\n"
-          + "func setUniversalOutputDeviceUID(_ uid: String) -> Bool { switchedTo.append(uid); return true }\n"
-          + declaration(mixer, "    func switchToNextSoundOutput(") + "}\n}\n")
     write("MixerOutputAdjustment.swift", "import CoreAudio\nimport Foundation\n"
           + "extension MixerOutputAdjustmentContract {\nfinal class Mixer {\n"
           + declaration(mixer, "    private struct OutputAdjustment {")
