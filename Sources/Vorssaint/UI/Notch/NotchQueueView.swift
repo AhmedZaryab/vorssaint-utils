@@ -10,6 +10,14 @@ struct NotchQueueView: View {
     private var text: NotchMusicExtrasStrings { FeatureStrings.notchMusicExtras(l10n.language) }
 
     var body: some View {
+        if SpotifyQueueService.isSpotify(playback), AppFeature.spotifyQueue.isAvailable {
+            NotchSpotifyQueueSection()
+        } else {
+            playerQueue
+        }
+    }
+
+    private var playerQueue: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Text(text.queue).font(.callout.weight(.semibold))

@@ -433,6 +433,7 @@ struct NotchSettings: View {
             }
             SettingsFeatureSwitchRow(symbol: "list.bullet", title: music.enableQueue, caption: music.queueDescription,
                                      isOn: $queueEnabled, feature: .notchQueue)
+            if AppFeature.spotifyQueue.isAvailable { SpotifyConnectRow() }
             SettingsFeatureSwitchRow(symbol: "waveform", title: music.liveEqualizer,
                                      caption: NotchAudioLevelSupport.isSupported ? music.liveEqualizerHint : music.liveEqualizerUnavailable,
                                      isOn: $liveEqualizer, feature: .notchLiveEqualizer, enabled: NotchAudioLevelSupport.isSupported)
