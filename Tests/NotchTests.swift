@@ -8,46 +8,6 @@ import SwiftUI
 
 enum NotchTests {
     private static func railContracts(_ suite: TestSuite) {
-        let domain = "com.vorssaint.tests.notch-fan-only"
-        let defaults = UserDefaults(suiteName: domain)!
-        defaults.removePersistentDomain(forName: domain)
-        defer { defaults.removePersistentDomain(forName: domain) }
-        for feature in AppFeature.allCases { defaults.set(false, forKey: feature.availabilityKey) }
-        suite.expect(!NotchModule.system.isAvailable(in: defaults), "System stays unavailable without an installed monitor")
-        defaults.set(true, forKey: AppFeature.fanControl.availabilityKey)
-        suite.expect(NotchModule.system.isAvailable(in: defaults)
-                     && NotchSupport.systemCardCount(hasBattery: false, fans: 1, in: defaults) == 1,
-                     "fan control alone makes its containing System page reachable")
-        suite.expect(NotchModule.system.isAvailable(in: defaults)
-                     && NotchSupport.systemCardCount(hasBattery: false, fans: 0, in: defaults) == 0,
-                     "System remains reachable while waiting for the first fan sample")
-        defaults.set(false, forKey: AppFeature.fanControl.availabilityKey)
-        defaults.set(true, forKey: AppFeature.connectedDevices.availabilityKey)
-        defaults.set(false, forKey: DefaultsKey.menuBarConnectedDevices)
-        suite.expect(NotchModule.system.isAvailable(in: defaults)
-                     && NotchSupport.systemCardCount(hasBattery: false, in: defaults) == 1,
-                     "connected devices alone keeps its System page and card reachable with the menu bar widget off")
-        defaults.set(false, forKey: AppFeature.connectedDevices.availabilityKey)
-        suite.expect(!NotchModule.system.isAvailable(in: defaults)
-                     && NotchSupport.systemCardCount(hasBattery: false, in: defaults) == 0,
-                     "uninstalling connected devices removes its System page and card")
-
-        suite.expect(NotchLayout.systemRowRanges(count: 7, width: 504) == [0..<3, 3..<5, 5..<7],
-                     "seven System metrics fill balanced rows instead of leaving a nearly empty column")
-        suite.expect(NotchLayout.systemRowRanges(count: 7, width: 304) == [0..<2, 2..<4, 4..<6, 6..<7],
-                     "narrow System rows keep readable cards and a full-width last card")
-        for width: CGFloat in [20, 304, 424, 504, 744] {
-            for count in 0...9 {
-                let rows = NotchLayout.systemRowRanges(count: count, width: width)
-                suite.expect(rows.flatMap { Array($0) } == Array(0..<count),
-                             "System preserves every metric exactly once in reading order")
-                let capacity = NotchLayout.railCapacity(width: width, itemWidth: NotchLayout.systemCardWidth,
-                                                       spacing: NotchLayout.rowSpacing)
-                suite.expect(rows.allSatisfy { !$0.isEmpty && $0.count <= capacity },
-                             "System rows fit the available width for every combination of enabled metrics")
-            }
-        }
-
         suite.expect(NotchLayout.railCapacity(width: 424, itemWidth: 76, spacing: 8) == 5
                && NotchLayout.railCapacity(width: 304, itemWidth: 76, spacing: 8) == 3
                && NotchLayout.railCapacity(width: 20, itemWidth: 76, spacing: 8) == 1
@@ -186,11 +146,6 @@ enum NotchTests {
                     suite.expect(geometry.headerCameraGap == 0 && geometry.headerTopInset >= cameraHeight,
                                  "narrow headers keep a complete usable row below the camera")
                 }
-                let content = geometry.contentSize(for: geometry.expandedSize(module: .system, systemCards: 1))
-                let inset = NotchLayout.systemHoverInset(width: content.width)
-                suite.expect((content.width - inset * 2) * 1.028 <= content.width
-                             && NotchLayout.systemCardHeight * 1.028 <= NotchLayout.systemCardHeight + inset * 2,
-                             "even a full-width system card can grow on hover inside its viewport")
             }
         }
         for layout: NotchSize in [.compact, .spacious] {
@@ -299,7 +254,7 @@ enum NotchTests {
             suite.expect(NotchModule.allCases.map { $0.title(language) }.allSatisfy {
                 drawnWidth($0, NotchLayout.headerTitleFont) <= NotchLayout.headerTitleWidth($0, button: false)
             }, "the measured section titles cover the \(language.rawValue) titles as drawn")
-            suite.expect([FeatureStrings.fanControl(language).title, FeatureStrings.notch(language).title].allSatisfy {
+            suite.expect([FeatureStrings.notch(language).title].allSatisfy {
                 drawnWidth($0, NotchLayout.detailTitleFont)
                     <= NotchLayout.headerTitleWidth($0, font: NotchLayout.detailTitleFont, button: false)
             }, "the measured detail titles cover the \(language.rawValue) titles as drawn")
@@ -1472,8 +1427,7 @@ enum NotchTests {
                      && NotchControlItem.scratchpad.setupRequirement == .feature(.scratchpad),
                      "feature-gated controls lead to the matching feature in the hub")
         suite.expect(NotchControlItem.music.setupRequirement == .page(.music, feature: nil)
-                     && NotchControlItem.mixer.setupRequirement == .page(.mixer, feature: .mixer)
-                     && NotchControlItem.speedTest.setupRequirement == .page(.system, feature: .monitorNetwork),
+                     && NotchControlItem.mixer.setupRequirement == .page(.mixer, feature: .mixer),
                      "page-gated controls lead to their island section or the required feature")
         defaults.set("panel,panel,unknown,speedTest", forKey: DefaultsKey.notchControlOrder)
         defaults.set("volume,screenshot", forKey: DefaultsKey.notchHiddenControls)
@@ -1620,7 +1574,7 @@ enum NotchTests {
         suite.expect(!NotchSupport.routes(.clipboard, in: defaults), "hidden module cannot leak an activity")
         defaults.set("system,music,music,unknown", forKey: DefaultsKey.notchModuleOrder)
         defaults.set(true, forKey: DefaultsKey.notchAgentsEnabled)
-        suite.expect(NotchSupport.modules(in: defaults) == [.system, .music, .controls, .mixer, .captures, .files, .tools, .calendar, .notifications, .timer, .camera, .downloads, .scratchpad, .agents, .watch],
+        suite.expect(NotchSupport.modules(in: defaults) == [.music, .controls, .mixer, .captures, .files, .tools, .calendar, .notifications, .timer, .camera, .downloads, .scratchpad, .agents, .watch],
                "module order ignores unknown ids and duplicates, preserving newly added modules")
         suite.expect(NotchSupport.routesShelf(in: defaults) && NotchSupport.revealsShelfDrag(in: defaults),
                "the enabled notch replaces the file destination and reveals active drags")
@@ -1869,16 +1823,16 @@ enum NotchTests {
                        "every page stays inside its preset's strip: \(layout) \(module)")
             }
             suite.expect(geometry.contentSize(for: geometry.expandedSize(module: .tools, panel: true)).height == geometry.pageBudget
-                   && geometry.contentSize(for: geometry.expandedSize(module: .system, detail: true)).height == geometry.pageBudget
+                   && geometry.contentSize(for: geometry.expandedSize(module: .tools, detail: true)).height == geometry.pageBudget
                    && geometry.pageBudget >= geometry.contentBudget,
                    "the app panel and a metric detail get a readable page even inside a short preset: \(layout)")
             let detail = { (height: CGFloat, panel: Bool) in
-                geometry.contentSize(for: geometry.expandedSize(module: .system, detail: true, panel: panel,
+                geometry.contentSize(for: geometry.expandedSize(module: .tools, detail: true, panel: panel,
                                                                 detailHeight: height)).height
             }
             suite.expect(detail(140, false) == 144 && detail(900, false) == geometry.pageBudget
                    && detail(140, true) == geometry.pageBudget,
-                   "a measured detail such as Fan Control fits its card within the page instead of a tall empty page: \(layout)")
+                   "a measured detail fits its card within the page instead of a tall empty page: \(layout)")
         }
         suite.expect(compact.contentBudget == NotchLayout.compactContentHeight && spacious.contentBudget == NotchLayout.spaciousContentHeight
                && compact.expanded.height < compact.expanded.width && spacious.expanded.height < spacious.expanded.width,

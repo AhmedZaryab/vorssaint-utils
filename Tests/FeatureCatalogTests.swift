@@ -400,8 +400,7 @@ enum FeatureCatalogTests {
             "quickLauncher", "quickToggles", "colorPicker", "screenOCR", "cleaningMode", "mediaTools",
             "cleaner", "uninstaller", "homebrew", "appUpdates", "screenshot", "cameraPreview",
             "radialMenu", "scratchpad", "commandBar", "screenRecorder", "wallpaper", "killProcess", "portManager", "notch", "notchCalendar", "notchNotifications", "notchGestures", "notchTimer", "notchAccessories", "notchLyrics", "notchQueue", "spotifyQueue", "notchLiveEqualizer", "notchDownloads", "notchAgents", "notchWatch", "notchMascot",
-            "monitorCPU", "monitorGPU", "monitorMemory", "monitorNetwork", "monitorDisk", "monitorPower",
-            "connectedDevices", "fanControl",
+            "monitorPower",
         ], "feature ids are stable (they persist inside availability keys)")
         suite.expect(MouseAccelerationSupport.validatedRegistryID(nil) == nil
                 && MouseAccelerationSupport.validatedRegistryID(0) == nil
@@ -573,8 +572,7 @@ enum FeatureCatalogTests {
             "scratchpad", "commandBar", "screenRecorder",
             "notch", "notchCalendar", "notchNotifications", "notchGestures", "notchTimer", "notchAccessories",
             "notchLyrics", "notchQueue", "spotifyQueue", "notchLiveEqualizer", "notchDownloads", "notchAgents", "notchWatch",
-            "monitorCPU", "monitorGPU", "monitorMemory", "monitorNetwork", "monitorDisk", "monitorPower",
-            "connectedDevices",
+            "monitorPower",
         ]
         suite.expect(AppFeature.availabilityDefaults.count == AppFeature.allCases.count
                 && Set(AppFeature.allCases.filter {
@@ -586,7 +584,6 @@ enum FeatureCatalogTests {
                "every feature an update already had stays installed and every other one ships uninstalled")
         suite.expect((AppFeature.availabilityDefaults[AppFeature.linearScroll.availabilityKey] as? Bool) == false
                 && (AppFeature.availabilityDefaults[AppFeature.focusFollowsMouse.availabilityKey] as? Bool) == false
-                && (AppFeature.availabilityDefaults[AppFeature.fanControl.availabilityKey] as? Bool) == false
                 && (AppFeature.availabilityDefaults[AppFeature.notchMascot.availabilityKey] as? Bool) == false,
                "features added after the list was frozen wait on the Features page instead of installing themselves")
         let linearScrollSuiteName = "com.vorssaint.tests.linear-scroll-availability.\(UUID().uuidString)"
@@ -737,18 +734,9 @@ enum FeatureCatalogTests {
                 && AppFeature.cameraPreview.onboardingPermissions.isEmpty
                 && AppFeature.notchWatch.onboardingPermissions.isEmpty,
                "contextual grants are not requested during first setup")
-        suite.expect(AppFeature.fanControl.group == .monitor
-                && AppFeature.fanControl.enabledKeys.isEmpty
-                && AppFeature.fanControl.permissions.isEmpty
-                && AppFeature.fanControl.energyProfile == .idle
-                && AppFeature.fanControl.isBeta
-                && !AppFeature.monitorPower.isBeta,
-               "fan control is an on-demand beta with no broad permission")
+        suite.expect(!AppFeature.monitorPower.isBeta, "the power monitor is not a beta")
 
         // MARK: Hardware-gated installs
-
-        suite.expect(FeaturePreset.allCases.allSatisfy { !$0.features.contains(.fanControl) },
-               "no first-run preset installs a feature whose hardware the Mac may lack")
 
         let featureHubSource = (try? String(
             contentsOfFile: "Sources/Vorssaint/UI/Settings/FeatureHubSettings.swift",
@@ -781,8 +769,6 @@ enum FeatureCatalogTests {
                 && AppFeature.diskImageInstaller.permissions == [.appManagement]
                 && AppFeature.diskImageInstaller.energyProfile == .idle,
                "the disk image installer is an event-driven file feature with contextual app access")
-        suite.expect((Defaults.registeredDefaults[DefaultsKey.panelShowFanControl] as? Bool) == true,
-               "installing fan control reveals its panel section by default")
 
         for language in AppLanguage.allCases {
             let strings = FeatureStrings.diskImageInstaller(language)
@@ -888,325 +874,6 @@ enum FeatureCatalogTests {
             preferred: "  Example\nApp\u{0007}  ",
             appURL: URL(fileURLWithPath: "/Volumes/Installer/Fallback.app")) == "Example App",
             "untrusted bundle names are flattened before entering an alert")
-
-        // MARK: Fan Control safety policy
-
-        suite.expect(FanControlPolicy.coolingDuration == 15 * 60
-                && FanControlPolicy.heartbeatLimit < 10,
-               "the legacy session stays bounded while current control loses ownership quickly")
-        suite.expect(FanControlPolicy.isAutomaticMode(0)
-                && FanControlPolicy.isAutomaticMode(3)
-                && !FanControlPolicy.isAutomaticMode(1)
-                && !FanControlPolicy.isAutomaticMode(2)
-                && !FanControlPolicy.isAutomaticMode(.max),
-               "fan ownership accepts firmware automatic modes and rejects manual or unknown modes")
-        suite.expect(FanControlPolicy.fanCount(from: 1) == 1
-                && FanControlPolicy.fanCount(from: 8) == 8
-                && FanControlPolicy.fanCount(from: 0) == nil
-                && FanControlPolicy.fanCount(from: 9) == nil
-                && FanControlPolicy.fanCount(from: 1.5) == nil
-                && FanControlPolicy.fanCount(from: .nan) == nil,
-               "fan discovery accepts only a small integral hardware count")
-        suite.expect(FanControlPolicy.validBounds(minimum: 1_200, maximum: 5_800)
-                && !FanControlPolicy.validBounds(minimum: -1, maximum: 5_800)
-                && !FanControlPolicy.validBounds(minimum: 5_800, maximum: 5_800)
-                && !FanControlPolicy.validBounds(minimum: 1_200, maximum: 25_000),
-               "fan bounds must be finite, ordered and physically sane")
-        suite.expect(FanControlPolicy.validReading(0)
-                && FanControlPolicy.validReading(8_000)
-                && !FanControlPolicy.validReading(-1)
-                && !FanControlPolicy.validReading(.infinity),
-               "fan readings stay within a safe display and verification range")
-        suite.expect(FanControlPolicy.minimumCoolingLevel == 0
-                && FanControlPolicy.maximumCoolingLevel == 100
-                && FanControlPolicy.defaultCoolingLevel == 100
-                && FanControlPolicy.validCoolingLevel(0)
-                && FanControlPolicy.validCoolingLevel(55)
-                && FanControlPolicy.validCoolingLevel(100)
-                && !FanControlPolicy.validCoolingLevel(-5)
-                && !FanControlPolicy.validCoolingLevel(26),
-               "manual cooling accepts the full bounded five-percent scale")
-        suite.expect(FanControlPolicy.coolingTargetRPM(minimum: 1_200, maximum: 5_800,
-                                                 level: 0) == 1_200
-                && FanControlPolicy.coolingTargetRPM(minimum: 1_200, maximum: 5_800,
-                                                     level: 25) == 2_350
-                && FanControlPolicy.coolingTargetRPM(minimum: 1_200, maximum: 5_800,
-                                                     level: 100) == 5_800
-                && FanControlPolicy.coolingTargetRPM(minimum: 5_800, maximum: 5_800,
-                                                     level: 100) == nil,
-               "manual targets map the full percentage scale into reported hardware bounds")
-        suite.expect(FanControlPolicy.targetRPMMatches(target: 3_121, expected: 3_121)
-                && FanControlPolicy.targetRPMMatches(target: 3_122, expected: 3_121)
-                && FanControlPolicy.targetRPMMatches(target: 1_201.5, expected: 1_200)
-                && !FanControlPolicy.targetRPMMatches(target: 3_500, expected: 3_121)
-                && !FanControlPolicy.targetRPMMatches(target: 1_205, expected: 1_200)
-                && !FanControlPolicy.targetRPMMatches(target: .nan, expected: 1_200),
-               "fan target verification allows a narrow tolerance and rejects stale or malformed targets")
-        suite.expect(FanControlPolicy.forceTestSatisfied(keyExists: false, writeSucceeded: false)
-                && FanControlPolicy.forceTestSatisfied(keyExists: false, writeSucceeded: true)
-                && FanControlPolicy.forceTestSatisfied(keyExists: true, writeSucceeded: true)
-                && !FanControlPolicy.forceTestSatisfied(keyExists: true, writeSucceeded: false),
-               "the manual-mode fallback needs the force-test override only where the Mac exposes it")
-
-        let defaultCurve = FanControlConfiguration.defaultCurve
-        suite.expect(FanControlPolicy.validConfiguration(.manual(level: 0))
-                && FanControlPolicy.validConfiguration(.manual(level: 100))
-                && FanControlPolicy.validConfiguration(.curve([defaultCurve]))
-                && FanControlPolicy.interpolatedCoolingLevel(points: defaultCurve.points,
-                                                             temperature: 40) == 0
-                && FanControlPolicy.interpolatedCoolingLevel(points: defaultCurve.points,
-                                                             temperature: 60) == 50
-                && FanControlPolicy.interpolatedCoolingLevel(points: defaultCurve.points,
-                                                             temperature: 61) == 55
-                && FanControlPolicy.interpolatedCoolingLevel(points: defaultCurve.points,
-                                                             temperature: 80) == 100,
-               "the default curve starts at 50 degrees, reaches maximum at 70 and rounds safely up")
-        let coolingTemperature = [
-            FanControlTemperatureReading(source: .hottestSoC, celsius: 59),
-        ]
-        suite.expect(FanControlPolicy.curveCoolingLevel(curves: [defaultCurve],
-                                                  temperatures: coolingTemperature,
-                                                  previousLevel: 50) == 50
-                && FanControlPolicy.curveCoolingLevel(
-                    curves: [defaultCurve],
-                    temperatures: [.init(source: .hottestSoC, celsius: 57)],
-                    previousLevel: 50
-                ) == 45,
-               "a cooling curve uses two-degree hysteresis before lowering fan speed")
-        let cpuCurve = FanControlCurve(
-            sensor: .averageCPU,
-            points: [FanControlCurvePoint(temperature: 40, coolingLevel: 0),
-                     FanControlCurvePoint(temperature: 80, coolingLevel: 80)]
-        )
-        let curveTemperatures = [
-            FanControlTemperatureReading(source: .hottestSoC, celsius: 54),
-            FanControlTemperatureReading(source: .averageCPU, celsius: 70),
-        ]
-        suite.expect(FanControlPolicy.curveCoolingLevel(curves: [defaultCurve, cpuCurve],
-                                                  temperatures: curveTemperatures) == 60
-                && FanControlPolicy.curveCoolingLevel(curves: [defaultCurve, cpuCurve],
-                                                      temperatures: [curveTemperatures[0]]) == nil,
-               "several temperature rules use their highest demand and require every selected sensor")
-        let duplicateCurves = [defaultCurve,
-                               FanControlCurve(sensor: .hottestSoC, points: cpuCurve.points)]
-        let descendingCurve = FanControlCurve(
-            sensor: .averageCPU,
-            points: [FanControlCurvePoint(temperature: 50, coolingLevel: 80),
-                     FanControlCurvePoint(temperature: 70, coolingLevel: 40)]
-        )
-        suite.expect(!FanControlPolicy.validCurves(duplicateCurves)
-                && !FanControlPolicy.validCurves([descendingCurve])
-                && FanControlConfiguration.decodeCurves(
-                    FanControlConfiguration.encodeCurves([defaultCurve]) ?? "") == [defaultCurve]
-                && FanControlConfiguration.decodeCurves("not json") == nil,
-               "stored curves reject duplicate sensors, unsafe slopes and malformed data")
-        let resumedManual = FanControlConfiguration.manual(level: 100)
-        let resumedCurves = FanControlConfiguration.curve([defaultCurve, cpuCurve])
-        suite.expect(FanControlConfiguration.decodeResume(
-                    FanControlConfiguration.encodeResume(resumedManual) ?? "") == resumedManual
-                && FanControlConfiguration.decodeResume(
-                    FanControlConfiguration.encodeResume(resumedCurves) ?? "") == resumedCurves,
-               "a resumed manual speed or curve comes back exactly as the user applied it")
-        suite.expect(FanControlConfiguration.encodeResume(
-                    FanControlConfiguration(mode: .system, manualLevel: 100, curves: [])) == nil
-                && FanControlConfiguration.encodeResume(.manual(level: 37)) == nil
-                && FanControlConfiguration.encodeResume(.curve([descendingCurve])) == nil
-                && FanControlConfiguration.decodeResume(
-                    #"{"curves":[],"manualLevel":100,"mode":"system"}"#) == nil
-                && FanControlConfiguration.decodeResume(
-                    #"{"curves":[],"manualLevel":37,"mode":"manual"}"#) == nil
-                && FanControlConfiguration.decodeResume("") == nil
-                && FanControlConfiguration.decodeResume("not json") == nil,
-               "only a valid manual speed or curve is ever kept or brought back after a restart")
-        let addedPoints = FanControlPolicy.addingCurvePoint(to: defaultCurve.points)
-        suite.expect(FanControlPolicy.nextCurvePoint(for: defaultCurve.points) == FanControlCurvePoint(temperature: 60, coolingLevel: 50)
-                && addedPoints == [
-                    FanControlCurvePoint(temperature: 50, coolingLevel: 0),
-                    FanControlCurvePoint(temperature: 60, coolingLevel: 50),
-                    FanControlCurvePoint(temperature: 70, coolingLevel: 100),
-                ]
-                && FanControlPolicy.validCurve(FanControlCurve(sensor: .hottestSoC, points: addedPoints ?? [])),
-               "adding a fan curve point calculates the intermediate point and produces a valid sorted curve")
-        var iterativePoints = defaultCurve.points
-        while let next = FanControlPolicy.addingCurvePoint(to: iterativePoints) {
-            iterativePoints = next
-        }
-        suite.expect(iterativePoints.count == FanControlPolicy.maximumCurvePointCount
-                && FanControlPolicy.validCurve(FanControlCurve(sensor: .hottestSoC, points: iterativePoints))
-                && FanControlPolicy.nextCurvePoint(for: iterativePoints) == nil
-                && FanControlPolicy.addingCurvePoint(to: iterativePoints) == nil,
-               "adding fan curve points fills up to the maximum point limit with strictly valid curves")
-        let secondCurve = FanControlCurve(sensor: .averageCPU,
-                                          points: defaultCurve.points)
-        var updatedCurves = [defaultCurve, secondCurve]
-        if let secondPoints = FanControlPolicy.addingCurvePoint(to: updatedCurves[1].points) {
-            updatedCurves[1].points = secondPoints
-        }
-        let storedUpdatedCurves = FanControlConfiguration.decodeCurves(
-            FanControlConfiguration.encodeCurves(updatedCurves) ?? ""
-        )
-        suite.expect(updatedCurves.count == 2
-                && updatedCurves.first == defaultCurve
-                && updatedCurves[1].points == addedPoints
-                && storedUpdatedCurves == updatedCurves,
-               "adding a point to the second fan curve preserves every valid stored curve")
-        let m3FanTemperatures = FanControlPolicy.aggregatedTemperatures(
-            cpuReadings: [("Te05", 44), ("Tf4E", 53), ("Tf4F", 76)],
-            gpuReadings: [48],
-            platform: .appleM3Family
-        )
-        suite.expectClose(m3FanTemperatures.first { $0.source == .hottestCPU }?.celsius ?? -1,
-                    53,
-                    "M3 fan curves include the hottest mapped Tf CPU core")
-        suite.expectClose(m3FanTemperatures.first { $0.source == .averageCPU }?.celsius ?? -1,
-                    48.5,
-                    "M3 fan curves exclude auxiliary Tf readings from the CPU average")
-        let unmappedFanTemperatures = FanControlPolicy.aggregatedTemperatures(
-            cpuReadings: [("Tp00", 48), ("Tp0W", 113)],
-            gpuReadings: [],
-            platform: .unmappedAppleSilicon
-        )
-        suite.expect(unmappedFanTemperatures.isEmpty,
-               "fan curves reject unknown Apple Silicon sensors instead of treating them as CPU")
-        suite.expect(FanControlPolicy.telemetryReadings(expectedCount: 1, readings: [1_200]) == [1_200]
-                && FanControlPolicy.telemetryReadings(expectedCount: 2,
-                                                      readings: [1_200, 1_350]) == [1_200, 1_350],
-               "fan telemetry preserves one or several ordered readings")
-        suite.expect(FanControlPolicy.telemetryReadings(expectedCount: 0, readings: []) == nil
-                && FanControlPolicy.telemetryReadings(expectedCount: 2, readings: [1_200]) == nil
-                && FanControlPolicy.telemetryReadings(expectedCount: 2, readings: [1_200, nil]) == nil
-                && FanControlPolicy.telemetryReadings(expectedCount: 1, readings: [.infinity]) == nil
-                && FanControlPolicy.telemetryReadings(expectedCount: 1, readings: [-1]) == nil,
-               "fan telemetry rejects no-fan, missing and malformed sensor sets")
-        suite.expect(FanControlPolicy.menuBarValue(for: [1_249.6]) == "1250"
-                && FanControlPolicy.menuBarValue(for: [1_200, 1_350]) == "1200/1350"
-                && FanControlPolicy.menuBarValue(for: []) == nil
-                && FanControlPolicy.menuBarValue(for: [.infinity]) == nil,
-               "fan RPM menu bar text supports one or several validated fans")
-        suite.expect(FanControlPolicy.menuBarWidthUnits(fanCount: 1) == 12
-                && FanControlPolicy.menuBarWidthUnits(fanCount: 2) == 18
-                && FanControlPolicy.menuBarWidthUnits(fanCount: 0) == 0,
-               "fan RPM menu bar width reserves one or several five-digit readings")
-
-        let floatRPM = SMCValueCodec.encode(4_850, type: "flt ", size: 4)
-        suite.expect(floatRPM.flatMap { SMCValueCodec.decode($0, type: "flt ") } == 4_850,
-               "native fan RPM floats round-trip exactly")
-        let fixedRPM = SMCValueCodec.encode(4_850.25, type: "fpe2", size: 2)
-        suite.expect(fixedRPM.flatMap { SMCValueCodec.decode($0, type: "fpe2") } == 4_850.25,
-               "fixed-point fan RPM values round-trip at quarter-RPM precision")
-        suite.expect(SMCValueCodec.decode([0x12, 0x34], type: "ui16") == 0x1234
-                && SMCValueCodec.decode([0, 0, 1, 2], type: "ui32") == 258
-                && SMCValueCodec.encode(1, type: "ui8 ", size: 1) == [1],
-               "SMC integer types preserve their documented byte order")
-        suite.expect(SMCValueCodec.encode(-1, type: "flt ", size: 4) == nil
-                && SMCValueCodec.encode(30_000, type: "fpe2", size: 2) == nil
-                && SMCValueCodec.encode(1, type: "myst", size: 1) == nil,
-               "SMC writes reject negative, overflowing and unknown encodings")
-
-        let watchdogEnd = Date(timeIntervalSince1970: 2_000)
-        suite.expect(FanControlPolicy.restoreReason(now: watchdogEnd,
-                                              endsAt: watchdogEnd,
-                                              heartbeatAge: 0,
-                                              verificationFailures: 0,
-                                              thermalState: .nominal) == .timeLimit,
-               "the watchdog still honors a deadline from a legacy helper request")
-        suite.expect(FanControlPolicy.restoreReason(now: watchdogEnd,
-                                              endsAt: nil,
-                                              heartbeatAge: 0,
-                                              verificationFailures: 0,
-                                              thermalState: .nominal) == nil,
-               "current manual and curve control have no arbitrary time limit")
-        suite.expect(FanControlPolicy.restoreReason(now: Date(timeIntervalSince1970: 1_900),
-                                              endsAt: watchdogEnd,
-                                              heartbeatAge: FanControlPolicy.heartbeatLimit + 0.1,
-                                              verificationFailures: 0,
-                                              thermalState: .nominal) == .heartbeatLost,
-               "the watchdog restores when the app heartbeat stops")
-        suite.expect(FanControlPolicy.restoreReason(now: Date(timeIntervalSince1970: 1_900),
-                                              endsAt: watchdogEnd,
-                                              heartbeatAge: 0,
-                                              verificationFailures: FanControlPolicy.verificationFailureLimit,
-                                              thermalState: .nominal) == .hardwareChanged,
-               "the watchdog restores after repeated hardware verification failures")
-        suite.expect(FanControlPolicy.restoreReason(now: Date(timeIntervalSince1970: 1_900),
-                                              endsAt: watchdogEnd,
-                                              heartbeatAge: 0,
-                                              verificationFailures: 0,
-                                              temperatureFailures: FanControlPolicy.temperatureFailureLimit,
-                                              thermalState: .nominal) == .temperatureUnavailable,
-               "a curve returns control after repeated missing temperature readings")
-        suite.expect(FanControlPolicy.restoreReason(now: Date(timeIntervalSince1970: 1_900),
-                                              endsAt: watchdogEnd,
-                                              heartbeatAge: 0,
-                                              verificationFailures: 0,
-                                              thermalState: .serious) == .thermalPressure,
-               "the watchdog returns control to the system under thermal pressure")
-        suite.expect(FanControlPolicy.restoreReason(now: Date(timeIntervalSince1970: 1_900),
-                                              endsAt: watchdogEnd,
-                                              heartbeatAge: 0,
-                                              verificationFailures: 0,
-                                              thermalState: .fair) == nil,
-               "a fair thermal state does not cancel the user's selected control")
-        suite.expect(FanControlPolicy.restoreReason(now: Date(timeIntervalSince1970: 1_900),
-                                              endsAt: watchdogEnd,
-                                              heartbeatAge: 0,
-                                              verificationFailures: 0,
-                                              thermalState: .nominal) == nil,
-               "a healthy maximum-cooling session remains active")
-
-        for language in AppLanguage.allCases {
-            let strings = FeatureStrings.fanControl(language)
-            expectFormat(strings.fanNameFormat, ["d"],
-                         "fan name format stays valid for \(language.rawValue)")
-            expectFormat(strings.rpmFormat, ["d"],
-                         "fan speed format stays valid for \(language.rawValue)")
-            expectFormat(strings.currentRPMFormat, ["d"],
-                         "current fan speed format stays valid for \(language.rawValue)")
-            expectFormat(strings.targetRPMFormat, ["d"],
-                         "target fan speed format stays valid for \(language.rawValue)")
-        }
-        suite.expect(FanControlFeatureStrings.ru.rpmFormat == "%d об/мин"
-                && FanControlFeatureStrings.de.rpmFormat == "%d U/min"
-                && FanControlFeatureStrings.fr.rpmFormat == "%d tr/min",
-               "existing localized RPM units stay intact")
-
-        let legacyFanSnapshot = Data(#"{"fans":[],"isCooling":false}"#.utf8)
-        let decodedLegacyFanSnapshot = try? JSONDecoder().decode(FanControlSnapshot.self,
-                                                                  from: legacyFanSnapshot)
-        suite.expect(decodedLegacyFanSnapshot != nil
-                && decodedLegacyFanSnapshot?.coolingLevel == nil
-                && decodedLegacyFanSnapshot?.configuration == nil
-                && decodedLegacyFanSnapshot?.temperatures == nil,
-               "fan snapshots remain compatible with an older installed helper")
-
-        let fanMigrationSuite = "com.vorssaint.tests.fan-migration.\(UUID().uuidString)"
-        if let fanMigration = UserDefaults(suiteName: fanMigrationSuite) {
-            fanMigration.set(true, forKey: DefaultsKey.monitorShowFanControlBeta)
-            Defaults.migrateFanControlVisibility(in: fanMigration)
-            suite.expect(fanMigration.bool(forKey: DefaultsKey.panelShowFanControl)
-                    && fanMigration.bool(forKey: AppFeature.fanControl.availabilityKey)
-                    && fanMigration.object(forKey: DefaultsKey.monitorShowFanControlBeta) == nil,
-                   "an old fan opt-in keeps the feature installed and visible")
-
-            fanMigration.removePersistentDomain(forName: fanMigrationSuite)
-            fanMigration.set(false, forKey: DefaultsKey.monitorShowFanControlBeta)
-            Defaults.migrateFanControlVisibility(in: fanMigration)
-            suite.expect(!fanMigration.bool(forKey: DefaultsKey.panelShowFanControl)
-                    && fanMigration.object(forKey: AppFeature.fanControl.availabilityKey) == nil,
-                   "an old fan opt-out does not install the feature")
-
-            fanMigration.removePersistentDomain(forName: fanMigrationSuite)
-            fanMigration.set(false, forKey: DefaultsKey.panelShowFanControl)
-            fanMigration.set(false, forKey: AppFeature.fanControl.availabilityKey)
-            fanMigration.set(true, forKey: DefaultsKey.monitorShowFanControlBeta)
-            Defaults.migrateFanControlVisibility(in: fanMigration)
-            suite.expect(!fanMigration.bool(forKey: DefaultsKey.panelShowFanControl)
-                    && !fanMigration.bool(forKey: AppFeature.fanControl.availabilityKey),
-                   "newer fan choices win over the legacy opt-in")
-            fanMigration.removePersistentDomain(forName: fanMigrationSuite)
-        } else {
-            suite.expect(false, "fan visibility migration suite can be created")
-        }
 
         func activeSet(_ permission: AppPermission,
                        available: Set<AppFeature> = Set(AppFeature.allCases),
@@ -1367,14 +1034,6 @@ enum FeatureCatalogTests {
 
         suite.expect(activeSet(.notifications) == [],
                "no alerts and no schedule means notifications are unused")
-        suite.expect(activeSet(.notifications, on: [DefaultsKey.monitorAlertCPUTemperature]) == [.monitorCPU],
-               "a CPU temperature alert marks the CPU monitor as notifying")
-        suite.expect(activeSet(.notifications, on: [DefaultsKey.monitorAlertBatteryTemperature]) == [.monitorPower],
-               "a battery temperature alert marks the power monitor as notifying")
-        suite.expect(activeSet(.notifications,
-                         available: Set(AppFeature.allCases).subtracting([.monitorCPU]),
-                         on: [DefaultsKey.monitorAlertCPU]) == [],
-               "an alert whose metric is unavailable does not notify")
         suite.expect(activeSet(.notifications, on: [DefaultsKey.cleanerScheduleNotify],
                          strings: [DefaultsKey.cleanerScheduleFrequency: "weekly"]) == [.cleaner],
                "a scheduled cleaner with notice enabled uses notifications")
@@ -1435,27 +1094,8 @@ enum FeatureCatalogTests {
                 && AppFeature.cameraPreview.enabledKeys.isEmpty,
                "the camera preview works on demand and only ever asks for the camera")
 
-        suite.expect(!AppFeature.anyMonitorAlertEnabled(isAvailable: { _ in true }, boolFor: { _ in false }),
-               "no alert keys means no monitor alerts")
         suite.expect(AppFeature.mixer.symbolName == NotchModule.mixer.symbol,
                "Features and General use the Dynamic Island Mixer’s speaker symbol")
-        suite.expect(AppFeature.anyMonitorAlertEnabled(isAvailable: { _ in true },
-                                                 boolFor: { $0 == DefaultsKey.monitorAlertDisk }),
-               "one alert on an available metric arms the alert service")
-        suite.expect(AppFeature.anyMonitorAlertEnabled(isAvailable: { _ in true },
-                                                 boolFor: {
-                                                     $0 == DefaultsKey.monitorAlertBatteryTemperature
-                                                 }),
-               "a battery temperature alert arms the alert service")
-        suite.expect(!AppFeature.anyMonitorAlertEnabled(isAvailable: { $0 != .monitorPower },
-                                                  boolFor: {
-                                                      $0 == DefaultsKey.monitorAlertBatteryTemperature
-                                                  }),
-               "a battery temperature alert stays disarmed without the power metric")
-        suite.expect(!AppFeature.anyMonitorAlertEnabled(isAvailable: { $0 != .monitorDisk },
-                                                  boolFor: { $0 == DefaultsKey.monitorAlertDisk }),
-               "an alert with its metric off in the hub stays disarmed")
-
         suite.expect(GlobalShortcutRole.activeRoles(isOn: { _ in true }).count
                 == GlobalShortcutRole.allCases.count,
                "the availability-free overload keeps every enabled current role")
@@ -1765,7 +1405,7 @@ enum FeatureCatalogTests {
                    },
                    "preset enable keys belong to its own features (\(preset.rawValue))")
         }
-        suite.expect(AppFeature.monitorCPU.energyProfile == .periodic
+        suite.expect(AppFeature.monitorPower.energyProfile == .periodic
                 && AppFeature.clipboardHistory.energyProfile == .periodic
                 && AppFeature.mouseAcceleration.energyProfile == .idle
                 && AppFeature.textSnippets.energyProfile == .inputs
@@ -1916,9 +1556,6 @@ enum FeatureCatalogTests {
                "energy hides when all four of its features are off")
         suite.expect(pageVisible(.energy, available: [.brightness]),
                "brightness control alone keeps the energy page")
-        suite.expect(!pageVisible(.monitor, available: allFeatures.subtracting(Set(FeatureVisibilitySupport.monitorFeatures))),
-               "monitor page hides with every metric off")
-        suite.expect(pageVisible(.monitor, available: [.monitorNetwork]), "one metric keeps the monitor page")
         suite.expect(pageVisible(.general, available: []) && pageVisible(.about, available: [])
                 && pageVisible(.shortcuts, available: []),
                "app pages never hide")
@@ -1992,10 +1629,8 @@ enum FeatureCatalogTests {
                 && AppFeature.allCases.filter { $0 != .diskImageInstaller }
                     .allSatisfy(\.hasNavigableSettingsDestination),
                "a feature without a separate configuration surface does not show a dead-end link")
-        suite.expect(AppFeature.monitorCPU.settingsDestination == FeatureSettingsDestination(.monitor)
-                && AppFeature.fanControl.settingsDestination
-                == FeatureSettingsDestination(.monitor, sectionAnchor: .fanControl),
-               "shared monitor destinations distinguish the dedicated fan controls")
+        suite.expect(AppFeature.monitorPower.settingsDestination == FeatureSettingsDestination(.notch),
+               "the power switch leads to the island's battery rows")
         let settingsRouter = SettingsRouter.shared
         let companionRouter = SettingsRouter()
         companionRouter.request(AppFeature.notchMascot.settingsDestination)

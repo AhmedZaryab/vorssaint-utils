@@ -2297,8 +2297,7 @@ enum CommandBarFeatureTests {
         // Both background passes guard on a few fields of a tuple they store
         // whole. Returning before the store would leave every field the guard
         // does not name at the reading it had when the named ones last moved.
-        for (pass, marker) in [("refreshStorageAnswer", "cachedBootVolumeSpace = space"),
-                               ("refreshSystemAnswers", "cachedMemory = memory")] {
+        for (pass, marker) in [("refreshStorageAnswer", "cachedBootVolumeSpace = space")] {
             let parts = (commandBarCode
                 .components(separatedBy: "private func \(pass)(").last ?? "")
                 .components(separatedBy: "\n    private func ")

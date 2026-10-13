@@ -249,20 +249,6 @@ def main():
           + declaration("Sources/Vorssaint/UI/Settings/RadialMenuSettings.swift",
                         "    private func deleteProfile(").replace("private ", "", 1)
           + "}\n}\n")
-    fan_control = "Sources/Vorssaint/Services/FanControl/FanControlService.swift"
-    write("FanControlResume.swift", "import Foundation\n"
-          + "extension FanControlResumeContract {\nfinal class Service: Fixture {\n"
-          + "".join(declaration(fan_control, prefix)
-                    .replace("@objc private func", "func", 1)
-                    .replace("private static var", "static var", 1)
-                    .replace("private func", "func", 1) for prefix in [
-                        "    static func recoverIfNeeded(", "    func syncWithPreferences(",
-                        "    func returnToSystem(", "    func resumePreferenceDidChange(",
-                        "    private static var resumableConfiguration:", "    private func resume(",
-                        "    private static var helperAwaitsRegistration:",
-                        "    private func rememberForResume(", "    private func stopIdleWorkIfPossible(",
-                        "    @objc private func workspaceDidWake("])
-          + "}\n}\n")
     write("NotchAudioLevelLifecycle.swift", "import Combine\nimport Foundation\n"
           + "extension NotchAudioLevelLifecycleContract {\n"
           + declaration("Sources/Vorssaint/Services/Notch/NotchAudioLevelService.swift",
@@ -320,26 +306,6 @@ def main():
     write("ProcessName.swift", "import Foundation\n"
           + "extension ProcessNameContract {\nfinal class Lookup: Fixture {\n"
           + declaration("Sources/Vorssaint/Services/ResponsibleProcess.swift", "    static func displayName(")
-          + "}\n}\n")
-    write("SystemMonitorCPU.swift", "import Darwin\nimport Foundation\n"
-          + "extension SystemMonitorCPUTests {\nfinal class Monitor: Fixture {\n"
-          + declaration("Sources/Vorssaint/Services/SystemMonitor/SystemMonitor.swift",
-                        "    private func readCPUUsage(").replace("private func", "func", 1)
-          + "}\n}\n")
-    monitor = "Sources/Vorssaint/Services/SystemMonitor/SystemMonitor.swift"
-    write("SystemMonitorPlan.swift", "import Foundation\n"
-          + "extension SystemMonitorPlanTests {\n"
-          + declaration(monitor, "struct SystemMonitorPanelNeeds")
-          + "final class Monitor: Fixture {\n"
-          + declaration(monitor, "    private struct SamplingPlan").replace("private struct", "struct", 1)
-          + declaration(monitor, "    private func currentPlan(").replace("private func", "func", 1)
-          + "}\n}\n")
-    write("SystemSectionBreakdown.swift", "import Foundation\n"
-          + "extension SystemSectionBreakdownTests {\nfinal class Section: Fixture {\n"
-          + declaration("Sources/Vorssaint/UI/MenuPanel/SystemSection.swift",
-                        "    private func refreshBreakdown(").replace("private func", "func", 1)
-          + declaration("Sources/Vorssaint/UI/MenuPanel/SystemSection.swift",
-                        "    private func toggleCPUApps(").replace("private func", "func", 1)
           + "}\n}\n")
     uninstall = "Sources/Vorssaint/Services/Uninstall/AppUninstaller.swift"
     bar = "Sources/Vorssaint/Services/CommandBar/CommandBarService.swift"
@@ -685,18 +651,6 @@ def main():
           + declaration(adapter_entry, "func playbackPosition(").replace("func playbackPosition", "static func playbackPosition", 1)
           + declaration(adapter_entry, "func settlePosition(").replace("func settlePosition", "static func settlePosition", 1)
           + "}\n")
-    usage = "Sources/Vorssaint/Services/SystemMonitor/ProcessUsageService.swift"
-    write("ProcessForceQuit.swift", "import Darwin\nimport Foundation\n"
-          + "extension ProcessForceQuitTests {\n"
-          + declaration(usage, "struct ProcessUsage:")
-          + "final class Service {\nprivate let maximumCachedRows = 60\n"
-          + declaration(usage, "    func canForceQuit(")
-          + declaration(usage, "    private static func executableName(")
-          + declaration(usage, "    private func withForceQuitIdentity(").replace("private func", "func", 1)
-          + declaration(usage, "    private static func processExisted(")
-          + declaration(usage, "    private func groupedByApp(").replace("private func", "func", 1)
-          + declaration(usage, "    private func groupedNetworkByApp(").replace("private func", "func", 1)
-          + "}\n}\n")
     write("NotchActivationButton.swift", "import AppKit\n"
           + declaration("Sources/Vorssaint/Services/Notch/NotchWindowHost.swift", "final class NotchActivationButton:"))
     write("NotchPanel.swift", "import AppKit\n"
@@ -857,7 +811,7 @@ def main():
         "    var compactCompanion:",
         "    var surfaceSize:", "    var surfaceShift:", "    func collapse(",
         "    private func detachCaptureIfClosingOnCollapse(", "    func endCaptureControls(",
-        "    private func syncVisibleConsumers(", "    private func releaseMonitor("])
+        "    private func syncVisibleConsumers("])
     for call in ["NotchSupport.controls", "NotchSupport.watchesMusicActivity", "NotchSupport.idleContent"]:
         music_visibility = music_visibility.replace(call + "()", call + "(in: ReviewDefaults.current)")
     music_visibility = music_visibility.replace("NotchSupport.routes(.track)",
@@ -870,12 +824,6 @@ def main():
                                                 "captureControls: captureControls != nil, in: ReviewDefaults.current)")
     music_visibility = music_visibility.replace(
         "NotchDownloadService.shared.items.first { $0.active && !$0.completed }?.name", "downloadName")
-    music_visibility = music_visibility.replace("AppFeature.monitorDisk.isAvailable",
-                                                "AppFeature.monitorDisk.isAvailable(in: ReviewDefaults.current)")
-    music_visibility = music_visibility.replace("AppFeature.fanControl.isAvailable",
-                                                "AppFeature.fanControl.isAvailable(in: ReviewDefaults.current)")
-    music_visibility = music_visibility.replace("AppFeature.connectedDevices.isAvailable",
-                                                "AppFeature.connectedDevices.isAvailable(in: ReviewDefaults.current)")
     write("NotchMusicVisibility.swift", "import Foundation\nextension NotchMusicVisibilityTests {\n"
           + "final class Service: State {\n" + music_visibility + "}\n}\n")
     write("NotchScreenEdgeClicks.swift", "import AppKit\nextension NotchScreenEdgeClickTests {\nfinal class Service: State {\n"
@@ -970,60 +918,9 @@ def main():
           + declaration(canvas, "    func setMouseEventsIgnored(")
           + declaration(canvas, "    private func restoreFromMissionControl(").replace("private func", "func", 1)
           + "}\n")
-    metric_view = "Sources/Vorssaint/UI/MenuPanel/MetricDetailView.swift"
-    renderer = "Sources/Vorssaint/App/MenuBarRenderer.swift"
-    # Keep the battery branch and its real drawing path intact; unrelated
-    # monitor readings are outside this isolated warning-color contract.
-    battery_segments = declaration(renderer, "    private static func blockSegments(")
-    prefix, switch, cases = battery_segments.partition("            switch metric {\n")
-    _, battery_case, rest = cases.partition("            case .battery, .batteryTemperature:\n")
-    battery_body, next_case, _ = rest.partition("            case .batteryTime:\n")
-    if not switch or not battery_case or not next_case:
-        raise ValueError("Expected the battery branch in blockSegments")
-    for line in ["        let usesBars = appearance == .bars\n",
-                 "        var renderedCPU = false\n", "        var renderedGPU = false\n"]:
-        if line not in prefix:
-            raise ValueError("Expected the unrelated activity state in blockSegments")
-        prefix = prefix.replace(line, "")
-    battery_segments = (prefix + switch + battery_case + battery_body
-                        + "            }\n        }\n        return blockJoined(groups, style: style)\n    }\n#sourceLocation()\n")
-    battery_warning = declaration(renderer, "    private static func batteryWarning(")
-    connection = "externalConnected: power?.externalConnected ?? false)"
-    if connection not in battery_warning:
-        raise ValueError("Expected the battery warning's power connection")
-    battery_warning = battery_warning.replace(connection, connection[:-1] + ", in: ReviewDefaults.current)")
-    spacing = "Sources/Vorssaint/App/MenuBarSpacingSupport.swift"
-    write("MenuBarBatteryWarning.swift", "import AppKit\nextension MenuBarBatteryWarningTests {\n"
-          + declaration("Sources/Vorssaint/Services/SystemMonitor/SystemMonitor.swift", "enum MemoryPressure {")
-          + declaration("Sources/Vorssaint/Services/Metrics/PowerSampler.swift", "struct PowerReading {")
-          + declaration(renderer, "enum MenuBarSegment {")
-          + declaration(renderer, "enum MenuBarBlockStyle {")
-          + "".join(declaration(spacing, prefix).replace("UserDefaults.standard", "ReviewDefaults.current!")
-                    for prefix in ["enum MenuBarMetricSpacing:", "enum MenuBarMetricAppearance:"])
-          + "}\nextension MenuBarBatteryWarningTests.Renderer {\n"
-          + (battery_segments + battery_warning).replace("private static", "static")
-              .replace("UserDefaults.standard", "ReviewDefaults.current!")
-          + "".join(declaration(renderer, prefix).replace("private static", "static")
-                    .replace("UserDefaults.standard", "ReviewDefaults.current!") for prefix in [
-                        "    static func attributed(", "    private static func metricBlockAttachment(",
-                        "    private static func metricBlockImage(", "    private static func batteryBlockAttachment(",
-                        "    private static func batteryBlockImage(", "    private static func blockImageCost(",
-                        "    private static func dynamicTextAttributes(", "    static func nsColor(for warning:",
-                        "    static func nsColor(for pressure:", "    private static func temperatureCompact(",
-                        "    private static func temperatureLabel(", "    private static func combinedComponentValue("])
-          + "}\n")
-    metric_cases = "\n".join(line for line in declaration(metric_view, "enum MetricDetailKind:").splitlines()
-                             if line.startswith("    case "))
-    menu_metric_cases = "\n".join(line for line in declaration(renderer, "enum MenuBarMetric:").splitlines()
-                                  if line.startswith("    case "))
     write("NotchDestinations.swift", "import Foundation\n\nextension NotchDestinationContract {\n"
-          + "enum MetricDetailKind: String {\n" + metric_cases + "\n}\n"
-          + "enum MenuBarMetric: String, CaseIterable {\n" + menu_metric_cases + "\n"
-          + declaration(renderer, "    var feature: AppFeature")
-          + declaration(metric_view, "    var detailKind:") + "}\n"
           + "final class Service: State {\n"
           + "func syncWithPreferences() { presentationSyncs += 1; refreshModules(); syncVisibleConsumers(); NotchTimerService.shared.syncWithPreferences() }\n"
-          + availability_declaration(notch, "    private func metricIsAvailable(")
           + declaration(notch, "    private func refreshModules(")
               .replace("NotchSupport.modules()", "NotchSupport.modules(in: ReviewDefaults.current)")
           + declaration(notch, "    func open(_ module:")
@@ -1036,7 +933,6 @@ def main():
           + declaration(notch, "    private func stepBack()").replace("private func", "func", 1)
           + declaration(notch, "    func setPageLayer(")
           + declaration(notch, "    func openAppPanel(")
-          + declaration(notch, "    func showMetric(")
           + declaration(notch, "    var reopeningDestination:")
               .replace("UserDefaults.standard", "ReviewDefaults.current!")
           + declaration(notch, "    func openActivity(")
@@ -1312,7 +1208,7 @@ def main():
           + "final class NotchService {\nstatic var shared = NotchService()\n"
           + "var presentationWindow: NSPanel? = NSPanel()\nvar acceptsSystemFeedback = true\n"
           + "var expanded = true\nvar selected = NotchModule.captures\nvar showingAppPanel = false\n"
-          + "var showingSections = false\nvar showingCommandBar = false\nvar selectedMetric: Int?\nvar captureControls: Int?\n"
+          + "var showingSections = false\nvar showingCommandBar = false\nvar captureControls: Int?\n"
           + "var captureID: UUID?\nvar captureContent: Bool? = true\n"
           + declaration("Sources/Vorssaint/Services/Notch/NotchService.swift", "    func isCaptureVisible(")
           + "}\nfinal class Preview {\n"
@@ -1615,7 +1511,6 @@ def main():
           + "static let bundleID = \"test\"\n"
           + "static func suspendInputInterceptors() -> Bool { events.append(\"suspend\"); return suspensionAllowed }\n"
           + "static func restoreSleepBeforeRemoval() -> Bool { events.append(\"sleep\"); return sleepRestoreAllowed }\n"
-          + "static func detachFanControl() -> Bool { events.append(\"fan\"); return detachAllowed }\n"
           + "static func detachLoginItem() { events.append(\"login\") }\n"
           + "static func removePreferences() { events.append(\"preferences\") }\n"
           + "static func trashOwnBundleAndQuit() { events.append(\"trash\") }\n"

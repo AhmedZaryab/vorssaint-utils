@@ -201,7 +201,6 @@ enum NotchPresentationRefreshContract {
             bridgeEnds.append(fading)
             mascotBridging = false
         }
-        var selectedMetric: Bool?
         var expanded = true
         var peeking = false, dragPlaceholder = false, compactActivityIsVisible = false
         var compactActivityOverride: NotchCompactActivity?

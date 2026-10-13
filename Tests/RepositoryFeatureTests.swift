@@ -218,7 +218,6 @@ enum RepositoryFeatureTests {
         let requiredSourcePaths = [
             "Sources/Vorssaint/Services/CommandBar/CommandBarSupport.swift",
             "Sources/Vorssaint/Services/Homebrew/HomebrewManager.swift",
-            "Sources/Vorssaint/Services/Metrics/DiskSampler.swift",
             "Sources/Vorssaint/Services/QuickTools/RecentCaptureService.swift",
             "Sources/Vorssaint/Services/QuickTools/RecentCaptureStore.swift",
             "Sources/Vorssaint/Services/SelfUninstall.swift",
@@ -1562,20 +1561,6 @@ enum RepositoryFeatureTests {
         suite.expect(regionlessDecimals.isEmpty,
                "a decimal on screen names its region (\(regionlessDecimals.joined(separator: ", ")))")
 
-        // Purgeable space is queried only for writable volumes.
-        let samplerCode = repository.lines(
-            at: "Sources/Vorssaint/Services/Metrics/DiskSampler.swift")
-            .filter { !$0.trimmingCharacters(in: .whitespaces).hasPrefix("//") }
-            .joined(separator: "\n")
-        suite.expect(!samplerCode.isEmpty, "the disk sampler reads back for its shape check")
-        let bulkKeys = samplerCode.components(separatedBy: "let keys: Set<URLResourceKey>")
-            .dropFirst().first?.components(separatedBy: "]").first ?? ""
-        suite.expect(!bulkKeys.contains("volumeAvailableCapacityForImportantUsageKey")
-                && bulkKeys.contains("volumeIsReadOnlyKey"),
-               "the bulk volume fetch asks nothing that only a writable volume can answer")
-        suite.expect(samplerCode.contains("guard !isReadOnly,"),
-               "purgeable space is read only where there is something to purge")
-
         // Only localized fields that reach String(format:) need matching
         // placeholders in every language.
         var formatFields: Set<String> = []
@@ -1876,11 +1861,9 @@ enum RepositoryFeatureTests {
         suite.expect(selfUninstallSource.contains("guard restoreSleepBeforeRemoval() else")
                 && selfUninstallSource.contains("guard detachFromSystem() else")
                 && selfUninstallSource.contains("restoreSleepBeforeRemoval() -> Bool")
-                && selfUninstallSource.contains("guard detachFanControl() else")
-                && selfUninstallSource.contains("FanControlService.restoreAndUnregisterForRemoval()")
                 && selfUninstallSource.contains("adminPromptRecover")
                 && selfUninstallSource.contains("verification.status == 0"),
-               "in-app uninstall aborts unless fans and normal sleep are restored before removal")
+               "in-app uninstall aborts unless normal sleep is restored before removal")
         suite.expect(uninstallerSource.contains("SpacesOrderHold.restoreForRemoval()"),
                "script uninstall puts back the Space rearranging setting before the preferences are deleted")
         suite.expect(uninstallScriptSource.contains("SleepDisabled"),

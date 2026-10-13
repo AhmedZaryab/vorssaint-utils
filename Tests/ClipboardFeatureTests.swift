@@ -906,15 +906,13 @@ enum ClipboardFeatureTests {
             (.zhTW, "剪貼簿", "視窗排列", "工具程式", "提醒"),
             (.zhHK, "剪貼簿", "視窗排列", "工具", "提示"),
         ]
-        for (language, clipboardTitle, windowTitle, utilitiesTitle, alertsTitle) in featureTitles {
+        for (language, clipboardTitle, windowTitle, utilitiesTitle, _) in featureTitles {
             suite.expect(FeatureStrings.clipboard(language).title == clipboardTitle,
                    "\(language.rawValue) clipboard title is localized")
             suite.expect(FeatureStrings.windowLayout(language).title == windowTitle,
                    "\(language.rawValue) window layout title is localized")
             suite.expect(FeatureStrings.settingsCategories(language).utilities == utilitiesTitle,
                    "\(language.rawValue) settings category title is localized")
-            suite.expect(FeatureStrings.monitorAlerts(language).section == alertsTitle,
-                   "\(language.rawValue) monitor alert section is localized")
         }
         for language in AppLanguage.allCases {
             let clipboardStrings = FeatureStrings.clipboard(language)
@@ -965,21 +963,7 @@ enum ClipboardFeatureTests {
                    && !layoutStrings.edgeSnapOpenSystemSettings.contains("—")
                    && !layoutStrings.edgeSnapWaitingForSystem.contains("—"),
                    "\(language.rawValue) window edge snap controls are localized")
-            let alertStrings = FeatureStrings.monitorAlerts(language)
-            suite.expect(alertStrings.caption.contains("12"),
-                   "\(language.rawValue) monitor alert caption explains the sustained alert window")
-            expectFormat(alertStrings.cpuBodyFormat, ["d"], "\(language.rawValue) CPU alert format")
-            expectFormat(alertStrings.cpuTemperatureBodyFormat, ["@"],
-                         "\(language.rawValue) CPU temperature alert format")
-            expectFormat(alertStrings.diskBodyFormat, ["@", "d"], "\(language.rawValue) disk alert format")
-            expectFormat(alertStrings.batteryBodyFormat, ["d"], "\(language.rawValue) battery alert format")
-            expectFormat(alertStrings.batteryTemperatureBodyFormat, ["@"],
-                         "\(language.rawValue) battery temperature alert format")
         }
-        suite.expect(FeatureStrings.monitorAlerts(.enUS).cooldown == "Repeat the same alert after",
-               "English monitor repeat control is explicit")
-        suite.expect(FeatureStrings.monitorAlerts(.ptBR).cooldown == "Repetir o mesmo alerta depois de",
-               "Portuguese monitor repeat control is explicit")
 
         // MARK: Settings search navigation
 

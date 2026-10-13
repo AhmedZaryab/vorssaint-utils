@@ -88,7 +88,6 @@ enum LocalizationFeatureContractTests {
                    && !strings.shelfClearOnClose.contains("—")
                    && !strings.shelfClearOnCloseCaption.contains("—"),
                    "\(prefix) shelf clear-on-close labels are present without em dash")
-            expectFormat(strings.powerAdapterMaxFormat, ["@"], "\(prefix) adapter max format")
             expectFormat(strings.mixerInputErrorFormat, ["@"], "\(prefix) mixer input error format")
             suite.expect(!strings.mixerSoundEffectsOutputTitle.isEmpty
                    && !strings.mixerSoundEffectsOutputTooltip.isEmpty
@@ -163,11 +162,6 @@ enum LocalizationFeatureContractTests {
                    && !strings.switcherWindowlessAppsFinder.contains("—")
                    && !strings.switcherWindowlessAppsAll.contains("—"),
                    "\(prefix) App Switcher windowless apps choices are all present without em dash")
-            suite.expect(!strings.diskAvailable.isEmpty
-                   && !strings.diskPurgeable.isEmpty
-                   && !strings.diskAvailable.contains("—")
-                   && !strings.diskPurgeable.contains("—"),
-                   "\(prefix) disk available and purgeable labels are present without em dash")
             suite.expect(!strings.switcherNoOpenWindow.isEmpty
                    && !strings.switcherNoOpenWindow.contains("—"),
                    "\(prefix) App Switcher no-open-window tile label is present without em dash")
@@ -203,16 +197,6 @@ enum LocalizationFeatureContractTests {
             suite.expect(!strings.switcherShortcutHintWindows.isEmpty, "\(prefix) App Switcher window shortcut hint is present")
             suite.expect(GlobalShortcutRole.switcher.title(strings) != strings.switcherSection,
                    "\(prefix) the cross-app switcher shortcut is named for apps, not after the window switcher")
-            suite.expect(!strings.networkApps.isEmpty, "\(prefix) network app usage title is present")
-            suite.expect(!strings.networkAppsIdle.isEmpty, "\(prefix) network app idle text is present")
-            suite.expect(!strings.monitorOpenActivityMonitor.isEmpty
-                   && !strings.monitorOpenActivityMonitor.contains("—"),
-                   "\(prefix) Activity Monitor action is present without em dash")
-            suite.expect(!strings.memoryCompressed.isEmpty
-                   && !strings.memoryCompressed.contains("—")
-                   && !strings.memoryCachedFiles.isEmpty
-                   && !strings.memoryCachedFiles.contains("—"),
-                   "\(prefix) memory compressed and cached labels are present without em dash")
             suite.expect(!strings.launchAtLoginNeedsApplications.isEmpty
                    && !strings.launchAtLoginNeedsApplications.contains("—"),
                    "\(prefix) launch at login location note is present without em dash")
@@ -341,7 +325,6 @@ enum LocalizationFeatureContractTests {
                 String(format: strings.uninstallerSelectedFormat, 1, 3),
                 String(format: strings.uninstallerFreedFormat, "1 MB"),
                 String(format: strings.shelfSelectedFormat, 2),
-                String(format: strings.powerAdapterMaxFormat, "30 W"),
                 String(format: strings.mixerInputErrorFormat, "OSStatus -1"),
                 String(format: strings.homebrewConfirmInstallBodyFormat, "jq"),
                 String(format: strings.homebrewConfirmUninstallBodyFormat, "jq"),
