@@ -395,7 +395,7 @@ enum FeatureCatalogTests {
             "mouseClickDebounce", "keyboardDebounce", "textSnippets", "superKey",
             "clipboardHistory", "pastePlain", "finderCutPaste", "finderRename", "shelf", "urlCleaner",
             "diskImageInstaller",
-            "mixer", "soundOutputSwitcher", "audioPriority", "micMute", "musicBlock",
+            "mixer", "soundOutputSwitcher", "micMute", "musicBlock",
             "keepAwake", "brightness", "extraBrightness", "bluetoothSleep",
             "quickLauncher", "quickToggles", "colorPicker", "screenOCR", "cleaningMode", "mediaTools",
             "cleaner", "uninstaller", "homebrew", "appUpdates", "screenshot", "cameraPreview",
@@ -2007,10 +2007,8 @@ enum FeatureCatalogTests {
         suite.expect(AppFeature.mixer.settingsDestination
                 == FeatureSettingsDestination(.general, sectionAnchor: .mixer)
                 && AppFeature.soundOutputSwitcher.settingsDestination
-                    == FeatureSettingsDestination(.general, sectionAnchor: .soundOutputSwitcher)
-                && AppFeature.audioPriority.settingsDestination
-                    == FeatureSettingsDestination(.general, sectionAnchor: .audioPriority),
-               "Mixer, output switcher and audio priority have separate General controls")
+                    == FeatureSettingsDestination(.general, sectionAnchor: .soundOutputSwitcher),
+               "Mixer and output switcher have separate General controls")
         suite.expect(AppFeature.windowMaximizer.settingsDestination
                 == FeatureSettingsDestination(.windowLayout, sectionAnchor: .windowMaximizer)
                 && pageVisible(.windowLayout, available: [.windowMaximizer])
@@ -2217,12 +2215,12 @@ enum FeatureCatalogTests {
         toolHistoryRouter.request(sharedMouseDestination, sidebarFeature: .scrollInverter)
         suite.expect(toolHistoryRouter.sidebarFeature == .scrollInverter,
                "switching between tools on one section updates the selected tool")
-        let audioPriorityDestination = AppFeature.audioPriority.settingsDestination
-        toolHistoryRouter.request(audioPriorityDestination, sidebarFeature: .audioPriority)
+        let mixerDestination = AppFeature.mixer.settingsDestination
+        toolHistoryRouter.request(mixerDestination, sidebarFeature: .mixer)
         toolHistoryRouter.page = .about
         toolHistoryRouter.goBack()
-        suite.expect(toolHistoryRouter.destination == audioPriorityDestination
-                && toolHistoryRouter.sidebarFeature == .audioPriority,
+        suite.expect(toolHistoryRouter.destination == mixerDestination
+                && toolHistoryRouter.sidebarFeature == .mixer,
                "Settings Back restores the selected tool alongside its destination")
         toolHistoryRouter.goForward()
         suite.expect(toolHistoryRouter.page == .about && toolHistoryRouter.sidebarFeature == nil,

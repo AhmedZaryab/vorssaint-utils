@@ -299,14 +299,6 @@ final class FeatureRuntime: ObservableObject {
             AppVolumeMixer.shared.syncWithPreferences()
             SoundOutputSwitcher.shared.syncWithPreferences()
         },
-        .audioPriority: {
-            // Priority owns no sibling CoreAudio listener stack. Keep the
-            // shared system-device observers alive even when Volume mixer is
-            // not installed, then start/stop the policy that consumes them.
-            AppVolumeMixer.shared.syncWithPreferences()
-            AudioInputDeviceManager.shared.syncWithPreferences()
-            AudioPriorityService.shared.syncWithPreferences()
-        },
         .micMute: { MicMuteService.shared.syncWithPreferences() },
         .musicBlock: { MusicLaunchBlocker.shared.syncWithPreferences() },
         .keepAwake: {

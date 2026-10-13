@@ -323,7 +323,7 @@ enum UpdateFeatureTests {
             isAvailable: { quickToolFeatures.contains($0) },
             featureTitle: { $0.rawValue })
         let generalFeatures: [AppFeature] = [
-            .musicBlock, .mixer, .soundOutputSwitcher, .audioPriority,
+            .musicBlock, .mixer, .soundOutputSwitcher,
         ]
         let generalRows = SettingsSidebarSupport.items(
             page: .general, title: "General", icon: "gearshape",
@@ -337,7 +337,6 @@ enum UpdateFeatureTests {
         suite.expect(toolRow(.musicBlock)?.icon == AppFeature.musicBlock.symbolName
                 && toolRow(.mixer)?.icon == AppFeature.mixer.symbolName
                 && toolRow(.soundOutputSwitcher)?.icon == AppFeature.soundOutputSwitcher.symbolName
-                && toolRow(.audioPriority)?.icon == AppFeature.audioPriority.symbolName
                 && toolRow(.micMute)?.icon == AppFeature.micMute.symbolName
                 && toolRow(.scratchpad)?.icon == AppFeature.scratchpad.symbolName
                 && toolRow(.cleaningMode)?.icon == AppFeature.cleaningMode.symbolName,
@@ -348,13 +347,11 @@ enum UpdateFeatureTests {
                     == FeatureSettingsDestination(.general, sectionAnchor: .mixer)
                 && toolRow(.soundOutputSwitcher)?.destination
                     == FeatureSettingsDestination(.general, sectionAnchor: .soundOutputSwitcher)
-                && toolRow(.audioPriority)?.destination
-                    == FeatureSettingsDestination(.general, sectionAnchor: .audioPriority)
                 && SettingsSidebarSupport.selection(for: AppFeature.scratchpad.settingsDestination,
                                                     in: toolRows) == .feature(.scratchpad)
-                && SettingsSidebarSupport.selection(for: AppFeature.audioPriority.settingsDestination,
-                                                    in: toolRows, preferredID: .feature(.audioPriority))
-                    == .feature(.audioPriority),
+                && SettingsSidebarSupport.selection(for: AppFeature.mixer.settingsDestination,
+                                                    in: toolRows, preferredID: .feature(.mixer))
+                    == .feature(.mixer),
                "flat tool rows keep unique identities and select the clicked tool")
         let menuBarDestination = FeatureSettingsDestination(
             .general, sectionAnchor: .panelConfiguration)

@@ -60,7 +60,6 @@ struct MetricsTests {
                 MixerPercentKeyTests.run(suite)
                 MixerFeatureTests.run(suite)
             }),
-            ("audio-priority", { AudioPriorityTests.run(suite) }),
             ("shelf", { ShelfFeatureTests.run(suite) }),
             ("overlays", { OverlayPanelTests.run(suite) }),
             ("updates", {

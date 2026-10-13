@@ -350,13 +350,9 @@ struct MenuPanelView: View {
         }
     }
 
-    /// Shows the full mixer when installed, or the priority lists on their own.
-    @ViewBuilder
-    private func mixerOrPrioritySection(collapsible: Bool) -> some View {
+    @ViewBuilder private func mixerOrPrioritySection(collapsible: Bool) -> some View {
         if AppFeature.mixer.isAvailable {
             MixerSection(collapsible: collapsible)
-        } else {
-            AudioPrioritySection(collapsible: collapsible)
         }
     }
 
