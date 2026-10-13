@@ -1,0 +1,207 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Vorssaint
+
+import AppKit
+import Foundation
+
+/// Spotify's real queue through the Web API. Polls every 5 s only while the
+/// notch music page is open on Spotify, caches the last answer, and backs off
+/// when Spotify answers 429.
+@MainActor
+final class SpotifyQueueService: ObservableObject {
+    static let shared = SpotifyQueueService()
+    static let pollInterval: TimeInterval = 5
+    static let visibleCount = 8
+
+    struct Track: Identifiable, Equatable {
+        let id: String
+        let uri: String
+        let title: String
+        let artist: String
+        let artworkURL: URL?
+    }
+
+    @Published private(set) var current: Track?
+    @Published private(set) var upNext: [Track] = []
+    @Published private(set) var contextURI: String?
+    @Published private(set) var loading = false
+    @Published private(set) var actionPending = false
+    @Published private(set) var actionFailed = false
+    @Published private(set) var searchResults: [Track] = []
+    @Published private(set) var searching = false
+    @Published private(set) var artwork: [URL: NSImage] = [:]
+
+    private var pollTask: Task<Void, Never>?
+    private var backoffUntil: Date?
+    private var lastCurrentURI: String?
+
+    static func isSpotify(_ playback: NotchPlayback?) -> Bool {
+        playback?.track.appBundleIdentifier?.lowercased().contains("spotify") == true
+    }
+
+    static var isAvailable: Bool { AppFeature.spotifyQueue.isAvailable }
+
+    // MARK: Polling
+
+    func setVisible(_ visible: Bool) {
+        pollTask?.cancel()
+        pollTask = nil
+        guard visible, Self.isAvailable, SpotifyWebAuth.shared.isConnected else { return }
+        pollTask = Task { [weak self] in
+            while !Task.isCancelled {
+                await self?.refresh()
+                let wait = max(Self.pollInterval, self?.backoffUntil?.timeIntervalSinceNow ?? 0)
+                try? await Task.sleep(nanoseconds: UInt64(wait * 1_000_000_000))
+            }
+        }
+    }
+
+    func refresh() async {
+        guard SpotifyWebAuth.shared.isConnected else { return }
+        if let backoffUntil, backoffUntil > Date() { return }
+        if upNext.isEmpty { loading = true }
+        defer { loading = false }
+        guard let (data, status) = try? await call("GET", "/me/player/queue"), status == 200,
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return }
+        let playing = (json["currently_playing"] as? [String: Any]).flatMap { Self.track($0, index: -1) }
+        let queue = (json["queue"] as? [[String: Any]] ?? []).enumerated()
+            .compactMap { Self.track($0.element, index: $0.offset) }
+        current = playing
+        upNext = Array(queue.prefix(Self.visibleCount))
+        if playing?.uri != lastCurrentURI {
+            lastCurrentURI = playing?.uri
+            await loadContext()
+        }
+        loadArtwork(for: upNext + searchResults)
+    }
+
+    private func loadContext() async {
+        guard let (data, status) = try? await call("GET", "/me/player"), status == 200,
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            contextURI = nil
+            return
+        }
+        contextURI = (json["context"] as? [String: Any])?["uri"] as? String
+    }
+
+    // MARK: Controls
+
+    /// Plays a queued song now. Inside a playlist or album, jump to it in that
+    /// context; otherwise put it at the front of the queue and skip to it.
+    func playNow(_ track: Track) {
+        perform {
+            if let context = self.contextURI {
+                let body: [String: Any] = ["context_uri": context, "offset": ["uri": track.uri]]
+                let data = try JSONSerialization.data(withJSONObject: body)
+                if let (_, status) = try? await self.call("PUT", "/me/player/play", body: data), (200..<300).contains(status) {
+                    return true
+                }
+            }
+            let added = try await self.call("POST", "/me/player/queue", query: [URLQueryItem(name: "uri", value: track.uri)])
+            guard (200..<300).contains(added.1) else { return false }
+            let skipped = try await self.call("POST", "/me/player/next")
+            return (200..<300).contains(skipped.1)
+        }
+    }
+
+    func skipNext() {
+        perform { (200..<300).contains(try await self.call("POST", "/me/player/next").1) }
+    }
+
+    func skipPrevious() {
+        perform { (200..<300).contains(try await self.call("POST", "/me/player/previous").1) }
+    }
+
+    func addToQueue(_ track: Track) {
+        perform {
+            let result = try await self.call("POST", "/me/player/queue", query: [URLQueryItem(name: "uri", value: track.uri)])
+            return (200..<300).contains(result.1)
+        }
+    }
+
+    func search(_ text: String) {
+        let query = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { searchResults = []; return }
+        searching = true
+        Task {
+            defer { searching = false }
+            let items = [URLQueryItem(name: "q", value: query), URLQueryItem(name: "type", value: "track"),
+                         URLQueryItem(name: "limit", value: "6")]
+            guard let (data, status) = try? await call("GET", "/search", query: items), status == 200,
+                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let found = (json["tracks"] as? [String: Any])?["items"] as? [[String: Any]] else {
+                searchResults = []
+                return
+            }
+            searchResults = found.enumerated().compactMap { Self.track($0.element, index: 1000 + $0.offset) }
+            loadArtwork(for: searchResults)
+        }
+    }
+
+    func clearSearch() { searchResults = [] }
+
+    private func perform(_ action: @escaping () async throws -> Bool) {
+        guard !actionPending else { return }
+        actionPending = true
+        actionFailed = false
+        Task {
+            let ok = (try? await action()) ?? false
+            actionFailed = !ok
+            actionPending = false
+            // Spotify takes a moment to settle the new queue.
+            try? await Task.sleep(nanoseconds: 700_000_000)
+            await refresh()
+        }
+    }
+
+    // MARK: HTTP
+
+    private func call(_ method: String, _ path: String, query: [URLQueryItem] = [],
+                      body: Data? = nil, retried: Bool = false) async throws -> (Data, Int) {
+        var components = URLComponents(string: "https://api.spotify.com/v1" + path)!
+        if !query.isEmpty { components.queryItems = query }
+        var request = URLRequest(url: components.url!)
+        request.httpMethod = method
+        let token = try await SpotifyWebAuth.shared.validAccessToken()
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        if let body {
+            request.httpBody = body
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        } else if method != "GET" {
+            request.setValue("0", forHTTPHeaderField: "Content-Length")
+        }
+        let (data, response) = try await URLSession.shared.data(for: request)
+        let http = response as? HTTPURLResponse
+        let status = http?.statusCode ?? 0
+        if status == 401, !retried {
+            _ = try await SpotifyWebAuth.shared.refreshAccessToken()
+            return try await call(method, path, query: query, body: body, retried: true)
+        }
+        if status == 429 {
+            let wait = Double(http?.value(forHTTPHeaderField: "Retry-After") ?? "") ?? 30
+            backoffUntil = Date().addingTimeInterval(max(wait, Self.pollInterval))
+        }
+        return (data, status)
+    }
+
+    private static func track(_ json: [String: Any], index: Int) -> Track? {
+        guard let uri = json["uri"] as? String, let name = json["name"] as? String else { return nil }
+        let artists = (json["artists"] as? [[String: Any]])?.compactMap { $0["name"] as? String }
+        let show = (json["show"] as? [String: Any])?["name"] as? String
+        let images = ((json["album"] as? [String: Any])?["images"] as? [[String: Any]]) ?? (json["images"] as? [[String: Any]]) ?? []
+        let small = images.last?["url"] as? String
+        return Track(id: "\(index)-\(uri)", uri: uri, title: name,
+                     artist: artists?.joined(separator: ", ") ?? show ?? "",
+                     artworkURL: small.flatMap(URL.init(string:)))
+    }
+
+    private func loadArtwork(for tracks: [Track]) {
+        for url in Set(tracks.compactMap(\.artworkURL)) where artwork[url] == nil {
+            Task {
+                guard let (data, _) = try? await URLSession.shared.data(from: url), let image = NSImage(data: data) else { return }
+                if artwork.count > 64 { artwork.removeAll() }
+                artwork[url] = image
+            }
+        }
+    }
+}

@@ -119,7 +119,7 @@ extension AppFeature {
             return RadialMenuSupport.opensFromMouseOrTrackpad(
                 UserDefaults.standard.data(forKey: DefaultsKey.radialMenuProfiles))
                 ? .mouse : .idle
-        case .notchNotifications, .notchGestures, .notchTimer, .notchQueue, .notchDownloads: return .idle
+        case .notchNotifications, .notchGestures, .notchTimer, .notchQueue, .spotifyQueue, .notchDownloads: return .idle
         // It reads only while something is being watched, and stops on its own.
         case .notchWatch: return .idle
         // A blink every few seconds and a visit every few minutes, both
