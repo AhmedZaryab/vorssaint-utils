@@ -793,6 +793,7 @@ def main():
           + "".join(declaration(canvas, prefix).replace("    private ", "    ", 1) for prefix in [
               "    private func syncMissionControlMonitoring()", "    private var missionControlCheckInterval:",
               "    private func updateMissionControlTimer()", "    private func refreshMissionControlState("])
+          + "func observeMissionControlHints() {}\nfunc removeMissionControlHints() {}\n"
           + "}\n}\n")
     # Exercise the capsule's production music branch with the hover fixture.
     # Other activity services are unrelated to this sizing contract.
@@ -840,17 +841,19 @@ def main():
         "    private func musicStripHolds(", "    var compactActivity:",
         "    var compactActivityGeometry:", "    private func compactGeometry(", "    var compactActivities:",
         "    var compactCompanion:",
-        "    var surfaceSize:", "    var surfaceShift:", "    func collapse(",
+        "    var baseSurfaceSize:", "    var surfaceShift:", "    func collapse(",
         "    private func detachCaptureIfClosingOnCollapse(", "    func endCaptureControls(",
         "    private func syncVisibleConsumers(", "    private func releaseMonitor("])
     for call in ["NotchSupport.controls", "NotchSupport.watchesMusicActivity", "NotchSupport.idleContent"]:
         music_visibility = music_visibility.replace(call + "()", call + "(in: ReviewDefaults.current)")
     music_visibility = music_visibility.replace("NotchSupport.routes(.track)",
                                                 "NotchSupport.routes(.track, in: ReviewDefaults.current)")
+    music_visibility = music_visibility.replace("var baseSurfaceSize:", "var surfaceSize:", 1)
+    music_visibility = music_visibility.replace("activityFlags.music", "watchesMusic")
     music_visibility = music_visibility.replace("UserDefaults.standard", "ReviewDefaults.current!")
     music_visibility = music_visibility.replace("calendar: hasCalendarActivity", "calendar: false")
-    music_visibility = music_visibility.replace("playback?.isPlaying == true)",
-                                                "playback?.isPlaying == true, in: ReviewDefaults.current)")
+    music_visibility = re.sub(r"(?<!held \|\| )playback\?\.isPlaying == true\)",
+                              "playback?.isPlaying == true, in: ReviewDefaults.current)", music_visibility)
     music_visibility = music_visibility.replace("captureControls: captureControls != nil)",
                                                 "captureControls: captureControls != nil, in: ReviewDefaults.current)")
     music_visibility = music_visibility.replace(
@@ -860,7 +863,8 @@ def main():
     music_visibility = music_visibility.replace("AppFeature.fanControl.isAvailable",
                                                 "AppFeature.fanControl.isAvailable(in: ReviewDefaults.current)")
     write("NotchMusicVisibility.swift", "import Foundation\nextension NotchMusicVisibilityTests {\n"
-          + "final class Service: State {\n" + music_visibility + "}\n}\n")
+          + "final class Service: State {\n" + music_visibility
+          + "var watchesMusic: Bool { NotchSupport.watchesMusicActivity(in: ReviewDefaults.current) }\n}\n}\n")
     write("NotchScreenEdgeClicks.swift", "import AppKit\nextension NotchScreenEdgeClickTests {\nfinal class Service: State {\n"
           + "func open() { openings += 1; expanded = true; syncScreenEdgeClicks() }\n"
           + "".join(declaration(notch, prefix).replace("    private ", "    ", 1) for prefix in [
@@ -1347,7 +1351,7 @@ def main():
           + "final class Service {\nvar memory = NotchLyricsMemory()\n"
           + "var lyrics: NotchLyrics? { memory.lyrics }\nvar track: NotchMusicIdentity? { memory.track }\n"
           + "var visible = false\nvar online = false\nvar generation = UUID()\nvar state: State = .idle\n"
-          + "var session: Session?\nvar importPanel: Panel?\nvar loads: [NotchMusicIdentity] = []\n"
+          + "var session: Session?\nvar spotifyTask: Task<Void, Never>?\nvar importPanel: Panel?\nvar loads: [NotchMusicIdentity] = []\n"
           + "func load(_ track: NotchMusicIdentity) { loads.append(track); state = .loading; session = Session() }\n"
           + declaration(lyrics, "    func update(playback:")
           + declaration(lyrics, "    func playbackChanged(")
@@ -1381,7 +1385,7 @@ def main():
           + "var launchedAt: TimeInterval?\nvar uptime: TimeInterval = 0\nvar trackChange = NotchTrackChange()\n"
           + "func launch() { guard wantsPlayback, process == nil else { return }; launches += 1; process = Process(); input = Pipe(); commandWriter.start(); launchedAt = uptime; restoreSource() }\n"
           + "func disconnect() { endPlaybackGap(); generation = UUID(); commandWriter.stop(); process = nil; input = nil; playback = nil }\n"
-          + declaration(music, "    func start()")
+          + re.sub(r"        if clockDemand == nil \{.*?\n        \}\n", "", declaration(music, "    func start()"), flags=re.S)
           + declaration(music, "    func stop()")
           + declaration(music, "    private func connectionEnded()").replace("private func", "func", 1)
             .replace("ProcessInfo.processInfo.systemUptime", "uptime")
@@ -1391,6 +1395,7 @@ def main():
           + declaration(music, "    private func receive(").replace("private func", "func", 1)
           + declaration(music, "    private func endPlaybackGap()").replace("private func", "func", 1)
           + declaration(music, "    private func apply(").replace("private func", "func", 1)
+            .replace("        playerClock.follow(reading.playback) { [weak self] seconds, date in self?.reanchor(seconds, at: date) }\n", "")
           + declaration(music, "    func seek(")
           + declaration(music, "    func selectSource(")
           + declaration(music, "    func send(_ command: Command)").replace("    func", "    @discardableResult\n    func", 1)
@@ -1745,6 +1750,7 @@ def main():
           + "extension AgentUsagePollingTests {\nfinal class Host: Fixture {\n"
           + declaration("Sources/Vorssaint/Services/AgentUsage/AgentUsageService.swift",
                         "    private func syncPolling(").replace("private func", "func", 1)
+          + "var fileWatchers: [String: Int] = [:]\nfunc syncFileWatchers(now: Date) {}\n"
           + "}\n}\n")
 
 
