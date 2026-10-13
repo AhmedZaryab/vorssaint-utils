@@ -31,6 +31,10 @@ struct NotchLyricsView: View {
         .environment(\.colorScheme, .dark)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .onChange(of: online) { update() }
+        // A new song starts in follow mode; a hand scroll from the last one
+        // must not hold the page or fire its resume on the new verses.
+        .onChange(of: NotchMusicIdentity(playback)) { stopBrowsing(follow: true) }
+        .onDisappear { stopBrowsing(follow: false) }
     }
 
     @ViewBuilder private var content: some View {
@@ -57,6 +61,8 @@ struct NotchLyricsView: View {
                             .textSelection(.enabled)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(.vertical, 6)
+                            // Room for the import button, as the synced page keeps.
+                            .padding(.trailing, 28)
                     }
                     .notchScrollEdgeFade(length: 24)
                 }
@@ -158,6 +164,13 @@ struct NotchLyricsView: View {
         }
     }
 
+    private func stopBrowsing(follow: Bool) {
+        resume?.cancel()
+        resume = nil
+        browsing = false
+        if follow { followTick &+= 1 }
+    }
+
     private func beginBrowsing() {
         browsing = true
         resume?.cancel()
@@ -207,8 +220,7 @@ struct NotchLyricsView: View {
             guard music.canSeek else { return }
             music.seek(to: line.time + service.offset, in: playback.track, context: playback.commandContext)
             // The tapped line becomes the sung one, so follow it right away.
-            resume?.cancel()
-            browsing = false
+            stopBrowsing(follow: false)
         }
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(current ? [.isButton, .isSelected] : .isButton)

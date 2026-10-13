@@ -66,6 +66,9 @@ struct NotchMusicView: View {
                 .frame(maxWidth: .infinity, alignment: .top)
                 .frame(height: extraHeight, alignment: .top)
                 .clipped()
+                // Clipping hides what spills over; this keeps it from taking
+                // clicks too, so the transport above always answers.
+                .contentShape(Rectangle())
             }
             if hasControlsRow {
                 HStack(spacing: 6) {

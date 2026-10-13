@@ -16,15 +16,17 @@ struct NotchLyricsPalette: Equatable {
     static let neutral = NotchLyricsPalette(top: Color(white: 0.2), bottom: Color(white: 0.08))
 
     private static let context = CIContext(options: [.workingColorSpace: NSNull(), .cacheIntermediates: false])
-    private static var cache: (key: ObjectIdentifier, palette: NotchLyricsPalette)?
+    /// Holds the cover itself: a bare ObjectIdentifier can be reused by the
+    /// next track's cover once the old one is freed, and the new song would
+    /// keep the last song's colours.
+    private static var cache: (image: NSImage, palette: NotchLyricsPalette)?
 
     /// Cached per cover image, so a track measures its colours once.
     static func of(_ image: NSImage?, tint: NotchArtworkTint?) -> NotchLyricsPalette {
         guard let image else { return tint.map { NotchLyricsPalette(top: deep($0.color), bottom: deep($0.color, darker: true)) } ?? neutral }
-        let key = ObjectIdentifier(image)
-        if let cache, cache.key == key { return cache.palette }
+        if let cache, cache.image === image { return cache.palette }
         let palette = measure(image) ?? tint.map { NotchLyricsPalette(top: deep($0.color), bottom: deep($0.color, darker: true)) } ?? neutral
-        cache = (key, palette)
+        cache = (image, palette)
         return palette
     }
 
@@ -123,6 +125,9 @@ struct NotchLyricsBackdrop: View {
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(.white.opacity(0.08), lineWidth: 1))
         .animation(reduceMotion ? nil : .easeOut(duration: 0.6), value: palette)
+        // The glows reach far past the page and clipping only hides them, so
+        // without this they took the clicks meant for the player above.
+        .allowsHitTesting(false)
         .accessibilityHidden(true)
     }
 }
