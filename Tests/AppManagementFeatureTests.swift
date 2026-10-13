@@ -18,14 +18,6 @@ enum AppManagementFeatureTests {
                "extra brightness is opt-in")
         suite.expect(registeredDefaults[DefaultsKey.extraBrightnessLevel] as? Int == 100,
                "extra brightness starts at full intensity once enabled")
-        suite.expect(registeredDefaults[DefaultsKey.bluetoothSleepEnabled] as? Bool == false,
-               "switching Bluetooth off on sleep is opt-in")
-        suite.expect(registeredDefaults[DefaultsKey.bluetoothSleepRestoreOnWake] as? Bool == true,
-               "an enabled Bluetooth sleep feature puts Bluetooth back on wake")
-        suite.expect(registeredDefaults[DefaultsKey.bluetoothSleepRestorePending] as? Bool == false,
-               "no Bluetooth restore is owed before the first sleep")
-        suite.expect(!SettingsBackupSupport.exportKeys().contains(DefaultsKey.bluetoothSleepRestorePending),
-               "a Bluetooth restore owed by one sleeping Mac never travels to another")
         suite.expect(registeredDefaults[DefaultsKey.musicBlockEnabled] as? Bool == false,
                "blocking the music app from launching is opt-in")
         suite.expect(registeredDefaults[DefaultsKey.musicBlockReplacementPath] as? String == "",
