@@ -265,6 +265,11 @@ struct QuickToolsSettings: View {
                 .settingsFormSectionAnchor(.scratchpad)
             }
 
+            if AppFeature.menuBarTidy.isAvailable {
+                MenuBarTidySettingsSection()
+                    .settingsFormSectionAnchor(.menuBarTidy)
+            }
+
             if AppFeature.cleaningMode.isAvailable {
                 Section {
                     Button {
