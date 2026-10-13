@@ -118,6 +118,27 @@ enum NotchMusicAutomation {
         return (reply.paramDescriptor(forKeyword: keyErrorNumber)?.int32Value ?? 0) == 0
     }
 
+    /// The player's own clock: its scripting `player position`, timed at the
+    /// middle of the round trip. MediaRemote's elapsed time from players such
+    /// as Spotify is stamped hundreds of milliseconds off and only refreshed on
+    /// play, pause, seek or a new song, so lyrics follow this instead. Nil
+    /// without consent already given, for whole-second clocks, or a slow reply.
+    static func clock(of availability: Availability) -> (seconds: Double, at: Date)? {
+        guard let position = availability.capabilities.position, !position.integer,
+              availability.target.isCurrent, access(to: availability.target) == .granted,
+              let event = propertyEvent(kAEGetData, code: position.code,
+                                        address: NSAppleEventDescriptor(processIdentifier: availability.target.pid))
+        else { return nil }
+        let start = Date()
+        guard let reply = try? event.sendEvent(options: [.waitForReply, .neverInteract, .dontRecord], timeout: 0.5),
+              (reply.paramDescriptor(forKeyword: keyErrorNumber)?.int32Value ?? 0) == 0,
+              let value = reply.paramDescriptor(forKeyword: keyDirectObject)?.doubleValue,
+              value.isFinite, value >= 0 else { return nil }
+        let trip = Date().timeIntervalSince(start)
+        guard trip < 0.1 else { return nil }
+        return (value, start.addingTimeInterval(trip / 2))
+    }
+
     /// Gets or sets one property of the application itself.
     private static func propertyEvent(_ eventID: AEEventID, code: UInt32,
                                       address: NSAppleEventDescriptor) -> NSAppleEventDescriptor? {

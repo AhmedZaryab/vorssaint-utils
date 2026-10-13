@@ -87,6 +87,7 @@ final class NotchMusicService: ObservableObject {
     private var automationAction: AutomationAction?
     private var awaitingAutomationValidation = false
     private let queue = DispatchQueue(label: "com.vorssaint.notch-music", qos: .utility)
+    private let playerClock = NotchPlayerClock()
     private lazy var commandWriter = NotchMusicCommandWriter { [queue = self.queue] action in queue.async(execute: action) }
 
     private init() {}
@@ -275,6 +276,7 @@ final class NotchMusicService: ObservableObject {
         }
         updateArtwork(reading.artwork, tint: reading.tint, playback: reading.playback)
         playback = reading.playback
+        playerClock.follow(reading.playback) { [weak self] seconds, date in self?.reanchor(seconds, at: date) }
         sources = reading.sources
         NotchPreferredPlayer.remember(reading.playback, in: reading.sources)
         sourceIsAutomatic = reading.automatic ?? true
@@ -283,6 +285,18 @@ final class NotchMusicService: ObservableObject {
         updateAutomation(for: reading.playback)
         NotchLyricsService.shared.playbackChanged(reading.playback)
         updateQueue()
+    }
+
+    /// MediaRemote's anchor for some players is hundreds of milliseconds
+    /// off; the player's own clock wins once it is read.
+    private func reanchor(_ seconds: Double, at date: Date) {
+        guard let current = playback, current.isPlaying else { return }
+        let drift = current.position(at: date) - seconds
+        if UserDefaults.standard.bool(forKey: "debugLyricsDrift") {
+            NSLog("VorssaintLyricsDrift anchor %.1f ms", drift * 1000)
+        }
+        guard abs(drift) > 0.02 else { return }
+        playback = current.anchored(to: seconds, at: date)
     }
 
     private func connectionEnded() {
@@ -356,6 +370,7 @@ final class NotchMusicService: ObservableObject {
 
     private func disconnect() {
         endPlaybackGap()
+        playerClock.stop()
         artworkWork?.cancel()
         artworkWork = nil
         artworkCache = .init()
