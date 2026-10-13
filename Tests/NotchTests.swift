@@ -1050,8 +1050,6 @@ enum NotchTests {
         NotchKeyboardLightTests.run(suite)
         NotchActivityTests.run(suite)
         NotchWatchTests.run(suite)
-        NotchMascotTests.run(suite)
-        NotchMascotHidingContract.run(suite)
         NotchMusicExtrasTests.run(suite)
         NotchLockScreenTests.run(suite)
         NowPlayingOpenContract.run(suite)

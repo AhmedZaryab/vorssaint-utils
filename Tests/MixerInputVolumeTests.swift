@@ -83,8 +83,6 @@ enum MixerInputVolumeContract {
         }
         var retractions = 0
         func retractMicrophoneNotice() { retractions += 1 }
-        var reactions: [NotchMascotReaction] = []
-        func reactMascot(_ reaction: NotchMascotReaction) { reactions.append(reaction) }
     }
     enum L10n {
         static let shared = Strings()
@@ -760,7 +758,6 @@ enum MixerInputVolumeContract {
         HAL.reset()
         HAL.levels[HAL.key(10)] = 0.5
         NotchService.shared.showsMicrophone = true
-        NotchService.shared.reactions = []
         QuickToolHUD.messages = []
         MicMuteService.shared.setMuted(true)
         DispatchQueue.drain()
@@ -769,8 +766,6 @@ enum MixerInputVolumeContract {
         check(
             QuickToolHUD.messages.isEmpty && NotchService.shared.microphone == [true, false],
             "with Dynamic Island showing it, the switch reports there instead of a floating confirmation")
-        check(NotchService.shared.reactions == [.hush, .perk],
-              "the companion hushes as the microphone mutes and perks up as it opens")
         HAL.reset()
         HAL.devices = [10, 20]
         HAL.levels[HAL.key(10)] = 0.5

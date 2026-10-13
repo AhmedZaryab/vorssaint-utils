@@ -26,12 +26,6 @@ struct NotchMirrorView: View {
         let size = mirror.size
         if let activity = mirror.activity {
             activityStrip(activity, geometry: geometry, size: size)
-                .modifier(NotchMascotActivityVisit(
-                    service: service,
-                    track: service.mascotOn
-                        ? NotchMascotSupport.track(overActivity: geometry.floats ? geometry : mirror.strip, size: size,
-                                                   side: service.mascotSide)
-                        : nil))
         } else if geometry.floats {
             NotchCapsuleRestingView(service: service, size: size, displayGeometry: geometry)
         } else {

@@ -164,10 +164,6 @@ enum NotchHoverTests {
         func mutatePresentation(transitionContent: NotchContentTransition, _ change: () -> Void) { change(); updateBounds() }
         var refreshes = 0, menuSpaceSyncs = 0
         func refreshPresentation() { refreshes += 1; updateBounds() }
-        func mascotNoticeBridgeStart(for incoming: NotchNotice) -> CGFloat? { nil }
-        func bridgeMascotIntoNotice(_ shown: NotchNotice, from: CGFloat) {}
-        func mascotNoticeBridgeBackStart(from ending: NotchNotice?) -> CGFloat? { nil }
-        func bridgeMascotHome(from: CGFloat) {}
         func syncMenuSpaceMonitoring() { menuSpaceSyncs += 1 }
         func provideHapticFeedback() { feedbacks += 1 }
         func updateBounds() { windowHost?.rect = geometry.frame(for: surfaceSize) }

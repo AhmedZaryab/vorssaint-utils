@@ -176,8 +176,6 @@ enum DefaultsKey {
     // Set once the paths cached before paired discovery requests have been
     // dropped, so a monitor written off then is classified again exactly once.
     static let brightnessDDCWriteOnlyPathsRechecked = "brightnessDDCWriteOnlyPathsRechecked"
-    /// A beta already installed the companion for this Command Bar user, once.
-    static let notchMascotBetaInstalled = "notchMascotBetaInstalled"
     // Per-monitor connection paths a person has told this app to dim in
     // software: the only way to know a write-only channel swallows its writes
     // is to watch the panel, which no probe can do. Issue #1589.
@@ -730,18 +728,6 @@ enum DefaultsKey {
     static let notchLockScreen = "notchLockScreen" // music and live activities over the lock screen
     static let notchLockStatus = "notchLockStatus" // battery and Keep Awake as lines under the lock screen clock
     static let notchLockSounds = "notchLockSounds" // padlock sounds as the Mac locks and unlocks
-    // Companion: a small friend who rests in the closed island and is the Command Bar's face.
-    static let notchMascotEnabled = "notchMascotEnabled"
-    static let notchMascotVisits = "notchMascotVisits" // passes through the island now and then
-    static let notchMascotReactions = "notchMascotReactions" // comes out to react to what the island sees
-    static let notchMascotStyle = "notchMascotStyle" // NotchMascotStyle.rawValue
-    static let notchMascotShape = "notchMascotShape" // NotchMascotShape.rawValue
-    static let notchMascotPalette = "notchMascotPalette" // NotchMascotPalette.rawValue
-    static let notchMascotSide = "notchMascotSide" // NotchMascotSide.rawValue, beside the camera
-    static let notchMascotVisitFrequency = "notchMascotVisitFrequency" // NotchMascotVisitFrequency.rawValue
-    static let notchMascotHidesWhenIdle = "notchMascotHidesWhenIdle" // hops into the island after a quiet while
-    static let notchCommandBar = "notchCommandBar" // the Command Bar comes out of the island
-    static let notchCommandBarStyle = "notchCommandBarStyle" // NotchCommandBarStyle.rawValue
     // Legacy inverse preference; the explicit visibility switch supersedes it.
     static let notchHideInCaptures = "notchHideInCaptures"
     static let panelControlNotch = "panelControlNotch"
@@ -1237,17 +1223,6 @@ enum Defaults {
         DefaultsKey.notchLockScreen: false,
         DefaultsKey.notchLockStatus: false,
         DefaultsKey.notchLockSounds: false,
-        DefaultsKey.notchMascotEnabled: false,
-        DefaultsKey.notchMascotVisits: true,
-        DefaultsKey.notchMascotReactions: true,
-        DefaultsKey.notchMascotStyle: NotchMascotStyle.minimal.rawValue,
-        DefaultsKey.notchMascotShape: NotchMascotShape.ball.rawValue,
-        DefaultsKey.notchMascotPalette: NotchMascotPalette.pearl.rawValue,
-        DefaultsKey.notchMascotSide: NotchMascotSide.left.rawValue,
-        DefaultsKey.notchMascotVisitFrequency: NotchMascotVisitFrequency.normal.rawValue,
-        DefaultsKey.notchMascotHidesWhenIdle: true,
-        DefaultsKey.notchCommandBar: true,
-        DefaultsKey.notchCommandBarStyle: NotchCommandBarStyle.droplet.rawValue,
         DefaultsKey.notchHideInCaptures: false,
         DefaultsKey.panelControlNotch: true,
         DefaultsKey.radialMenuEnabled: false,
@@ -1586,7 +1561,6 @@ enum Defaults {
         defaults.register(defaults: registeredDefaults)
         defaults.register(defaults: AppFeature.availabilityDefaults)
         activateBetaChannelIfRunningBeta(in: defaults)
-        installCompanionForBetaCommandBar(in: defaults)
         migrateLegacySwitcherWindowShortcut(in: defaults)
         migrateUtilityOrderForScreenshot(in: defaults)
         migrateUtilityOrderForAppUpdates(in: defaults)
@@ -1757,25 +1731,6 @@ enum Defaults {
         guard !defaults.bool(forKey: markerKey) else { return }
         defaults.set(true, forKey: markerKey)
         defaults.set(true, forKey: DefaultsKey.includeBetaUpdates)
-    }
-
-    /// On a beta, people with the Command Bar get the island's companion,
-    /// which can be its face, installed and on, once: uninstalled afterwards,
-    /// it stays out. A clean install waits for its setup to finish, since
-    /// setup picks the installed features afresh. It lives in the island, so
-    /// someone without the island gets nothing.
-    static func installsCompanionForBeta(in defaults: UserDefaults, isBeta: Bool = AppInfo.isBeta) -> Bool {
-        isBeta && defaults.bool(forKey: DefaultsKey.hasOnboarded)
-            && !defaults.bool(forKey: DefaultsKey.notchMascotBetaInstalled)
-            && AppFeature.commandBar.isAvailable(in: defaults)
-            && AppFeature.notch.isAvailable(in: defaults)
-    }
-
-    static func installCompanionForBetaCommandBar(in defaults: UserDefaults, isBeta: Bool = AppInfo.isBeta) {
-        guard installsCompanionForBeta(in: defaults, isBeta: isBeta) else { return }
-        defaults.set(true, forKey: DefaultsKey.notchMascotBetaInstalled)
-        defaults.set(true, forKey: AppFeature.notchMascot.availabilityKey)
-        defaults.set(true, forKey: DefaultsKey.notchMascotEnabled)
     }
 
     /// The downloads cleanup for a messaging app used to sit in Cleaner for

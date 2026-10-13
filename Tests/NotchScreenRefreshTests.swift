@@ -106,7 +106,6 @@ enum NotchScreenRefreshContract {
         var captureControls: Bool?
         var idleContent = NotchIdleContent.music
         var compactActivity: Bool?
-        var mascotWantsRoom = false
         var accessibilityGranted = true
         var coversMenus = false
         var menuSpaceTimer: Timer?
@@ -236,17 +235,11 @@ enum NotchScreenRefreshContract {
         fullscreen.syncMenuSpaceMonitoring()
         suite.expect(fullscreen.menuSpaceTimer != nil, "leaving fullscreen restores menu monitoring")
 
-        // A bare camera measures nothing, unless the companion wants its wings.
-        let companion = Service()
-        companion.idleContent = .none
-        companion.syncMenuSpaceMonitoring()
-        suite.expect(companion.menuSpaceTimer == nil, "a bare notch with nothing to show reads no menus")
-        companion.mascotWantsRoom = true
-        companion.syncMenuSpaceMonitoring()
-        suite.expect(companion.menuSpaceTimer != nil,
-                     "the companion measures the menus, so it rests beside the camera only where its wings fit")
-        companion.hiddenInFullscreen = true
-        companion.syncMenuSpaceMonitoring()
+        // A bare camera measures nothing.
+        let bare = Service()
+        bare.idleContent = .none
+        bare.syncMenuSpaceMonitoring()
+        suite.expect(bare.menuSpaceTimer == nil, "a bare notch with nothing to show reads no menus")
 
         let virtual = Service()
         virtual.geometry.compactSideRoom = nil

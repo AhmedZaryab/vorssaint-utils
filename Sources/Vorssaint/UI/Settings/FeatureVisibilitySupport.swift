@@ -8,7 +8,7 @@ import Foundation
 /// below and the unit tests can reason about pages without pulling UI in.
 enum SettingsPage: Hashable {
     case general, features, energy
-    case mouse, switcher, dock, cutPaste, autoQuit, uninstaller, homebrew, appUpdates, media, clipboard, windowLayout, shelf, quickTools, textSnippets, screenshot, radialMenu, commandBar, killProcess, portManager, notch, notchMascot
+    case mouse, switcher, dock, cutPaste, autoQuit, uninstaller, homebrew, appUpdates, media, clipboard, windowLayout, shelf, quickTools, textSnippets, screenshot, radialMenu, commandBar, killProcess, portManager, notch
     case shortcuts, advanced, about, releaseNotes, support
 }
 
@@ -153,9 +153,6 @@ final class SettingsRouter: ObservableObject {
     /// One-shot hint for the Dynamic Island page, so a section of the island
     /// can open its own options. Consumed and cleared on arrival.
     @Published var notchModule: NotchModule?
-    /// One-shot hint for the Dynamic Island page to show the companion's tab,
-    /// where its settings live. Consumed and cleared on arrival.
-    @Published var notchCompanion = false
 
     private var history = [HistoryEntry(destination: FeatureSettingsDestination(.general),
                                         sidebarFeature: nil)]
@@ -168,15 +165,6 @@ final class SettingsRouter: ObservableObject {
     /// history entry, for a fallback when the visited tool went away.
     func request(_ destination: FeatureSettingsDestination, targetFeature: AppFeature? = nil,
                  sidebarFeature: AppFeature? = nil, replacingVisit: Bool = false) {
-        // The companion's settings are a tab of the Dynamic Island page.
-        if destination.page == .notchMascot {
-            request(FeatureSettingsDestination(.notch), targetFeature: targetFeature,
-                    sidebarFeature: sidebarFeature, replacingVisit: replacingVisit)
-            notchCompanion = true
-            return
-        }
-        // Any other request, history included, drops a hint nobody took.
-        notchCompanion = false
         let requestID = UUID()
         let samePage = page == destination.page
         page = destination.page
@@ -339,7 +327,6 @@ extension AppFeature {
         case .cameraPreview:
             return FeatureSettingsDestination(.quickTools, sectionAnchor: .cameraPreview)
         case .notch, .notchCalendar, .notchNotifications, .notchGestures, .notchTimer, .notchAccessories, .notchLyrics, .notchQueue, .spotifyQueue, .notchLiveEqualizer, .notchDownloads, .notchAgents, .notchWatch: return FeatureSettingsDestination(.notch)
-        case .notchMascot: return FeatureSettingsDestination(.notchMascot)
         case .radialMenu: return FeatureSettingsDestination(.radialMenu)
         case .scratchpad:
             return FeatureSettingsDestination(.quickTools, sectionAnchor: .scratchpad)
@@ -382,8 +369,7 @@ enum FeatureVisibilitySupport {
         case .portManager: return [.portManager]
         case .textSnippets: return [.textSnippets]
         case .screenshot: return [.screenshot, .screenRecorder, .screenOCR, .colorPicker]
-        case .notch: return [.notch, .notchCalendar, .notchNotifications, .notchGestures, .notchTimer, .notchAccessories, .notchLyrics, .notchQueue, .spotifyQueue, .notchLiveEqualizer, .notchDownloads, .notchAgents, .notchWatch, .notchMascot]
-        case .notchMascot: return [.notchMascot]
+        case .notch: return [.notch, .notchCalendar, .notchNotifications, .notchGestures, .notchTimer, .notchAccessories, .notchLyrics, .notchQueue, .spotifyQueue, .notchLiveEqualizer, .notchDownloads, .notchAgents, .notchWatch]
         case .radialMenu: return [.radialMenu]
         case .commandBar: return [.commandBar]
         case .general, .features, .shortcuts, .advanced, .about, .releaseNotes, .support:

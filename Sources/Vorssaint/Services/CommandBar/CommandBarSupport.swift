@@ -967,3 +967,12 @@ enum CommandBarAppSort {
         }
     }
 }
+
+/// Where the Command Bar shows when it opens. The droplet that fell from the
+/// island is parked in Legacy/mascot, and so is the way to ask for the island.
+enum CommandBarPresentation: Equatable {
+    /// Its own window, as it always has.
+    case window
+    /// Inside the open island.
+    case island
+}

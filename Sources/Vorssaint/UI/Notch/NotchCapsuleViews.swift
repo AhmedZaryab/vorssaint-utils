@@ -138,16 +138,9 @@ struct NotchCapsuleNoticeView: View {
     }
 
     @ViewBuilder private var mark: some View {
-        // With the companion on, it stands in for the symbol and reacts, unless
-        // its reactions are off. A
-        // notice about the agent itself wears its mark; warnings and renewals
+        // A notice about the agent itself wears its mark; warnings and renewals
         // keep a symbol that says what happened.
-        if NotchMascotSupport.isEnabled(), let reaction = notice.mascot {
-            let side = min(CapsuleLayout.symbolWidth, CapsuleLayout.artworkSide(geometry))
-            NotchMascotView(look: NotchMascotSupport.look(), mood: NotchService.shared.mascotRestingMood,
-                            size: side, reaction: NotchMascotSupport.reacts() ? reaction : nil)
-                .frame(width: CapsuleLayout.symbolWidth, height: side)
-        } else if notice.event == .agents, let agent = notice.agent, notice.symbol == agent.symbol {
+        if notice.event == .agents, let agent = notice.agent, notice.symbol == agent.symbol {
             NotchAgentMark(provider: agent, size: CapsuleLayout.symbolSize).frame(width: CapsuleLayout.symbolWidth)
         } else if notice.event == .track {
             NotchCapsuleTrackArtwork(side: min(CapsuleLayout.symbolWidth, CapsuleLayout.artworkSide(geometry)))
@@ -167,8 +160,7 @@ private struct NotchCapsuleTrackArtwork: View {
 }
 
 /// The closed capsule at rest: bare, or with the charge or the AI allowance
-/// the person chose, in its middle. The companion rests in its middle when
-/// nothing else is there, and walks through on its visits.
+/// the person chose, in its middle.
 struct NotchCapsuleRestingView: View {
     @ObservedObject var service: NotchService
     @ObservedObject private var music = NotchMusicService.shared
@@ -183,27 +175,8 @@ struct NotchCapsuleRestingView: View {
 
     private var geometry: NotchGeometry { displayGeometry ?? service.geometry }
 
-    /// A visit walks over what the capsule rests with, which steps aside meanwhile.
-    private var contentStepsAside: Bool { service.mascotStepsAside && !service.mascotAtRest }
-
     var body: some View {
         resting
-            .opacity(contentStepsAside ? 0 : 1)
-            .animation(reduceMotion ? nil : .easeInOut(duration: 0.2), value: contentStepsAside)
-            .overlay {
-                if service.mascotShows(on: geometry) {
-                    NotchMascotTrackView(look: NotchMascotSupport.look(),
-                                         track: NotchMascotSupport.track(stripWidth: size.width,
-                                                                         stripHeight: geometry.stripHeight,
-                                                                         wing: 0, cameraWidth: 0, floats: true,
-                                                                         bodyHeight: geometry.stripBodyHeight),
-                                         rests: service.mascotAtRest, visit: service.mascotVisit,
-                                         mood: service.mascotRestingMood, reaction: service.mascotReaction,
-                                         yieldsToActivities: true)
-                        .frame(width: size.width, height: geometry.stripHeight)
-                        .allowsHitTesting(false)
-                }
-            }
             .accessibilityHidden(true)
     }
 
