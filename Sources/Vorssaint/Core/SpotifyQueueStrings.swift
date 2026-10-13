@@ -33,6 +33,7 @@ struct SpotifyQueueStrings {
     let skipNext: String
     let skipPrevious: String
     let actionFailed: String
+    let throttled: String
     let advanced: String
     let advancedHint: String
 
@@ -65,6 +66,7 @@ struct SpotifyQueueStrings {
         skipNext: "Next song",
         skipPrevious: "Previous song",
         actionFailed: "Spotify did not accept that. Playback may be on a device that is offline.",
+        throttled: "Spotify is throttling this right now",
         advanced: "Advanced (developer login)",
         advancedHint: "Only needed if the normal Spotify login does not work for you.")
 }

@@ -30,6 +30,7 @@ final class SpotifyQueueService: ObservableObject {
     @Published private(set) var loading = false
     @Published private(set) var actionPending = false
     @Published private(set) var actionFailed = false
+    @Published private(set) var actionThrottled = false
     @Published private(set) var searchResults: [Track] = []
     @Published private(set) var searching = false
     @Published private(set) var artwork: [URL: NSImage] = [:]
@@ -43,6 +44,7 @@ final class SpotifyQueueService: ObservableObject {
     private var pollTask: Task<Void, Never>?
     private var backoffUntil: Date?
     private var spclientBackoffUntil: Date?
+    private var lastStatus = 0
     private var lastCurrentURI: String?
     private var metadata: [String: SpotifyConnectState.Metadata] = [:]
 
@@ -194,9 +196,21 @@ final class SpotifyQueueService: ObservableObject {
 
     // MARK: Controls
 
-    /// Plays a queued song now. Inside a playlist or album, jump to it in that
-    /// context; otherwise put it at the front of the queue and skip to it.
+    /// Plays a queued song now through the local Spotify app, never the Web API.
+    /// Near the front (or with no URI) it skips forward, which keeps the playlist;
+    /// further down it plays the track by URI, which drops the playlist context.
     func playNow(_ track: Track) {
+        let position = (upNext.firstIndex(of: track) ?? 0) + 1
+        if Self.spotifyRunning {
+            let skips = min(position, Self.visibleCount)
+            performLocal {
+                if track.uri.isEmpty || position <= 3 {
+                    return Self.runSpotify(Array(repeating: "next track", count: skips).joined(separator: "\n"))
+                }
+                return Self.runSpotify("play track \"\(track.uri)\"")
+            }
+            return
+        }
         perform {
             if let context = self.contextURI {
                 let body: [String: Any] = ["context_uri": context, "offset": ["uri": track.uri]]
@@ -212,12 +226,25 @@ final class SpotifyQueueService: ObservableObject {
         }
     }
 
-    func skipNext() {
-        perform { (200..<300).contains(try await self.call("POST", "/me/player/next").1) }
+    func skipNext() { skip(forward: true) }
+
+    func skipPrevious() { skip(forward: false) }
+
+    private func skip(forward: Bool) {
+        performLocal {
+            if NotchMusicService.shared.send(forward ? .next : .previous) { return true }
+            return Self.runSpotify(forward ? "next track" : "previous track")
+        }
     }
 
-    func skipPrevious() {
-        perform { (200..<300).contains(try await self.call("POST", "/me/player/previous").1) }
+    private static var spotifyRunning: Bool {
+        !NSRunningApplication.runningApplications(withBundleIdentifier: "com.spotify.client").isEmpty
+    }
+
+    private static func runSpotify(_ commands: String) -> Bool {
+        var error: NSDictionary?
+        NSAppleScript(source: "tell application \"Spotify\"\n\(commands)\nend tell")?.executeAndReturnError(&error)
+        return error == nil
     }
 
     func addToQueue(_ track: Track) {
@@ -235,7 +262,11 @@ final class SpotifyQueueService: ObservableObject {
             defer { searching = false }
             let items = [URLQueryItem(name: "q", value: query), URLQueryItem(name: "type", value: "track"),
                          URLQueryItem(name: "limit", value: "6")]
-            guard let (data, status) = try? await call("GET", "/search", query: items), status == 200,
+            actionThrottled = false
+            lastStatus = 0
+            let reply = try? await call("GET", "/search", query: items)
+            actionThrottled = reply?.1 == 429
+            guard let (data, status) = reply, status == 200,
                   let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                   let found = (json["tracks"] as? [String: Any])?["items"] as? [[String: Any]] else {
                 searchResults = []
@@ -252,12 +283,29 @@ final class SpotifyQueueService: ObservableObject {
         guard !actionPending else { return }
         actionPending = true
         actionFailed = false
+        actionThrottled = false
+        lastStatus = 0
         Task {
             let ok = (try? await action()) ?? false
-            actionFailed = !ok
+            actionThrottled = !ok && lastStatus == 429
+            actionFailed = !ok && !actionThrottled
             actionPending = false
             // Spotify takes a moment to settle the new queue.
             try? await Task.sleep(nanoseconds: 700_000_000)
+            await refresh()
+        }
+    }
+
+    /// Actions that went through the local Spotify app: no Web API, no generic failure.
+    private func performLocal(_ action: @escaping () -> Bool) {
+        guard !actionPending else { return }
+        actionPending = true
+        actionFailed = false
+        actionThrottled = false
+        Task {
+            _ = action()
+            try? await Task.sleep(nanoseconds: 700_000_000)
+            actionPending = false
             await refresh()
         }
     }
@@ -282,6 +330,7 @@ final class SpotifyQueueService: ObservableObject {
         let (data, response) = try await URLSession.shared.data(for: request)
         let http = response as? HTTPURLResponse
         let status = http?.statusCode ?? 0
+        lastStatus = status
         if status == 401, !retried {
             _ = try await Self.accessToken(provider, refresh: true)
             return try await call(method, path, query: query, body: body, retried: true)

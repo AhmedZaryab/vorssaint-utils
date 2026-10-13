@@ -19,6 +19,9 @@ struct NotchSpotifyQueueSection: View {
                 connectPrompt
             } else {
                 if showsSearch { searchArea }
+                if service.actionThrottled {
+                    Text(text.throttled).font(.caption).foregroundStyle(.orange)
+                }
                 if service.actionFailed {
                     Text(text.actionFailed).font(.caption).foregroundStyle(.orange)
                 }
