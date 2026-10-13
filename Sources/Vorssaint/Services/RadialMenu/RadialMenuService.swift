@@ -63,7 +63,6 @@ final class RadialMenuService: ObservableObject {
     private var pointerActivated = false
     private var sessionShortcut: GlobalShortcut?
     private var sessionActivationMode = RadialMenuActivationMode.pressOrHold
-    private var sessionUsesSuperKey = false
     private var sessionID = 0
     /// Set while a session was summoned by a mouse button and it is still
     /// down; releasing it runs the pointed slice, mirroring the chord.
@@ -385,31 +384,10 @@ final class RadialMenuService: ObservableObject {
         // outside click.
         sessionActivationMode = activationMode
         sessionShortcut = startsHeld && heldButton == nil ? shortcut : nil
-        sessionUsesSuperKey = startsHeld && heldButton == nil
-            && SuperKeyService.isEngaged && SuperKeyService.shared.isHeld
         holdButton = startsHeld ? heldButton : nil
         holdPhase = startsHeld
         sessionID &+= 1
         let activeSessionID = sessionID
-        if sessionUsesSuperKey {
-            SuperKeyService.shared.onHoldEnded = { [weak self] released in
-                guard let self,
-                      self.sessionUsesSuperKey,
-                      self.sessionID == activeSessionID else { return }
-                // No pointer event may mistake a queued cancellation for a
-                // physical release before the deferred resolution runs.
-                self.sessionShortcut = nil
-                DispatchQueue.main.async {
-                    guard self.sessionUsesSuperKey,
-                          self.sessionID == activeSessionID else { return }
-                    if released {
-                        self.endHoldPhase()
-                    } else {
-                        self.endSession()
-                    }
-                }
-            }
-        }
         stack = [items]
         trail = []
         highlightedIndex = nil
@@ -442,7 +420,6 @@ final class RadialMenuService: ObservableObject {
         // A closing already under way finishes on its own.
         if dismissal.isActive { return }
         removeMonitors()
-        stopTrackingSuperKeyHold()
         guard let panel, panel.isVisible, !stack.isEmpty else {
             forgetSession()
             return
@@ -654,9 +631,7 @@ final class RadialMenuService: ObservableObject {
     private func handleFlagsChanged(_ flags: NSEvent.ModifierFlags) {
         guard sessionActive, holdPhase, let shortcut = sessionShortcut else { return }
         guard !RadialMenuSupport.shortcutIsStillHeld(
-            modifiersHeld: shortcut.requiredModifiersHeld(in: flags),
-            superKeyHeld: sessionUsesSuperKey && SuperKeyService.isEngaged
-                && SuperKeyService.shared.isHeld
+            modifiersHeld: shortcut.requiredModifiersHeld(in: flags)
         ) else { return }
         endHoldPhase()
     }
@@ -680,13 +655,6 @@ final class RadialMenuService: ObservableObject {
     private func enterStickyPhase() {
         holdPhase = false
         holdButton = nil
-        stopTrackingSuperKeyHold()
-    }
-
-    private func stopTrackingSuperKeyHold() {
-        guard sessionUsesSuperKey else { return }
-        sessionUsesSuperKey = false
-        SuperKeyService.shared.onHoldEnded = nil
     }
 
     private func handleKeyDown(_ event: NSEvent) -> Bool {

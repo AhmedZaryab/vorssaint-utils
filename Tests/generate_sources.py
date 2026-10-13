@@ -554,14 +554,6 @@ def main():
           + "".join(declaration(mixer_section, prefix).replace("private func", "func", 1) for prefix in [
               "        private func startMonitoringEscape()", "        private func finish("])
           + "}\n}\n")
-    super_key = "Sources/Vorssaint/Services/SuperKey/SuperKeyService.swift"
-    write("SuperKeyTap.swift", "import CoreGraphics\nimport Foundation\n"
-          + "extension SuperKeyTapContract {\nfinal class SuperKeyService: State {\n"
-          + "".join(declaration(super_key, prefix).replace("private func", "func", 1)
-                    for prefix in ["    private func runEventTap()", "    private func setMappingFailure("])
-            .replace("CGEvent.tapCreate(", "Tap.create(")
-          + "}\n}\n")
-
     updates = "Sources/Vorssaint/Services/AppUpdates/AppUpdatesService.swift"
     loader = "Sources/Vorssaint/Services/AppUpdates/AppUpdateFeedLoader.swift"
     # Only the network configuration, clock and declaration visibility change.
@@ -806,8 +798,6 @@ def main():
                                                 "AppFeature.monitorDisk.isAvailable(in: ReviewDefaults.current)")
     music_visibility = music_visibility.replace("AppFeature.fanControl.isAvailable",
                                                 "AppFeature.fanControl.isAvailable(in: ReviewDefaults.current)")
-    music_visibility = music_visibility.replace("AppFeature.connectedDevices.isAvailable",
-                                                "AppFeature.connectedDevices.isAvailable(in: ReviewDefaults.current)")
     write("NotchMusicVisibility.swift", "import Foundation\nextension NotchMusicVisibilityTests {\n"
           + "final class Service: State {\n" + music_visibility
           + "var watchesMusic: Bool { NotchSupport.watchesMusicActivity(in: ReviewDefaults.current) }\n}\n}\n")

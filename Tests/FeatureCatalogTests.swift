@@ -310,16 +310,15 @@ enum FeatureCatalogTests {
         suite.expect(AppFeature.allCases.map(\.rawValue) == [
             "switcher", "dockPreview", "dockClick", "windowMaximizer", "windowLayout", "autoQuit",
             "scrollInverter", "scrollHorizontal", "focusFollowsMouse", "linearScroll", "mouseAcceleration", "mouseNavigation", "mouseButtonShortcuts", "middleClick",
-            "mouseClickDebounce", "textSnippets", "superKey",
+            "mouseClickDebounce", "textSnippets",
             "clipboardHistory", "pastePlain", "finderCutPaste", "finderRename", "shelf",
-            "diskImageInstaller",
             "mixer", "micMute",
             "keepAwake", "brightness",
             "quickLauncher", "quickToggles", "colorPicker", "screenOCR", "cleaningMode", "mediaTools",
             "cleaner", "uninstaller", "homebrew", "appUpdates", "screenshot", "cameraPreview",
-            "radialMenu", "scratchpad", "commandBar", "screenRecorder", "wallpaper", "killProcess", "portManager", "notch", "notchCalendar", "notchNotifications", "notchGestures", "notchTimer", "notchAccessories", "notchLyrics", "notchQueue", "spotifyQueue", "notchLiveEqualizer", "notchDownloads", "notchAgents", "notchWatch", "notchMascot",
+            "radialMenu", "scratchpad", "commandBar", "screenRecorder", "killProcess", "portManager", "notch", "notchCalendar", "notchNotifications", "notchGestures", "notchTimer", "notchAccessories", "notchLyrics", "notchQueue", "spotifyQueue", "notchLiveEqualizer", "notchDownloads", "notchAgents", "notchWatch", "notchMascot",
             "monitorCPU", "monitorGPU", "monitorMemory", "monitorNetwork", "monitorDisk", "monitorPower",
-            "connectedDevices", "fanControl",
+            "fanControl",
         ], "feature ids are stable (they persist inside availability keys)")
         suite.expect(MouseAccelerationSupport.validatedRegistryID(nil) == nil
                 && MouseAccelerationSupport.validatedRegistryID(0) == nil
@@ -482,7 +481,7 @@ enum FeatureCatalogTests {
         let installedOnUpdate: Set<String> = [
             "switcher", "dockPreview", "dockClick", "windowMaximizer", "windowLayout", "autoQuit",
             "scrollInverter", "mouseAcceleration", "mouseNavigation", "mouseButtonShortcuts",
-            "middleClick", "mouseClickDebounce", "textSnippets", "superKey",
+            "middleClick", "mouseClickDebounce", "textSnippets",
             "clipboardHistory", "pastePlain", "finderCutPaste", "finderRename", "shelf",
             "mixer", "micMute",
             "keepAwake", "brightness",
@@ -492,7 +491,6 @@ enum FeatureCatalogTests {
             "notch", "notchCalendar", "notchNotifications", "notchGestures", "notchTimer", "notchAccessories",
             "notchLyrics", "notchQueue", "spotifyQueue", "notchLiveEqualizer", "notchDownloads", "notchAgents", "notchWatch",
             "monitorCPU", "monitorGPU", "monitorMemory", "monitorNetwork", "monitorDisk", "monitorPower",
-            "connectedDevices",
         ]
         suite.expect(AppFeature.availabilityDefaults.count == AppFeature.allCases.count
                 && Set(AppFeature.allCases.filter {
@@ -569,7 +567,7 @@ enum FeatureCatalogTests {
                                                 isSaved: { _ in false }) == offeredWhenUnused,
                "an install where nothing was ever switched on offers the whole list")
         suite.expect(!AppFeature.neverSwitchedOn(isAvailable: everythingInstalled, boolFor: { _ in false },
-                                                 isSaved: { $0 == DefaultsKey.superKeyEnabled }).contains(.superKey),
+                                                 isSaved: { $0 == DefaultsKey.mouseClickDebounceEnabled }).contains(.mouseClickDebounce),
                "a switch turned on and back off keeps its feature off the offer")
         suite.expect(!AppFeature.neverSwitchedOn(isAvailable: everythingInstalled,
                                                  boolFor: { $0 == DefaultsKey.dockClickHide },
@@ -687,119 +685,6 @@ enum FeatureCatalogTests {
         suite.expect(compactHubContent.components(separatedBy: "LazyVStack(").count == 2
                 && compactHubContent.contains("ScrollView{LazyVStack("),
                "the hub's one lazy stack is its scroll view's own content, never nested in another stack")
-        suite.expect(AppFeature.diskImageInstaller.group == .clipboardFiles
-                && AppFeature.diskImageInstaller.enabledKeys.isEmpty
-                && AppFeature.diskImageInstaller.permissions == [.appManagement]
-                && AppFeature.diskImageInstaller.energyProfile == .idle,
-               "the disk image installer is an event-driven file feature with contextual app access")
-        suite.expect((Defaults.registeredDefaults[DefaultsKey.panelShowFanControl] as? Bool) == true,
-               "installing fan control reveals its panel section by default")
-
-        for language in AppLanguage.allCases {
-            let strings = FeatureStrings.diskImageInstaller(language)
-            expectFormat(strings.promptBodyFormat, ["@", "@"],
-                         "\(language.rawValue) installer prompt format")
-            expectFormat(strings.installedBodyFormat, ["@", "@"],
-                         "\(language.rawValue) installer success format")
-            expectFormat(strings.installedKeepingMountBodyFormat, ["@", "@"],
-                         "\(language.rawValue) installer mounted-image format")
-            expectFormat(strings.installedKeepingDownloadBodyFormat, ["@", "@"],
-                         "\(language.rawValue) installer kept-download format")
-            expectFormat(strings.alreadyInstalledBodyFormat, ["@"],
-                         "\(language.rawValue) installer existing-app format")
-            expectFormat(strings.installedKeptDownloadBodyFormat, ["@", "@"],
-                         "\(language.rawValue) installer kept-by-choice format")
-            expectFormat(strings.installingFormat, ["@"],
-                         "\(language.rawValue) installer progress format")
-        }
-
-        let installerInfo: [String: Any] = [
-            "images": [[
-                "image-path": "/Users/test/Downloads/App.dmg",
-                "system-entities": [[
-                    "dev-entry": "/dev/disk9s1",
-                    "mount-point": "/private/tmp/Installer Mount",
-                ]],
-            ]],
-        ]
-        if let installerData = try? PropertyListSerialization.data(fromPropertyList: installerInfo,
-                                                                    format: .xml,
-                                                                    options: 0) {
-            suite.expect(DiskImageInstallerSupport.imageURL(
-                mountedAt: URL(fileURLWithPath: "/tmp/Installer Mount"),
-                hdiutilInfo: installerData)?.path == "/Users/test/Downloads/App.dmg",
-                "hdiutil plist maps the canonical mount path back to its disk image")
-            suite.expect(DiskImageInstallerSupport.imageURL(
-                mountedAt: URL(fileURLWithPath: "/tmp/Other Mount"),
-                hdiutilInfo: installerData) == nil,
-                "an unrelated mounted volume is never treated as the disk image")
-        } else {
-            suite.expect(false, "disk image installer plist fixture can be encoded")
-        }
-        suite.expect(DiskImageInstallerSupport.destinationURL(
-            for: URL(fileURLWithPath: "/Volumes/Installer/Example.app"),
-            applicationsURL: URL(fileURLWithPath: "/Applications", isDirectory: true))?.path
-            == "/Applications/Example.app",
-            "a top-level app gets one fixed Applications destination")
-        suite.expect(DiskImageInstallerSupport.destinationURL(
-            for: URL(fileURLWithPath: "/Volumes/Installer/Example.app"),
-            applicationsURL: URL(fileURLWithPath: "/Users/test/Applications",
-                                 isDirectory: true))?.path
-            == "/Users/test/Applications/Example.app",
-            "the installer support accepts the current user's Applications directory")
-        suite.expect(DiskImageInstallerSupport.applicationsDomain(useUserApplications: false)
-                == .localDomainMask
-                && DiskImageInstallerSupport.applicationsDomain(useUserApplications: true)
-                == .userDomainMask,
-               "the disk image setting selects the system or user application domain")
-        suite.expect(DiskImageInstallerSupport.collisionDomains(useUserApplications: false)
-                == [.localDomainMask]
-                && DiskImageInstallerSupport.collisionDomains(useUserApplications: true)
-                == [.localDomainMask, .userDomainMask],
-               "only the opt-in installer checks both application domains for collisions")
-        let installerDestinations = DiskImageInstallerSupport.destinationURLs(
-            for: URL(fileURLWithPath: "/Volumes/Installer/Example.app"),
-            applicationsURLs: [
-                URL(fileURLWithPath: "/Applications", isDirectory: true),
-                URL(fileURLWithPath: "/Users/test/Applications", isDirectory: true),
-            ])
-        suite.expect(installerDestinations?.map(\.path) == [
-            "/Applications/Example.app",
-            "/Users/test/Applications/Example.app",
-        ], "the already-installed guard covers both application directories")
-        suite.expect(DiskImageInstallerSupport.destinationURLs(
-            for: URL(fileURLWithPath: "/Volumes/Installer/Example.app"),
-            applicationsURLs: []) == nil,
-            "missing application-domain resolutions fail closed")
-        let installerFixture = FileManager.default.temporaryDirectory
-            .appendingPathComponent("vorss-installer-\(UUID().uuidString)", isDirectory: true)
-        let installerFM = InstallerFileManager(root: installerFixture)
-        let installerApp = URL(fileURLWithPath: "/Volumes/Installer/Example.app")
-        let missingUserDestination = installerFM.userApplications!
-            .appendingPathComponent("Example.app", isDirectory: true)
-        let missingFolderCollisions = DiskImageInstallerSupport.collisionURLs(
-            for: installerApp, useUserApplications: true, fileManager: installerFM)
-        suite.expect(missingFolderCollisions?.contains(missingUserDestination) == true
-                && missingFolderCollisions?.allSatisfy { !installerFM.fileExists(atPath: $0.path) } == true,
-               "a missing home Applications folder still allows an install candidate")
-        suite.expect(!installerFM.fileExists(atPath: installerFixture.path),
-               "detecting an install candidate never creates the home Applications folder")
-        installerFM.userApplications = nil
-        suite.expect(DiskImageInstallerSupport.collisionURLs(
-            for: installerApp, useUserApplications: true, fileManager: installerFM) == nil,
-            "an unavailable user search path fails closed for opted-in installs")
-        suite.expect(DiskImageInstallerSupport.collisionURLs(
-            for: installerApp, useUserApplications: false, fileManager: installerFM)?.count == 1,
-            "default installs do not depend on the user's application search path")
-        suite.expect(DiskImageInstallerSupport.destinationURL(
-            for: URL(fileURLWithPath: "/Volumes/Installer/.Hidden.app"),
-            applicationsURL: URL(fileURLWithPath: "/Applications", isDirectory: true)) == nil,
-            "hidden app bundles cannot create hidden Applications entries")
-        suite.expect(DiskImageInstallerSupport.displayName(
-            preferred: "  Example\nApp\u{0007}  ",
-            appURL: URL(fileURLWithPath: "/Volumes/Installer/Fallback.app")) == "Example App",
-            "untrusted bundle names are flattened before entering an alert")
-
         // MARK: Fan Control safety policy
 
         suite.expect(FanControlPolicy.coolingDuration == 15 * 60
@@ -1303,8 +1188,8 @@ enum FeatureCatalogTests {
         suite.expect(AppFeature.quickToggles.permissions == [.automationFinder],
                "the quick toggles need no permission beyond the Trash's Finder ask")
         suite.expect(activeSet(.automationTerminal) == [.homebrew], "homebrew drives the Terminal")
-        suite.expect(activeSet(.appManagement) == [.homebrew, .appUpdates, .diskImageInstaller],
-               "package, update and disk-image installs declare App Management access")
+        suite.expect(activeSet(.appManagement) == [.homebrew, .appUpdates],
+               "package and update installs declare App Management access")
         suite.expect(AppFeature.homebrew.permissions == [.automationTerminal, .appManagement],
                "the package manager declares both permissions used by its operations")
         suite.expect(activeSet(.audioCapture) == [.mixer], "the mixer is the only audio capture user")
@@ -1414,36 +1299,6 @@ enum FeatureCatalogTests {
                 .contains(where: \.isKeyboardBrightness),
                "removing the brightness feature releases both keyboard shortcuts")
 
-        let superSpace = GlobalShortcut(keyCode: Int64(kVK_Space), modifiers: .validMask)
-        let customSuperSpace = GlobalShortcut(keyCode: Int64(kVK_Space),
-                                              modifiers: [.control, .option, .command])
-        suite.expect(superSpace.superKeyAlternative(sourceLabel: "Right ⌘",
-                                              superKeyModifiers: .validMask) == "Right ⌘ + Space"
-                && customSuperSpace.superKeyAlternative(
-                    sourceLabel: "Right ⌘",
-                    superKeyModifiers: [.control, .option, .command]) == "Right ⌘ + Space"
-                && GlobalShortcut.commandBarDefault.superKeyAlternative(
-                    sourceLabel: "Right ⌘",
-                    superKeyModifiers: [.control, .option, .command]) == nil,
-               "the shortcut editor follows the configured Super key modifiers")
-
-        // MARK: Super key held-key watchdog
-        // The source key (F18) does not autorepeat, so a steadily-held key
-        // reaches the watchdog just like a lost release. The physical key state
-        // is what tells them apart.
-        suite.expect(SuperKeySupport.heldKeyWatchdogOutcome(physicalKeyDown: true, stateThinksHeld: true, tapAlive: true)
-                == .reArm,
-               "a key still physically down keeps the hold alive")
-        suite.expect(SuperKeySupport.heldKeyWatchdogOutcome(physicalKeyDown: false, stateThinksHeld: true, tapAlive: true)
-                == .forget,
-               "a key that has come up ends the hold (its release was missed)")
-        suite.expect(SuperKeySupport.heldKeyWatchdogOutcome(physicalKeyDown: true, stateThinksHeld: false, tapAlive: true)
-                == .forget,
-               "nothing to keep alive once the state is no longer held")
-        suite.expect(SuperKeySupport.heldKeyWatchdogOutcome(physicalKeyDown: true, stateThinksHeld: true, tapAlive: false)
-                == .forget,
-               "a torn-down tap cannot stamp modifiers, so the hold is dropped")
-
         // MARK: Features hub strings
 
         for language in AppLanguage.allCases {
@@ -1525,28 +1380,9 @@ enum FeatureCatalogTests {
                "Kill Process reports no descendants for a leaf and never follows a self-parenting row")
 
         for language in AppLanguage.allCases {
-            let superKeyValues = Mirror(reflecting: FeatureStrings.superKey(language)).children
-                .compactMap { $0.value as? String }
-            let refusals = SuperKeyMappingFailure.allCases.map {
-                FeatureStrings.superKey(language).mappingFailure($0)
-            }
-            suite.expect(Set(refusals).count == SuperKeyMappingFailure.allCases.count
-                    && refusals.allSatisfy { !$0.isEmpty },
-                   "every reason the key mapping is refused reads differently (\(language.rawValue))")
-            let superKeyStrings = FeatureStrings.superKey(language)
-            suite.expect(superKeyValues.allSatisfy { !$0.contains("—") }
-                    && superKeyStrings.enableToggle != superKeyStrings.pageTitle
-                    && superKeyStrings.rightKeyFormat.contains("%@")
-                    && superKeyStrings.panelCaptionFormat.contains("%1$@")
-                    && superKeyStrings.panelCaptionFormat.contains("%2$@")
-                    && SuperKeySource.allCases.allSatisfy {
-                        !superKeyStrings.sourceLabel($0).isEmpty
-                    },
-                   "super key strings keep their format and avoid em-dashes (\(language.rawValue))")
             let shortcutValues = Mirror(reflecting: FeatureStrings.shortcuts(language)).children
                 .compactMap { $0.value as? String }
-            suite.expect(shortcutValues.allSatisfy { !$0.contains("—") }
-                    && FeatureStrings.shortcuts(language).superKeyAlternativeFormat.contains("%@"),
+            suite.expect(shortcutValues.allSatisfy { !$0.contains("—") },
                    "shortcut editor strings keep their format and avoid em-dashes (\(language.rawValue))")
             suite.expect(FeatureStrings.feedback(language).charactersFormat.contains("%d"),
                    "feedback character format keeps its placeholder (\(language.rawValue))")
@@ -1852,13 +1688,8 @@ enum FeatureCatalogTests {
         suite.expect(AppFeature.cleaningMode.settingsDestination
                 == FeatureSettingsDestination(.quickTools, sectionAnchor: .cleaningMode),
                "cleaning mode lands on Quick Tools cleaning mode section")
-        suite.expect(AppFeature.diskImageInstaller.settingsDestination
-                == FeatureSettingsDestination(.features),
-               "features without dedicated pages use explicit nearest Settings destinations")
-        suite.expect(!AppFeature.diskImageInstaller.hasNavigableSettingsDestination
-                && AppFeature.allCases.filter { $0 != .diskImageInstaller }
-                    .allSatisfy(\.hasNavigableSettingsDestination),
-               "a feature without a separate configuration surface does not show a dead-end link")
+        suite.expect(AppFeature.allCases.allSatisfy(\.hasNavigableSettingsDestination),
+               "every feature has a navigable Settings destination")
         suite.expect(AppFeature.monitorCPU.settingsDestination == FeatureSettingsDestination(.monitor)
                 && AppFeature.fanControl.settingsDestination
                 == FeatureSettingsDestination(.monitor, sectionAnchor: .fanControl),
@@ -1918,8 +1749,8 @@ enum FeatureCatalogTests {
         settingsRouter.consumeFeatureTarget(id: secondFeatureTargetRequestID)
         suite.expect(settingsRouter.pendingFeatureTarget == nil,
                "a handled feature-target request is cleared")
-        settingsRouter.request(featuresDestination, targetFeature: .diskImageInstaller)
-        suite.expect(settingsRouter.pendingFeatureTarget?.feature == .diskImageInstaller,
+        settingsRouter.request(featuresDestination, targetFeature: .shelf)
+        suite.expect(settingsRouter.pendingFeatureTarget?.feature == .shelf,
                "requesting a different target feature is observable")
         settingsRouter.request(repeatedDestination)
         suite.expect(settingsRouter.pendingFeatureTarget == nil,

@@ -125,7 +125,10 @@ final class SongPeekController {
         if visibleKey == key {
             // A seek back out of the last seconds puts the card away.
             if remaining > SongPeekPolicy.lead + 1 { dismiss() }
-            else { model.endsAt = Date().addingTimeInterval(max(0, remaining)) }
+            else if abs(model.endsAt.timeIntervalSinceNow - remaining) > 0.3 {
+                // Only a real drift re-anchors the ring's animation.
+                model.endsAt = Date().addingTimeInterval(max(0, remaining))
+            }
             return
         }
         guard SongPeekPolicy.isInWindow(remaining: remaining), shownKey != key,

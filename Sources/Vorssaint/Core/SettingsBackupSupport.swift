@@ -139,8 +139,6 @@ enum SettingsBackupSupport {
         // protected-folder prompt without a fresh choice.
         DefaultsKey.commandBarFileScopes,
         DefaultsKey.notchDownloadsFolderBookmark,
-        DefaultsKey.wallpaperOwnBookmarks,
-        DefaultsKey.wallpaperExcludedOwnPaths,
         DefaultsKey.recorderSaveFolder,
         DefaultsKey.screenshotSaveFolder,
         // A local watermark file is authority on this Mac, not portable data.

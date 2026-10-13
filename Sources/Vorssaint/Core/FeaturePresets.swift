@@ -97,7 +97,7 @@ extension AppFeature {
             return .keyboard
         // The switcher's tap also takes clicks and scrolls, and the Super key
         // stamps its modifiers on mouse presses from a second tap.
-        case .switcher, .superKey, .textSnippets, .autoQuit:
+        case .switcher, .textSnippets, .autoQuit:
             return .inputs
         case .windowLayout:
             let edgeSnapRuns = UserDefaults.standard.bool(forKey: DefaultsKey.windowEdgeSnapEnabled)
@@ -132,7 +132,7 @@ extension AppFeature {
         case .notch, .notchCalendar, .notchLyrics, .notchLiveEqualizer, .notchAgents: return .periodic
         case .clipboardHistory,
              .monitorCPU, .monitorGPU, .monitorMemory,
-             .monitorNetwork, .monitorDisk, .monitorPower, .connectedDevices:
+             .monitorNetwork, .monitorDisk, .monitorPower:
             return .periodic
         case .mixer:
             return UserDefaults.standard.bool(forKey: DefaultsKey.preciseVolumeRollerEnabled)
@@ -150,8 +150,8 @@ extension AppFeature {
         case .mouseAcceleration, .pastePlain, .micMute,
              .keepAwake, .quickLauncher, .quickToggles, .colorPicker,
              .screenOCR, .cleaningMode, .mediaTools, .uninstaller, .homebrew, .screenshot,
-             .cameraPreview, .scratchpad, .commandBar, .screenRecorder, .wallpaper, .fanControl,
-             .diskImageInstaller, .killProcess, .portManager:
+             .cameraPreview, .scratchpad, .commandBar, .screenRecorder, .fanControl,
+             .killProcess, .portManager:
             return .idle
         case .appUpdates:
             // The list is on demand; only a background schedule keeps a timer.

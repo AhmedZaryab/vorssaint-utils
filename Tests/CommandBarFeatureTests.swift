@@ -716,11 +716,6 @@ enum CommandBarFeatureTests {
         suite.expect(SettingsBackupSupport.valueLooksRight(DefaultsKey.commandBarASCIILayoutEnabled, true)
                 && !SettingsBackupSupport.valueLooksRight(DefaultsKey.commandBarASCIILayoutEnabled, "yes"),
                "a restored ASCII layout switch has to be a switch, not text that looks like one")
-        let superKeySource = (try? String(
-            contentsOfFile: "Sources/Vorssaint/Services/SuperKey/SuperKeyService.swift",
-            encoding: .utf8)) ?? ""
-        suite.expect(superKeySource.contains("InputSourceSelection.selectableInputSources()"),
-               "the Super key cycle shares the TIS plumbing instead of its own copy")
 
         // MARK: The Mac's own Settings panes
         let openablePane: [String: Any] = [

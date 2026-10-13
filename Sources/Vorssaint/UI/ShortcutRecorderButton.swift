@@ -305,7 +305,6 @@ final class RecorderButton: NSButton {
 
 struct ShortcutPreferenceRow: View {
     @ObservedObject private var l10n = L10n.shared
-    @ObservedObject private var superKey = SuperKeyService.shared
 
     private let role: GlobalShortcutRole
     private let isEnabled: Bool
@@ -314,8 +313,6 @@ struct ShortcutPreferenceRow: View {
     private let contextLabel: String?
     private let statusText: String?
     private let statusIsActive: Bool
-    private let showsSuperKeyAlternative: Bool
-    private let superKeyModifiers: GlobalShortcutModifiers
     private let includeInactiveConflicts: Bool
     private let reservesClearButtonSpace: Bool
     private let onChange: () -> Void
@@ -332,8 +329,6 @@ struct ShortcutPreferenceRow: View {
          contextLabel: String? = nil,
          statusText: String? = nil,
          statusIsActive: Bool = false,
-         showsSuperKeyAlternative: Bool = false,
-         superKeyModifiers: GlobalShortcutModifiers = .validMask,
          includeInactiveConflicts: Bool = false,
          reservesClearButtonSpace: Bool = false,
          additionalConflict: @escaping (GlobalShortcut) -> String? = { _ in nil },
@@ -345,8 +340,6 @@ struct ShortcutPreferenceRow: View {
         self.contextLabel = contextLabel
         self.statusText = statusText
         self.statusIsActive = statusIsActive
-        self.showsSuperKeyAlternative = showsSuperKeyAlternative
-        self.superKeyModifiers = superKeyModifiers
         self.includeInactiveConflicts = includeInactiveConflicts
         self.reservesClearButtonSpace = reservesClearButtonSpace
         self.additionalConflict = additionalConflict
@@ -398,13 +391,6 @@ struct ShortcutPreferenceRow: View {
                         }
                         .disabled(!isEnabled || shortcut == role.defaultShortcut)
                     }
-                    if let alternative = superKeyAlternative {
-                        Text(String(format: FeatureStrings.shortcuts(l10n.language)
-                            .superKeyAlternativeFormat, alternative))
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                            .accessibilityLabel(alternative)
-                    }
                 }
             }
 
@@ -438,12 +424,6 @@ struct ShortcutPreferenceRow: View {
         GlobalShortcut(storageValue: rawValue) ?? role.defaultShortcut
     }
 
-    private var superKeyAlternative: String? {
-        guard showsSuperKeyAlternative else { return nil }
-        return shortcut.superKeyAlternative(
-            sourceLabel: FeatureStrings.superKey(l10n.language).sourceLabel(superKey.source),
-            superKeyModifiers: superKeyModifiers)
-    }
 
     private func save(_ shortcut: GlobalShortcut) {
         if let conflict = GlobalShortcutRole.conflict(for: shortcut,

@@ -453,10 +453,8 @@ enum RadialMenuReleaseAction: Equatable {
 }
 
 extension RadialMenuSupport {
-    /// The Super Key is a virtual modifier: it decorates the summoning key but
-    /// never appears in the system's current physical-modifier state.
-    static func shortcutIsStillHeld(modifiersHeld: Bool, superKeyHeld: Bool) -> Bool {
-        modifiersHeld || superKeyHeld
+    static func shortcutIsStillHeld(modifiersHeld: Bool) -> Bool {
+        modifiersHeld
     }
 
     /// Whether the radial menu currently owns this extra button as its

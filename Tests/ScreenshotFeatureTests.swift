@@ -3837,10 +3837,9 @@ enum ScreenshotFeatureTests {
                 && RadialMenuActivationMode.hold.releaseAction(hasSelection: false) == .dismiss
                 && RadialMenuActivationMode.hold.releaseAction(hasSelection: true) == .select,
                "release keeps the adaptive wheel, dismisses an empty strict hold, or selects its target")
-        suite.expect(RadialMenuSupport.shortcutIsStillHeld(modifiersHeld: true, superKeyHeld: false)
-                && RadialMenuSupport.shortcutIsStillHeld(modifiersHeld: false, superKeyHeld: true)
-                && !RadialMenuSupport.shortcutIsStillHeld(modifiersHeld: false, superKeyHeld: false),
-               "the radial hold follows physical modifiers or the virtual super key")
+        suite.expect(RadialMenuSupport.shortcutIsStillHeld(modifiersHeld: true)
+                && !RadialMenuSupport.shortcutIsStillHeld(modifiersHeld: false),
+               "the radial hold follows physical modifiers")
         suite.expect(RadialMenuMouseTrigger.sanitized("back") == .back
                 && RadialMenuMouseTrigger.sanitized("forward").buttonNumber == 4
                 && RadialMenuMouseTrigger.back.buttonNumber == 3
