@@ -153,9 +153,6 @@ enum DefaultsKey {
     static let mixerLowerVolumeOnHeadphonesDisconnect = "mixerLowerVolumeOnHeadphonesDisconnect"
     static let mixerHeadphonesDisconnectVolumePercent = "mixerHeadphonesDisconnectVolumePercent"
     static let preciseVolumeRollerEnabled = "preciseVolumeRollerEnabled"
-    static let soundOutputSwitcherEnabled = "soundOutputSwitcherEnabled"
-    static let soundOutputSwitcherShortcut = "soundOutputSwitcherShortcut"
-    static let soundOutputSwitcherDeviceUIDs = "soundOutputSwitcherDeviceUIDs"
     // Audio device priority: ordered output and microphone lists the feature
     // enforces automatically when its enable flags are on.
     static let audioPriorityOutputEnabled = "audioPriorityOutputEnabled"
@@ -1252,8 +1249,6 @@ enum Defaults {
         DefaultsKey.mixerLowerVolumeOnHeadphonesDisconnect: false,
         DefaultsKey.mixerHeadphonesDisconnectVolumePercent: defaultMixerHeadphonesDisconnectVolumePercent,
         DefaultsKey.preciseVolumeRollerEnabled: false,
-        DefaultsKey.soundOutputSwitcherEnabled: false,
-        DefaultsKey.soundOutputSwitcherShortcut: GlobalShortcut.soundOutputSwitcherDefault.storageValue,
         // The feature itself ships uninstalled. On first install both halves
         // work immediately; an explicit off choice is persisted and wins over
         // these registered defaults on later launches or reinstalls.
@@ -2572,17 +2567,6 @@ enum Defaults {
 
     static func sanitizedAppOutputDevices(_ raw: [String: Any]) -> [String: String] {
         MixerRoutingSupport.sanitizedRouteMap(raw)
-    }
-
-    static func sanitizedSoundOutputSwitcherDeviceUIDs(_ raw: [Any]) -> [String] {
-        var seen = Set<String>()
-        var result: [String] = []
-        for value in raw {
-            guard let uid = MixerRoutingSupport.sanitizedDeviceUID(value),
-                  seen.insert(uid).inserted else { continue }
-            result.append(uid)
-        }
-        return result
     }
 
     static func sanitizedPreferredInputDeviceUID(_ value: Any?) -> String? {

@@ -395,7 +395,7 @@ enum FeatureCatalogTests {
             "mouseClickDebounce", "textSnippets", "superKey",
             "clipboardHistory", "pastePlain", "finderCutPaste", "finderRename", "shelf", "urlCleaner",
             "diskImageInstaller",
-            "mixer", "soundOutputSwitcher", "audioPriority", "micMute", "musicBlock",
+            "mixer", "audioPriority", "micMute", "musicBlock",
             "keepAwake", "brightness",
             "quickLauncher", "quickToggles", "colorPicker", "screenOCR", "cleaningMode", "mediaTools",
             "cleaner", "uninstaller", "homebrew", "appUpdates", "screenshot", "cameraPreview",
@@ -566,7 +566,7 @@ enum FeatureCatalogTests {
             "scrollInverter", "smoothScroll", "mouseAcceleration", "mouseNavigation", "mouseButtonShortcuts",
             "middleClick", "mouseClickDebounce", "textSnippets", "superKey",
             "clipboardHistory", "pastePlain", "finderCutPaste", "finderRename", "shelf", "urlCleaner",
-            "mixer", "soundOutputSwitcher", "micMute", "musicBlock",
+            "mixer", "micMute", "musicBlock",
             "keepAwake", "brightness",
             "quickLauncher", "quickToggles", "colorPicker", "screenOCR", "cleaningMode", "mediaTools",
             "cleaner", "uninstaller", "homebrew", "appUpdates", "screenshot", "cameraPreview", "radialMenu",
@@ -1970,11 +1970,9 @@ enum FeatureCatalogTests {
                "the Dock page asks for Accessibility while Dock Preview or any Dock click action is on")
         suite.expect(AppFeature.mixer.settingsDestination
                 == FeatureSettingsDestination(.general, sectionAnchor: .mixer)
-                && AppFeature.soundOutputSwitcher.settingsDestination
-                    == FeatureSettingsDestination(.general, sectionAnchor: .soundOutputSwitcher)
                 && AppFeature.audioPriority.settingsDestination
                     == FeatureSettingsDestination(.general, sectionAnchor: .audioPriority),
-               "Mixer, output switcher and audio priority have separate General controls")
+               "Mixer and audio priority have separate General controls")
         suite.expect(AppFeature.windowMaximizer.settingsDestination
                 == FeatureSettingsDestination(.windowLayout, sectionAnchor: .windowMaximizer)
                 && pageVisible(.windowLayout, available: [.windowMaximizer])

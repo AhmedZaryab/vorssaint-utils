@@ -14,14 +14,14 @@ import VMStatisticsCompat
 enum MixerFeatureTests {
     static func run(_ suite: TestSuite) {
         let switcherOnly = MixerRoutingSupport.observationNeeds {
-            $0 == .soundOutputSwitcher
+            $0 == .audioPriority
         }
         let mixerOnly = MixerRoutingSupport.observationNeeds { $0 == .mixer }
         let unavailable = MixerRoutingSupport.observationNeeds { _ in false }
         suite.expect(switcherOnly.devices && !switcherOnly.processes
                 && mixerOnly.devices && mixerOnly.processes
                 && !unavailable.devices && !unavailable.processes,
-               "output switcher alone watches devices without starting per-app mixer taps")
+               "audio priority alone watches devices without starting per-app mixer taps")
 
         suite.expectClose(Defaults.sanitizedAppVolume(1.5), 1.5, "valid app volume is preserved")
         suite.expectClose(Defaults.sanitizedAppVolume(3), 2, "high app volume clamps to boost maximum")
@@ -107,14 +107,6 @@ enum MixerFeatureTests {
         ])
         suite.expect(savedRoutes == ["com.apple.Safari": "BuiltInSpeakerDevice"],
                "app output device routes keep only valid app and device ids")
-        suite.expect(Defaults.sanitizedSoundOutputSwitcherDeviceUIDs([
-            " BuiltInSpeakerDevice ",
-            "bad\nuid",
-            "BuiltInSpeakerDevice",
-            "ExternalDisplay",
-            7,
-        ]) == ["BuiltInSpeakerDevice", "ExternalDisplay"],
-               "sound output switcher keeps valid unique device ids in order")
         let savedMixerVolumes = ["com.apple.Safari": 0.35, "com.apple.Music": 1.4]
         let successfulUniversalOutput = MixerRoutingSupport.preferencesAfterUniversalOutputSwitch(
             outputDeviceUIDs: savedRoutes,

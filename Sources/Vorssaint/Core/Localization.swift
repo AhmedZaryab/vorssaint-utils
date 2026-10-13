@@ -784,11 +784,6 @@ struct Strings {
     let preciseVolumeRollerEnable: String
     let preciseVolumeRollerCaption: String
     let preciseVolumeRollerTapFailed: String
-    let soundOutputSwitcherTitle: String
-    let soundOutputSwitcherEnable: String
-    let soundOutputSwitcherCaption: String
-    let soundOutputSwitcherDevices: String
-    let soundOutputSwitcherNoAvailableSelection: String
     let mixerInputTitle: String
     let mixerInputNoDevices: String
     let mixerInputUnavailable: String
@@ -1887,11 +1882,6 @@ extension Strings {
         preciseVolumeRollerEnable: "Volume mais preciso no controle",
         preciseVolumeRollerCaption: "Transforma roletes e teclas de volume em passos menores.",
         preciseVolumeRollerTapFailed: "Não foi possível ouvir as teclas de volume.",
-        soundOutputSwitcherTitle: "Alternador de saída",
-        soundOutputSwitcherEnable: "Alternar saídas por atalho",
-        soundOutputSwitcherCaption: "Escolha as saídas e use o atalho para passar para a próxima disponível.",
-        soundOutputSwitcherDevices: "Saídas no ciclo",
-        soundOutputSwitcherNoAvailableSelection: "Selecione pelo menos uma saída disponível.",
         mixerInputTitle: "Microfone",
         mixerInputNoDevices: "Nenhum microfone encontrado",
         mixerInputUnavailable: "Microfone indisponível",
@@ -2967,11 +2957,6 @@ extension Strings {
         preciseVolumeRollerEnable: "Use finer volume steps",
         preciseVolumeRollerCaption: "Turns volume wheels and keys into smaller system volume steps.",
         preciseVolumeRollerTapFailed: "Could not listen for volume keys.",
-        soundOutputSwitcherTitle: "Output switcher",
-        soundOutputSwitcherEnable: "Switch outputs with shortcut",
-        soundOutputSwitcherCaption: "Choose outputs and use the shortcut to move to the next available one.",
-        soundOutputSwitcherDevices: "Outputs in cycle",
-        soundOutputSwitcherNoAvailableSelection: "Select at least one available output.",
         mixerInputTitle: "Microphone",
         mixerInputNoDevices: "No microphones found",
         mixerInputUnavailable: "Microphone unavailable",

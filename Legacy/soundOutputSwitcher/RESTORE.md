@@ -1,0 +1,6 @@
+# Restore soundOutputSwitcher
+1. git mv SoundOutputSwitcher.swift to Sources/Vorssaint/Services/Audio/, SoundOutputSwitchTests.swift to Tests/, and paste SoundOutputSwitcherControls.swift's struct back into UI/MenuPanel/MixerSection.swift (above MixerRow, plus its usage under preciseVolumeRollerToggle).
+2. Re-add `soundOutputSwitcher` to AppFeature (FeatureCatalog: case, group, icon, enabledKeys, permission and order lists), FeatureSettingsSection (FeatureVisibilitySupport), FeaturePresets, FeatureRuntime, GeneralToolSettings, SettingsView anchor list, MixerRoutingSupport, FeatureHubSettings titles and desc.
+3. Re-add DefaultsKey soundOutputSwitcherEnabled/Shortcut/DeviceUIDs with registered defaults, GlobalShortcut.soundOutputSwitcherDefault and the ShortcutRole case, Defaults.sanitizedSoundOutputSwitcherDeviceUIDs, the SettingsBackupSupport entry, ShortcutCapture/AppDelegate calls, and the CommandBarCatalog output entries.
+4. Re-add the soundOutputSwitcher* strings (Localization) and descSoundOutputSwitcher (FeatureHubStrings), then the removed Tests (git show chore/cut-soundOutputSwitcher^:Tests/...) and the SoundOutputSwitch.swift block in Tests/generate_sources.py.
+5. Run swift build --build-tests.

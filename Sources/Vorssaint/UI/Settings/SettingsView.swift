@@ -566,7 +566,7 @@ struct SettingsView: View {
         switch router.page {
         case .general:
             if let anchor = router.destination.sectionAnchor,
-               [.panelConfiguration, .mixer, .soundOutputSwitcher,
+               [.panelConfiguration, .mixer,
                 .audioPriority, .musicBlocking].contains(anchor),
                sidebarItems.contains(where: { $0.destination == router.destination }) {
                 GeneralToolSettings(anchor: anchor)
