@@ -18,6 +18,7 @@ final class NotchLyricsService: ObservableObject {
     private var visible = false
     private var online = false
     private var importPanel: NSOpenPanel?
+    private var spotifyTask: Task<Void, Never>?
     var isImporting: Bool { importPanel != nil }
 
     private init() {}
@@ -81,6 +82,8 @@ final class NotchLyricsService: ObservableObject {
         generation = UUID()
         session?.invalidateAndCancel()
         session = nil
+        spotifyTask?.cancel()
+        spotifyTask = nil
         importPanel?.cancel(nil)
         importPanel = nil
     }
@@ -90,6 +93,33 @@ final class NotchLyricsService: ObservableObject {
             state = .ready
             return
         }
+        // Spotify's own line-synced lyrics come first when Spotify is signed in:
+        // same timings Spotify shows. LRCLIB stays the fallback.
+        if track.bundle?.lowercased().contains("spotify") == true, Self.spotifyLyricsAvailable {
+            state = .loading
+            let requested = generation
+            spotifyTask = Task { @MainActor [weak self] in
+                let lines = await SpotifyPrivateAuth.shared.syncedLyrics(title: track.title)
+                guard let self, !Task.isCancelled, self.visible, self.generation == requested,
+                      self.track == track, NotchLyricsSupport.onlineEnabled() else { return }
+                self.spotifyTask = nil
+                if let lines {
+                    self.finish(NotchLyrics(lines: lines, plain: "", instrumental: false), failed: false, track: track)
+                } else {
+                    self.loadLRCLIB(track)
+                }
+            }
+            return
+        }
+        loadLRCLIB(track)
+    }
+
+    private static var spotifyLyricsAvailable: Bool {
+        guard Thread.isMainThread else { return false }
+        return MainActor.assumeIsolated { SpotifyPrivateAuth.shared.isConnected }
+    }
+
+    private func loadLRCLIB(_ track: NotchMusicIdentity) {
         guard let url = NotchLyricsSupport.lookupURL(for: track) else { state = .unavailable; return }
         state = .loading
         let requested = generation

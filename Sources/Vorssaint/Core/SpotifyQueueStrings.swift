@@ -29,6 +29,8 @@ struct SpotifyQueueStrings {
     let skipNext: String
     let skipPrevious: String
     let actionFailed: String
+    let advanced: String
+    let advancedHint: String
 
     static let current = SpotifyQueueStrings(
         featureTitle: "Spotify up next",
@@ -54,5 +56,7 @@ struct SpotifyQueueStrings {
         playNow: "Play now",
         skipNext: "Next song",
         skipPrevious: "Previous song",
-        actionFailed: "Spotify did not accept that. Playback may be on a device that is offline.")
+        actionFailed: "Spotify did not accept that. Playback may be on a device that is offline.",
+        advanced: "Advanced (developer login)",
+        advancedHint: "Only needed if the normal Spotify login does not work for you.")
 }

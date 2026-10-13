@@ -41,12 +41,24 @@ final class SpotifyQueueService: ObservableObject {
 
     static var isAvailable: Bool { AppFeature.spotifyQueue.isAvailable }
 
+    /// Where the Web API token comes from: the Spotify login first (no developer
+    /// setup), the developer app's PKCE login second, nothing third.
+    enum Provider { case privateLogin, pkce, none }
+
+    static var provider: Provider {
+        if SpotifyPrivateAuth.shared.isConnected { return .privateLogin }
+        if SpotifyWebAuth.shared.isConnected { return .pkce }
+        return .none
+    }
+
+    static var isConnected: Bool { provider != .none }
+
     // MARK: Polling
 
     func setVisible(_ visible: Bool) {
         pollTask?.cancel()
         pollTask = nil
-        guard visible, Self.isAvailable, SpotifyWebAuth.shared.isConnected else { return }
+        guard visible, Self.isAvailable, Self.isConnected else { return }
         pollTask = Task { [weak self] in
             while !Task.isCancelled {
                 await self?.refresh()
@@ -57,7 +69,7 @@ final class SpotifyQueueService: ObservableObject {
     }
 
     func refresh() async {
-        guard SpotifyWebAuth.shared.isConnected else { return }
+        guard Self.isConnected else { return }
         if let backoffUntil, backoffUntil > Date() { return }
         if upNext.isEmpty { loading = true }
         defer { loading = false }
@@ -162,7 +174,8 @@ final class SpotifyQueueService: ObservableObject {
         if !query.isEmpty { components.queryItems = query }
         var request = URLRequest(url: components.url!)
         request.httpMethod = method
-        let token = try await SpotifyWebAuth.shared.validAccessToken()
+        let provider = Self.provider
+        let token = try await Self.accessToken(provider, refresh: false)
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         if let body {
             request.httpBody = body
@@ -174,7 +187,7 @@ final class SpotifyQueueService: ObservableObject {
         let http = response as? HTTPURLResponse
         let status = http?.statusCode ?? 0
         if status == 401, !retried {
-            _ = try await SpotifyWebAuth.shared.refreshAccessToken()
+            _ = try await Self.accessToken(provider, refresh: true)
             return try await call(method, path, query: query, body: body, retried: true)
         }
         if status == 429 {
@@ -182,6 +195,19 @@ final class SpotifyQueueService: ObservableObject {
             backoffUntil = Date().addingTimeInterval(max(wait, Self.pollInterval))
         }
         return (data, status)
+    }
+
+    private static func accessToken(_ provider: Provider, refresh: Bool) async throws -> String {
+        switch provider {
+        case .privateLogin:
+            let auth = SpotifyPrivateAuth.shared
+            return refresh ? try await auth.refreshAccessToken() : try await auth.validAccessToken()
+        case .pkce:
+            let auth = SpotifyWebAuth.shared
+            return refresh ? try await auth.refreshAccessToken() : try await auth.validAccessToken()
+        case .none:
+            throw SpotifyWebAuth.AuthError.notConnected
+        }
     }
 
     private static func track(_ json: [String: Any], index: Int) -> Track? {

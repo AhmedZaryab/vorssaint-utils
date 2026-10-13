@@ -119,7 +119,7 @@ final class SongPeekController {
         let key = Self.key(for: playback)
         let remaining = playback.duration - playback.position(at: Date())
         if SongPeekPolicy.wantsPrefetch(remaining: remaining), prefetchedKey != key,
-           SpotifyQueueService.isAvailable, SpotifyWebAuth.shared.isConnected {
+           SpotifyQueueService.isAvailable, SpotifyQueueService.isConnected {
             prefetchedKey = key
             Task { await SpotifyQueueService.shared.refresh() }
         }
