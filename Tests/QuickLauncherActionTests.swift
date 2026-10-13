@@ -104,7 +104,6 @@ enum QuickLauncherContract {
             (.windowLayout, .windowLayout, nil, nil),
             (.homebrew, .homebrew, nil, nil),
             (.media, .mediaTools, nil, nil),
-            (.urlCleaner, .urlCleaner, nil, nil),
             (.uninstaller, .uninstaller, nil, nil),
             (.cleaner, .cleaner, nil, nil),
             (.toggles, .quickToggles, nil, nil),
@@ -175,7 +174,7 @@ enum QuickLauncherContract {
         let enter = NSEvent(keyCode: UInt16(kVK_Return))
         suite.expect(launcher.handlePanelKey(enter) == nil && events == ["keepAwake.toggle"],
                      "Return activates the first item immediately after presentation")
-        for item in [QuickLauncherItem.urlCleaner, .homebrew, .uninstaller, .media] {
+        for item in [QuickLauncherItem.homebrew, .uninstaller, .media] {
             launcher.activeUtility = item
             launcher.prepareForPresentation()
             suite.expect(launcher.activeUtility == item,

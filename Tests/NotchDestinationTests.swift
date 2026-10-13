@@ -206,13 +206,13 @@ enum NotchDestinationContract {
         service.open(.tools)
         suite.expect(launcher.presentationID == unchangedPresentation,
                "reopening the same visible Tools destination does not reset its working presentation")
-        launcher.activeUtility = .urlCleaner
+        launcher.activeUtility = .homebrew
         service.open(.controls)
         service.open(.tools)
-        suite.expect(launcher.activeUtility == .urlCleaner,
+        suite.expect(launcher.activeUtility == .homebrew,
                "navigation preserves a still-available hosted utility")
         service.open(.controls)
-        defaults.set(false, forKey: AppFeature.urlCleaner.availabilityKey)
+        defaults.set(false, forKey: AppFeature.homebrew.availabilityKey)
         service.open(.tools)
         suite.expect(launcher.activeUtility == nil,
                "returning to Tools after removal cannot revive its previous utility")

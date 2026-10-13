@@ -401,7 +401,6 @@ enum SettingsDirectory {
                                        icon: "camera.viewfinder",
                                        featureKeywords: SettingsSearchSupport
                                         .screenCaptureFeatureKeywords(s, language: language)),
-                SettingsDirectoryItem(page: .urlCleaner, title: s.urlCleanerName, icon: "link"),
                 SettingsDirectoryItem(page: .superKey,
                                       title: FeatureStrings.superKey(language).pageTitle,
                                       icon: superKeySource.systemImage,

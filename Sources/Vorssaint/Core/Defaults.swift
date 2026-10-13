@@ -269,15 +269,10 @@ enum DefaultsKey {
     static let settingsWindowWidth = "settingsWindowWidth"     // last user-chosen content size (0 = unset)
     static let settingsWindowHeight = "settingsWindowHeight"
     static let shelfItems = "shelfItems"                  // Data: [ShelfPersistedItem] JSON
-    static let urlCleanerEnabled = "urlCleanerEnabled"
-    static let urlCleanerCustomParameters = "urlCleanerCustomParameters"
-    static let urlCleanerSiteParameters = "urlCleanerSiteParameters"       // host|name pairs added to one site
-    static let urlCleanerDisabledParameters = "urlCleanerDisabledParameters" // built-in host|name pairs switched off
     static let windowMaximizeEnabled = "windowMaximizeEnabled"
     static let windowMaximizeExcludedApps = "windowMaximizeExcludedApps" // [bundle id] whose green button stays native
     static let panelUtilityCleaning = "panelUtilityCleaning"
     static let cleaningModeKeepScreenVisible = "cleaningModeKeepScreenVisible"
-    static let panelUtilityURLCleaner = "panelUtilityURLCleaner"
     static let panelUtilityUninstaller = "panelUtilityUninstaller"
     static let uninstallerCommandBarEnabled = "uninstallerCommandBarEnabled"
     static let killProcessCommandBarEnabled = "killProcessCommandBarEnabled"
@@ -1332,10 +1327,6 @@ enum Defaults {
         DefaultsKey.whatsAppOrganizerLastMoved: 0,
         DefaultsKey.whatsAppOrganizerLastDuplicates: 0,
         DefaultsKey.whatsAppOrganizerLastFailed: 0,
-        DefaultsKey.urlCleanerEnabled: false,
-        DefaultsKey.urlCleanerCustomParameters: "",
-        DefaultsKey.urlCleanerSiteParameters: "",
-        DefaultsKey.urlCleanerDisabledParameters: "",
         DefaultsKey.textSnippetsEnabled: false,
         DefaultsKey.snippetLibraryEnabled: false,
         DefaultsKey.snippetLibraryShortcut: GlobalShortcut.snippetLibraryDefault.storageValue,
@@ -1472,7 +1463,6 @@ enum Defaults {
         DefaultsKey.windowMaximizeExcludedApps: [String](),
         DefaultsKey.panelUtilityCleaning: true,
         DefaultsKey.cleaningModeKeepScreenVisible: false,
-        DefaultsKey.panelUtilityURLCleaner: true,
         DefaultsKey.panelUtilityUninstaller: true,
         DefaultsKey.uninstallerCommandBarEnabled: false,
         DefaultsKey.killProcessCommandBarEnabled: true,
