@@ -22,7 +22,14 @@ struct NotchSpotifyQueueSection: View {
                 if service.actionFailed {
                     Text(text.actionFailed).font(.caption).foregroundStyle(.orange)
                 }
-                if service.upNext.isEmpty, !service.loading {
+                if let code = service.failureCode {
+                    HStack(spacing: 8) {
+                        Text(String(format: text.noAnswer, code)).font(.caption).foregroundStyle(.orange).lineLimit(2)
+                        Spacer(minLength: 0)
+                        Button(text.retry) { service.retryNow() }.buttonStyle(.borderless).font(.caption)
+                    }
+                }
+                if service.upNext.isEmpty, !service.loading, service.failureCode == nil {
                     Text(text.nothingQueued).font(.callout).foregroundStyle(.secondary)
                 } else {
                     ScrollView {
@@ -58,12 +65,20 @@ struct NotchSpotifyQueueSection: View {
         .onChange(of: connected) { _, connected in service.setVisible(connected) }
     }
 
+    private var title: String {
+        switch service.contextKind {
+        case "playlist": return text.fromPlaylist
+        case "album": return text.fromAlbum
+        default: return text.upNext
+        }
+    }
+
     /// Either login works: the Spotify login first, the developer app second.
     private var connected: Bool { privateAuth.isConnected || auth.isConnected }
 
     private var header: some View {
         HStack(spacing: 6) {
-            Text(text.upNext).font(.callout.weight(.semibold))
+            Text(title).font(.callout.weight(.semibold))
             Spacer()
             if service.loading || service.actionPending || service.searching { ProgressView().controlSize(.mini) }
             if connected {

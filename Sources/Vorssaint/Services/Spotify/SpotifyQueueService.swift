@@ -3,10 +3,13 @@
 
 import AppKit
 import Foundation
+import os
 
-/// Spotify's real queue through the Web API. Polls every 5 s only while the
-/// notch music page is open on Spotify, caches the last answer, and backs off
-/// when Spotify answers 429.
+/// Spotify's real queue. With the Spotify login it reads the web player's own
+/// player state (connect-state on spclient), because the Web API answers 429 to
+/// web player tokens; with the developer login it reads the Web API queue.
+/// Polls every 5 s only while the notch music page is open on Spotify, caches
+/// the last answer, and backs off when Spotify answers 429.
 @MainActor
 final class SpotifyQueueService: ObservableObject {
     static let shared = SpotifyQueueService()
@@ -30,10 +33,18 @@ final class SpotifyQueueService: ObservableObject {
     @Published private(set) var searchResults: [Track] = []
     @Published private(set) var searching = false
     @Published private(set) var artwork: [URL: NSImage] = [:]
+    /// The HTTP status of the last failed queue read (0 = no answer), nil when it worked.
+    @Published private(set) var failureCode: Int?
+    /// "playlist" or "album" when the songs shown come from what is playing,
+    /// not from songs the user queued; nil otherwise.
+    @Published private(set) var contextKind: String?
 
+    private static let log = Logger(subsystem: Bundle.main.bundleIdentifier ?? "vorssaint", category: "SpotifyQueue")
     private var pollTask: Task<Void, Never>?
     private var backoffUntil: Date?
+    private var spclientBackoffUntil: Date?
     private var lastCurrentURI: String?
+    private var metadata: [String: SpotifyConnectState.Metadata] = [:]
 
     static func isSpotify(_ playback: NotchPlayback?) -> Bool {
         playback?.track.appBundleIdentifier?.lowercased().contains("spotify") == true
@@ -62,29 +73,114 @@ final class SpotifyQueueService: ObservableObject {
         pollTask = Task { [weak self] in
             while !Task.isCancelled {
                 await self?.refresh()
-                let wait = max(Self.pollInterval, self?.backoffUntil?.timeIntervalSinceNow ?? 0)
+                let wait = max(Self.pollInterval, self?.activeBackoff?.timeIntervalSinceNow ?? 0)
                 try? await Task.sleep(nanoseconds: UInt64(wait * 1_000_000_000))
             }
         }
     }
 
+    private var activeBackoff: Date? {
+        Self.provider == .privateLogin ? spclientBackoffUntil : backoffUntil
+    }
+
     func refresh() async {
         guard Self.isConnected else { return }
-        if let backoffUntil, backoffUntil > Date() { return }
+        if let activeBackoff, activeBackoff > Date() { return }
         if upNext.isEmpty { loading = true }
         defer { loading = false }
-        guard let (data, status) = try? await call("GET", "/me/player/queue"), status == 200,
-              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return }
+        if Self.provider == .privateLogin {
+            await refreshFromConnectState()
+        } else {
+            await refreshFromWebAPI()
+        }
+        loadArtwork(for: upNext + searchResults)
+    }
+
+    /// The retry button: forget any back-off and ask again now.
+    func retryNow() {
+        backoffUntil = nil
+        spclientBackoffUntil = nil
+        Task { await refresh() }
+    }
+
+    private func refreshFromConnectState() async {
+        let auth = SpotifyPrivateAuth.shared
+        do {
+            var token = try await auth.validAccessToken()
+            let clientToken = await auth.validClientToken()
+            let cluster: SpotifyConnectState.Cluster
+            do {
+                cluster = try await SpotifyConnectState.cluster(token: token, clientToken: clientToken)
+            } catch SpotifyConnectState.Failure.status(401) {
+                token = try await auth.refreshAccessToken()
+                cluster = try await SpotifyConnectState.cluster(token: token, clientToken: clientToken)
+            }
+            let shown = Array(cluster.next.prefix(Self.visibleCount))
+            await loadMetadata(for: [cluster.currentURI].compactMap { $0 } + shown.map(\.uri),
+                               token: token, clientToken: clientToken)
+            current = cluster.currentURI.flatMap { track(uri: $0, index: -1) }
+            upNext = shown.enumerated().compactMap { track(uri: $0.element.uri, index: $0.offset) }
+            contextURI = cluster.contextURI
+            let kind = cluster.contextURI?.split(separator: ":").dropFirst().first.map(String.init)
+            contextKind = shown.contains { $0.provider == "queue" } ? nil
+                : (kind == "playlist" || kind == "album" ? kind : nil)
+            failureCode = nil
+            Self.log.info("queue read: connect-state 200, \(self.upNext.count, privacy: .public) items, from \(self.contextKind ?? "queue", privacy: .public)")
+        } catch SpotifyConnectState.Failure.status(let status) {
+            if status == 429 { spclientBackoffUntil = Date().addingTimeInterval(30) }
+            fail(status, source: "connect-state")
+        } catch {
+            fail(0, source: "connect-state")
+        }
+    }
+
+    private func refreshFromWebAPI() async {
+        guard let (data, status) = try? await call("GET", "/me/player/queue") else {
+            fail(0, source: "web-api")
+            return
+        }
+        guard status == 200, let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            fail(status, source: "web-api")
+            return
+        }
         let playing = (json["currently_playing"] as? [String: Any]).flatMap { Self.track($0, index: -1) }
         let queue = (json["queue"] as? [[String: Any]] ?? []).enumerated()
             .compactMap { Self.track($0.element, index: $0.offset) }
         current = playing
         upNext = Array(queue.prefix(Self.visibleCount))
+        contextKind = nil
+        failureCode = nil
+        Self.log.info("queue read: web-api 200, \(self.upNext.count, privacy: .public) items")
         if playing?.uri != lastCurrentURI {
             lastCurrentURI = playing?.uri
             await loadContext()
         }
-        loadArtwork(for: upNext + searchResults)
+    }
+
+    /// A failed read never looks like an empty queue: keep the last list and say why.
+    private func fail(_ status: Int, source: String) {
+        failureCode = status
+        Self.log.error("queue read failed: \(source, privacy: .public) status \(status, privacy: .public)")
+    }
+
+    private func loadMetadata(for uris: [String], token: String, clientToken: String?) async {
+        let missing = Array(Set(uris.filter { metadata[$0] == nil }))
+        guard !missing.isEmpty else { return }
+        let found = await withTaskGroup(of: (String, SpotifyConnectState.Metadata?).self) { group in
+            for uri in missing {
+                group.addTask { (uri, await SpotifyConnectState.metadata(uri: uri, token: token, clientToken: clientToken)) }
+            }
+            var result: [(String, SpotifyConnectState.Metadata)] = []
+            for await (uri, meta) in group { if let meta { result.append((uri, meta)) } }
+            return result
+        }
+        if metadata.count > 200 { metadata.removeAll() }
+        for (uri, meta) in found { metadata[uri] = meta }
+    }
+
+    private func track(uri: String, index: Int) -> Track? {
+        guard let meta = metadata[uri] else { return nil }
+        return Track(id: "\(index)-\(uri)", uri: uri, title: meta.title, artist: meta.artist, artworkURL: meta.artworkURL)
     }
 
     private func loadContext() async {

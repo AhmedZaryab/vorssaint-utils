@@ -22,6 +22,10 @@ struct SpotifyQueueStrings {
     let browserDone: String
     let upNext: String
     let nothingQueued: String
+    let fromPlaylist: String
+    let fromAlbum: String
+    let noAnswer: String
+    let retry: String
     let reorderLimit: String
     let searchPlaceholder: String
     let addToQueue: String
@@ -50,6 +54,10 @@ struct SpotifyQueueStrings {
         browserDone: "Spotify is connected to Vorssaint. You can close this tab.",
         upNext: "Up next",
         nothingQueued: "Nothing queued after this song",
+        fromPlaylist: "From the playlist",
+        fromAlbum: "From the album",
+        noAnswer: "Spotify did not answer (code %d), retrying",
+        retry: "Retry",
         reorderLimit: "Spotify does not let apps reorder the queue. Tap a song to play it now.",
         searchPlaceholder: "Add a song to the queue",
         addToQueue: "Add to queue",
