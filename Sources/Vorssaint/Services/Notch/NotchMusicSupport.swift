@@ -230,3 +230,11 @@ struct NotchTrackChange {
         return text
     }
 }
+
+/// Spotify data is untrusted; nothing from it reaches AppleScript unchecked.
+enum SpotifyScriptSafety {
+    /// True only for a plain track or episode URI, so it cannot break out of a quoted script string.
+    static func isSafeURI(_ uri: String) -> Bool {
+        uri.range(of: "^spotify:(track|episode):[A-Za-z0-9]{22}$", options: .regularExpression) != nil
+    }
+}

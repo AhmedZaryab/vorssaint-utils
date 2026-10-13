@@ -208,7 +208,7 @@ final class SpotifyQueueService: ObservableObject {
         if Self.spotifyRunning {
             let skips = min(position, Self.visibleCount)
             performLocal {
-                if track.uri.isEmpty || position <= 3 {
+                if !SpotifyScriptSafety.isSafeURI(track.uri) || position <= 3 {
                     return Self.runSpotify(Array(repeating: "next track", count: skips).joined(separator: "\n"))
                 }
                 return Self.runSpotify("play track \"\(track.uri)\"")
