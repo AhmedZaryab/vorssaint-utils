@@ -88,6 +88,7 @@ final class NotchMusicService: ObservableObject {
     private var awaitingAutomationValidation = false
     private let queue = DispatchQueue(label: "com.vorssaint.notch-music", qos: .utility)
     private let playerClock = NotchPlayerClock()
+    private var clockDemand: AnyCancellable?
     private lazy var commandWriter = NotchMusicCommandWriter { [queue = self.queue] action in queue.async(execute: action) }
 
     private init() {}
@@ -106,6 +107,16 @@ final class NotchMusicService: ObservableObject {
             stop()
         }
         self.includeOtherPlayers = includeOtherPlayers
+        if clockDemand == nil {
+            // The player's clock only matters where a live position shows:
+            // the open notch (lyrics, scrubber) or the song peek band.
+            let notch = NotchService.shared
+            clockDemand = notch.$expanded.combineLatest(notch.$songPeek.map { $0 != nil })
+                .map { $0 || $1 }
+                .removeDuplicates()
+                .receive(on: DispatchQueue.main)
+                .sink { [weak self] live in self?.playerClock.live = live }
+        }
         wantsPlayback = true
         awaitingPlayback = true
         restartCount = 0

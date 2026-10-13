@@ -18,7 +18,7 @@ final class NotchAgentAnimationView: NSView {
     private var animates = false
     private var visibilityObserver: NSObjectProtocol?
     private(set) var motionStart: CFTimeInterval = 0
-    private lazy var clock = NotchDecorativeClock { [weak self] time in self?.step(at: time) }
+    private lazy var clock = NotchDecorativeClock(rate: NotchDecorativeClock.agentRate) { [weak self] time in self?.step(at: time) }
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
@@ -125,6 +125,9 @@ final class NotchAgentAnimationView: NSView {
     var isMoving: Bool { clock.isRunning }
 
     private func updateLayers() {
+        // A closed or hidden island has no window or an occluded one, and
+        // locking or sleeping the screens closes the island's window, so the
+        // clock stops in each of those cases.
         let moving = animates && !isHiddenOrHasHiddenAncestor
             && window?.isVisible == true && window?.occlusionState.contains(.visible) == true
         // Snapshot, time and geometry updates keep the motion's phase.
