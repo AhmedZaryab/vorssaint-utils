@@ -14,7 +14,7 @@ final class NotchPlayerClock {
     /// How long before a song ends the song peek wants a live clock.
     static let peekLead: TimeInterval = 15
 
-    private let queue = DispatchQueue(label: "com.vorssaint.notch-player-clock", qos: .userInitiated)
+    private let queue = DispatchQueue(label: "com.vorssaint.notch-player-clock", qos: .utility)
     private var timer: Timer?
     private var wake: Timer?
     private var target: NotchMusicAutomation.Target?
@@ -23,6 +23,7 @@ final class NotchPlayerClock {
     private var playback: NotchPlayback?
     private var anchor: ((Double, Date) -> Void)?
     private var nearEnd = false
+    private var settleRead: DispatchWorkItem?
 
     /// Main thread. True while a visible surface needs the live position.
     var live = false {
@@ -43,7 +44,7 @@ final class NotchPlayerClock {
         let read = { [weak self] in
             guard let self, self.token == token else { return }
             let cached = self.availability
-            self.queue.async {
+            DispatchQueue.global(qos: .utility).async {
                 guard let availability = cached ?? NotchMusicAutomation.inspect(target),
                       let clock = NotchMusicAutomation.clock(of: availability) else { return }
                 DispatchQueue.main.async {
@@ -53,8 +54,11 @@ final class NotchPlayerClock {
                 }
             }
         }
-        // A player settles its clock a moment after a command.
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { read() }
+        // Debounce: every new reading halts this and restarts it, so while a
+        // scrub streams changes no read happens; one read after 400 ms of quiet.
+        let settle = DispatchWorkItem { read() }
+        settleRead = settle
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4, execute: settle)
         let timer = Timer(timeInterval: 1, repeats: true) { _ in read() }
         timer.tolerance = 0.1
         RunLoop.main.add(timer, forMode: .common)
@@ -88,6 +92,8 @@ final class NotchPlayerClock {
     }
 
     private func halt() {
+        settleRead?.cancel()
+        settleRead = nil
         timer?.invalidate()
         timer = nil
         wake?.invalidate()

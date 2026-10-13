@@ -331,6 +331,7 @@ final class SpotifyConnectCommands {
 
     /// Re-reads the cluster and lets the notch queue redraw from it.
     private func refreshAfterChange() async {
+        try? await Task.sleep(nanoseconds: 700_000_000)
         await refreshCluster()
         await SpotifyQueueService.shared.refresh()
     }

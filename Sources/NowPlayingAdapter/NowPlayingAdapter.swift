@@ -97,9 +97,14 @@ func emit(_ reply: [String: Any]) {
     FileHandle.standardOutput.write(Data("\n".utf8))
 }
 
+/// When the last read began; the 2 s re-anchor skips while notifications are
+/// still arriving (a scrub), since each one already reads.
+private var lastReadAt = Date.distantPast
+
 /// Entry point called from perl. Prints exactly one line and returns.
 @_cdecl("vorssaint_now_playing_get")
 public func vorssaintNowPlayingGet() {
+    lastReadAt = Date()
     let handle = dlopen("/System/Library/PrivateFrameworks/MediaRemote.framework/MediaRemote", RTLD_LAZY)
     guard let getInfo = function(handle, "MRMediaRemoteGetNowPlayingInfo", as: InfoFunction.self) else {
         emit(["error": "MRMediaRemoteGetNowPlayingInfo unavailable"])
@@ -333,7 +338,8 @@ public func vorssaintNowPlayingWatch() {
     let anchor = Timer(timeInterval: 2, repeats: true) { _ in
         // Checked on the reader queue, where the last position is written.
         reader.async {
-            guard let last = lastPosition, last.rate > 0 else { return }
+            guard let last = lastPosition, last.rate > 0,
+                  Date().timeIntervalSince(lastReadAt) >= 1.5 else { return }
             vorssaintNowPlayingGet()
         }
     }

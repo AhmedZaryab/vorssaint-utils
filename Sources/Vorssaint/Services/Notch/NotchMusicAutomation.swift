@@ -97,6 +97,19 @@ enum NotchMusicAutomation {
                                       returnID: AEReturnID(kAutoGenerateReturnID), transactionID: AETransactionID(kAnyTransactionID))
     }
 
+    private static let gateLock = NSLock()
+    private static var lastScriptCall = Date.distantPast
+
+    /// One shared gate: background reads of the player run at most once a
+    /// second; a call under a second after the last is dropped.
+    static func scriptGate() -> Bool {
+        gateLock.lock(); defer { gateLock.unlock() }
+        let now = Date()
+        guard now.timeIntervalSince(lastScriptCall) >= 1 else { return false }
+        lastScriptCall = now
+        return true
+    }
+
     /// Reads the player's shuffle switch with nil, or sets it. Like seeking,
     /// only the property the player's dictionary declares is addressed.
     static func shuffleEvent(_ enabled: Bool?, capabilities: NotchMusicAutomationCapabilities,
@@ -135,7 +148,7 @@ enum NotchMusicAutomation {
     }
 
     private static func read(_ event: NSAppleEventDescriptor?, from availability: Availability) -> Bool? {
-        guard availability.target.isCurrent, access(to: availability.target) == .granted, let event,
+        guard scriptGate(), availability.target.isCurrent, access(to: availability.target) == .granted, let event,
               let reply = try? event.sendEvent(options: [.waitForReply, .neverInteract, .dontRecord], timeout: 1),
               (reply.paramDescriptor(forKeyword: keyErrorNumber)?.int32Value ?? 0) == 0 else { return nil }
         return shuffleState(in: reply)
@@ -154,6 +167,7 @@ enum NotchMusicAutomation {
     /// play, pause, seek or a new song, so lyrics follow this instead. Nil
     /// without consent already given, for whole-second clocks, or a slow reply.
     static func clock(of availability: Availability) -> (seconds: Double, at: Date)? {
+        guard scriptGate() else { return nil }
         guard let position = availability.capabilities.position, !position.integer,
               availability.target.isCurrent, AccessCache.shared.access(to: availability.target) == .granted,
               let event = propertyEvent(kAEGetData, code: position.code,
