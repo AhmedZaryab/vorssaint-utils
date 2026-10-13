@@ -113,8 +113,6 @@ final class NotchService: ObservableObject {
     @Published private(set) var dragPlaceholder = false
     /// The next song peek: the closed notch grows by one notch height and shows it.
     @Published private(set) var songPeek: SongPeekModel?
-    @Published private(set) var choosingFileDropDestination = false
-    @Published private(set) var targetsMediaDrop = false
     @Published private(set) var captureControls: ScreenCaptureSelectionOptions?
     @Published private(set) var captureControlsCollapsed = false
     @Published private(set) var captureSelectionInProgress = false
@@ -216,7 +214,6 @@ final class NotchService: ObservableObject {
             || NotchLyricsService.shared.isImporting
             // Like the lyrics chooser, these panels stand beside the island
             // instead of hanging from it; a click in them is not a click away.
-            || (expanded && MediaWorkspaceView.panelModalActive)
             || (expanded && selected == .downloads && NotchDownloadService.shared.isChoosingFolder)
             || (expanded && selected == .scratchpad && ScratchpadService.shared.modalInteractionActive)
             || (expanded && !showingSections && selected == .calendar && Permissions.shared.keepsCalendarPrompt)
@@ -787,8 +784,7 @@ final class NotchService: ObservableObject {
                         detail: false, panel: showingAppPanel,
                         detailHeight: nil,
                         musicExtraHeight: musicExtras && musicDetailVisible ? geometry.musicExtrasHeight : 0,
-                        fileMediaHeight: !choosingFileDropDestination && AppFeature.mediaTools.isAvailable
-                            && NotchFileToolsService.shared.mediaPresented ? NotchFileToolsService.shared.mediaContentHeight : nil,
+                        fileMediaHeight: nil,
                         toolCount: launcher.isEditing || launcher.activeUtility != nil ? nil : launcher.visibleItems.count,
                         capturePreviewHeight: captureContent == nil ? nil : captureContentHeight)
     }
@@ -1131,7 +1127,6 @@ final class NotchService: ObservableObject {
         // Requested file work can continue while locked, but disabling its
         // feature must still cancel it before presentation resumes.
         NotchFileToolsService.shared.syncWithPreferences()
-        if !NotchFileToolsService.shared.offersMediaDrop { endFileDrop() }
         // Paused while the island is away, the section still stops at once
         // when it is turned off.
         if !NotchAgentSupport.isEnabled() { AgentUsageService.shared.stop() }
@@ -1277,7 +1272,6 @@ final class NotchService: ObservableObject {
         expanded = false
         peeking = false
         dragPlaceholder = false
-        endFileDrop()
         fileInteractionActive = false
         heldDrag = false
         pinned = false
@@ -2134,24 +2128,7 @@ final class NotchService: ObservableObject {
 
     func beginFileDrop(_ pasteboard: NSPasteboard) {
         guard canAcceptFileDrop else { return }
-        choosingFileDropDestination = NotchFileToolsService.shared.mediaDropContent(for: pasteboard) != nil
-        targetsMediaDrop = false
         open(.files, takeFocus: false)
-    }
-
-    @discardableResult
-    func updateFileDrop(at point: CGPoint) -> Bool {
-        let targeted = choosingFileDropDestination
-            && NotchFileToolsSupport.mediaDropArea(in: expandedGeometry, size: surfaceSize).contains(point)
-        if targetsMediaDrop != targeted { targetsMediaDrop = targeted }
-        return !targeted || NotchFileToolsService.shared.canAcceptMediaDrop
-    }
-
-    func endFileDrop() {
-        let changed = choosingFileDropDestination
-        if changed { choosingFileDropDestination = false }
-        if targetsMediaDrop { targetsMediaDrop = false }
-        if changed, acceptsUserInteraction { refreshPresentation() }
     }
 
     func keepFileInteractionOpen(_ active: Bool) {
@@ -2160,16 +2137,11 @@ final class NotchService: ObservableObject {
     }
 
     func accept(_ pasteboard: NSPasteboard) -> Bool {
-        defer { endFileDrop() }
         guard canAcceptFileDrop else { return false }
-        let optimize = choosingFileDropDestination && targetsMediaDrop
-        let accepted = optimize
-            ? NotchFileToolsService.shared.openMediaDrop(pasteboard)
-            : ShelfService.shared.acceptDrop(pasteboard: pasteboard)
+        let accepted = ShelfService.shared.acceptDrop(pasteboard: pasteboard)
         if accepted {
             heldDrag = false
             dragPlaceholder = false
-            if !optimize { NotchFileToolsService.shared.hideMedia() }
             open(.files)
             // A little hop for the file it watched come in, once the island rests again.
             reactMascot(.celebrate, patience: 30)
@@ -2680,7 +2652,7 @@ final class NotchService: ObservableObject {
     private var canFollowPointer: Bool {
         // A song held for its New track notice keeps its old display's geometry.
         !expanded && !peeking && notice == nil && captureControls == nil && !heldDrag
-            && !choosingFileDropDestination && !keepsWorkingSurface && heldMusic == nil
+            && !keepsWorkingSurface && heldMusic == nil
     }
 
     private func schedulePointerFollow() {
@@ -3308,10 +3280,8 @@ final class NotchService: ObservableObject {
                 accept: { [weak self] in self?.accept($0) == true },
                 exit: { [weak self] in
                     guard let self else { return }
-                    self.endFileDrop()
                     self.hover(self.windowHost?.contains(NSEvent.mouseLocation) == true)
-                },
-                update: { [weak self] in self?.updateFileDrop(at: $0) == true }))
+                }))
         } else { windowHost?.setFileDropActions(nil) }
         panel?.sharingType = NotchSupport.showsInCaptures() ? .readOnly : .none
         updateFullscreenVisibility(displayID: screen.notchDisplayID)

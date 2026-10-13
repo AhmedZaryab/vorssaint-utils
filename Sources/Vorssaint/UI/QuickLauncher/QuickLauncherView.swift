@@ -92,7 +92,6 @@ struct QuickLauncherView: View {
         ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: 0) {
                 switch item {
-                case .media:
                     PanelMediaView { launcher.closeUtility() }
                 case .uninstaller:
                     PanelUninstallerView { launcher.closeUtility() }
@@ -479,7 +478,6 @@ struct QuickLauncherView: View {
         case .clipboard: return FeatureStrings.clipboard(l10n.language).title
         case .windowLayout: return FeatureStrings.windowLayout(l10n.language).title
         case .cleaning: return l10n.s.cleaningMenuItem
-        case .media: return l10n.s.mediaName
         case .uninstaller: return l10n.s.uninstallerName
         case .screenshot: return FeatureStrings.screenshot(l10n.language).pageTitle
         case .screenRecorder:
@@ -500,7 +498,6 @@ struct QuickLauncherView: View {
         case .clipboard: return "doc.on.clipboard"
         case .windowLayout: return "rectangle.3.group"
         case .cleaning: return "keyboard"
-        case .media: return "photo.on.rectangle.angled"
         case .uninstaller: return "trash"
         case .screenshot: return "camera.viewfinder"
         case .screenRecorder: return recorder.isRecording ? "stop.circle" : "record.circle"

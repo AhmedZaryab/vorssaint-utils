@@ -478,10 +478,6 @@ struct NotchSettings: View {
         case .files:
             destination(text.files, symbol: "tray.full", value: $shelfWindow, available: AppFeature.shelf.isAvailable)
             if shelfWindow { switchRow("hand.draw", text.dragReveal, isOn: $dragReveal) }
-            if AppFeature.mediaTools.isAvailable {
-                Text(FeatureStrings.notchFiles(l10n.language).optimizeDropHint)
-                    .font(.caption).foregroundStyle(.secondary)
-            }
         case .clipboard:
             destination(FeatureStrings.clipboard(l10n.language).title, symbol: "doc.on.clipboard", value: $clipboardWindow, available: AppFeature.clipboardHistory.isAvailable)
             switchRow("doc.on.clipboard", text.clipboardActivity, caption: text.privacy, isOn: $clipboard)

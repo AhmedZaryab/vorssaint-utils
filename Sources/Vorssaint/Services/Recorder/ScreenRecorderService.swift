@@ -255,7 +255,6 @@ final class ScreenRecorderService: ObservableObject {
     private var session: RecorderSession?
     private var indicator: RecorderIndicator?
     private var editors: [RecorderEditorController] = []
-    private var mediaOwnedEditorIDs: Set<ObjectIdentifier> = []
     private var elapsedTimer: Timer?
     private var countdown: DispatchWorkItem?
     private var countdownRemaining = 0
@@ -290,10 +289,7 @@ final class ScreenRecorderService: ObservableObject {
     /// what was already recorded would be worse than the delay.
     private func teardownSurfaces() {
         invalidatePendingStart()
-        let recorderOwnedEditors = editors.filter {
-            !mediaOwnedEditorIDs.contains(ObjectIdentifier($0))
-        }
-        for editor in recorderOwnedEditors {
+        for editor in editors {
             editor.close()
         }
         if session != nil {
@@ -304,13 +300,11 @@ final class ScreenRecorderService: ObservableObject {
     // MARK: - Editor
 
     @discardableResult
-    func openEditor(with take: RecorderTakeStore.Take,
-                    owner: AppFeature = .screenRecorder) -> Bool {
-        guard owner.isAvailable else { return false }
+    func openEditor(with take: RecorderTakeStore.Take) -> Bool {
+        guard AppFeature.screenRecorder.isAvailable else { return false }
         WindowActivationPolicy.retain()
         let editor = RecorderEditorController(take: take)
         editors.append(editor)
-        if owner == .mediaTools { mediaOwnedEditorIDs.insert(ObjectIdentifier(editor)) }
         editor.show()
         return true
     }
@@ -318,14 +312,7 @@ final class ScreenRecorderService: ObservableObject {
     func editorDidClose(_ editor: RecorderEditorController) {
         guard editors.contains(where: { $0 === editor }) else { return }
         editors.removeAll { $0 === editor }
-        mediaOwnedEditorIDs.remove(ObjectIdentifier(editor))
         WindowActivationPolicy.release()
-    }
-
-    func closeEditors(ownedBy owner: AppFeature) {
-        guard owner == .mediaTools else { return }
-        let targets = editors.filter { mediaOwnedEditorIDs.contains(ObjectIdentifier($0)) }
-        for editor in targets { editor.close() }
     }
 
     // MARK: - Entry

@@ -271,12 +271,6 @@ final class FeatureRuntime: ObservableObject {
             // off does not.
             ClipboardAutoClearService.shared.syncWithPreferences()
         },
-        .mediaTools: {
-            NotchFileToolsService.shared.syncWithPreferences()
-            guard !AppFeature.mediaTools.isAvailable else { return }
-            MediaService.shared.cancel()
-            ScreenRecorderService.shared.closeEditors(ownedBy: .mediaTools)
-        },
         .pastePlain: { PastePlainService.shared.syncWithPreferences() },
         .shelf: {
             ShelfService.shared.syncWithPreferences()

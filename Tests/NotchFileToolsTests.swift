@@ -6,7 +6,6 @@ import Foundation
 enum NotchFileToolsTests {
     static func run(_ suite: TestSuite) {
         NotchDownloadFolderChoiceTests.run(suite)
-        MediaDialogHostTests.run { suite.expect($0, $1) }
         ShelfDragCompletionTests.run(suite)
         let domain = "com.vorssaint.tests.notch-files"
         let defaults = UserDefaults(suiteName: domain)!
@@ -74,30 +73,6 @@ enum NotchFileToolsTests {
         renamedPublicationContracts(suite)
         archiveCancellationContracts(suite)
         durationLoadingContracts(suite)
-        dropGeometryContracts(suite)
-        MediaWorkspaceLayoutTests.run(suite)
-    }
-
-    private static func dropGeometryContracts(_ suite: TestSuite) {
-        for safeArea: CGFloat in [0, 32] {
-            for layout in NotchSize.allCases {
-                for width in [360.0, 440, 600] {
-                    let geometry = NotchGeometry(screen: CGRect(x: -1440, y: 200, width: 1440, height: 900),
-                                                 safeAreaTop: safeArea, cameraWidth: safeArea == 0 ? 0 : 180,
-                                                 layout: layout, customWidth: width, customHeight: 400)
-                    let size = geometry.expandedSize(module: .files)
-                    let area = NotchFileToolsSupport.mediaDropArea(in: geometry, size: size)
-                    let content = geometry.contentSize(for: size)
-                    suite.expect(area.minX > size.width / 2 && area.maxX == size.width - NotchLayout.horizontalInset,
-                           "the media target is confined to the right-hand card at every island width")
-                    suite.expect(area.minY == geometry.headerTopInset + geometry.headerRowHeight + NotchLayout.spacing
-                           && area.maxY == size.height - NotchLayout.bottomInset,
-                           "the target excludes the header and margins on both physical and simulated cutouts")
-                    suite.expect(area.width * 2 + NotchFileToolsSupport.dropSpacing == content.width && area.height == content.height,
-                           "native hit testing and the two equal SwiftUI cards share the same content bounds")
-                }
-            }
-        }
     }
 
     private static func archiveContainmentContracts(_ suite: TestSuite) {

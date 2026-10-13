@@ -246,7 +246,6 @@ enum DefaultsKey {
     // Findings already announced once, so a pending update nobody installs
     // does not speak up again after every relaunch.
     static let appUpdatesNotifiedIDs = "appUpdatesNotifiedIDs"
-    static let panelUtilityMedia = "panelUtilityMedia"
     static let panelUtilityClipboard = "panelUtilityClipboard"
     static let panelUtilityWindowLayout = "panelUtilityWindowLayout"
     static let panelControlMouseScroll = "panelControlMouseScroll"
@@ -1269,7 +1268,6 @@ enum Defaults {
         DefaultsKey.appUpdatesLastCheck: 0.0,
         DefaultsKey.appUpdatesLastCount: 0,
         DefaultsKey.appUpdatesNotifiedIDs: [String](),
-        DefaultsKey.panelUtilityMedia: true,
         DefaultsKey.panelUtilityClipboard: true,
         DefaultsKey.panelUtilityWindowLayout: true,
         DefaultsKey.panelControlMouseScroll: true,

@@ -25,8 +25,7 @@ enum AppFeature: String, CaseIterable {
     // Energy and display
     case keepAwake, brightness
     // Tools
-    case quickLauncher, quickToggles, colorPicker, screenOCR, cleaningMode, mediaTools,
-         uninstaller, appUpdates, screenshot, cameraPreview, radialMenu, scratchpad,
+    case quickLauncher, quickToggles, colorPicker, screenOCR, cleaningMode, uninstaller, appUpdates, screenshot, cameraPreview, radialMenu, scratchpad,
          commandBar, screenRecorder, killProcess, portManager, menuBarTidy
     // Dynamic Island, then its extensions
     case notch, notchCalendar, notchNotifications, notchGestures, notchTimer, notchAccessories, notchLyrics,
@@ -112,8 +111,7 @@ extension AppFeature {
             return .sound
         case .keepAwake, .brightness:
             return .energyDisplay
-        case .quickLauncher, .quickToggles, .colorPicker, .screenOCR, .cleaningMode, .mediaTools,
-             .uninstaller, .appUpdates, .screenshot, .cameraPreview, .radialMenu,
+        case .quickLauncher, .quickToggles, .colorPicker, .screenOCR, .cleaningMode, .uninstaller, .appUpdates, .screenshot, .cameraPreview, .radialMenu,
              .scratchpad, .commandBar, .screenRecorder, .killProcess, .portManager, .menuBarTidy:
             return .tools
         case .notch, .notchCalendar, .notchNotifications, .notchGestures, .notchTimer, .notchAccessories,
@@ -155,7 +153,6 @@ extension AppFeature {
         case .colorPicker: return "eyedropper"
         case .screenOCR: return "text.viewfinder"
         case .cleaningMode: return "bubbles.and.sparkles"
-        case .mediaTools: return "photo.on.rectangle.angled"
         case .uninstaller: return "trash"
         case .appUpdates: return "arrow.down.app"
         case .screenshot: return "camera.viewfinder"
@@ -245,8 +242,7 @@ extension AppFeature {
         case .shelf: return [DefaultsKey.shelfEnabled]
         case .brightness: return [DefaultsKey.brightnessControlEnabled]
         case .windowLayout, .mixer, .micMute, .keepAwake,
-             .quickLauncher, .quickToggles, .colorPicker, .screenOCR, .cleaningMode, .mediaTools,
-             .uninstaller, .appUpdates, .screenshot, .cameraPreview, .scratchpad,
+             .quickLauncher, .quickToggles, .colorPicker, .screenOCR, .cleaningMode, .uninstaller, .appUpdates, .screenshot, .cameraPreview, .scratchpad,
              .commandBar, .screenRecorder, .killProcess, .portManager,
              .monitorPower:
             return []
@@ -333,7 +329,7 @@ extension AppFeature {
         case .appUpdates: return [.notifications, .appManagement]
         case .mixer: return [.audioCapture, .accessibility]
         case .clipboardHistory, .shelf,
-             .quickLauncher, .colorPicker, .micMute, .mediaTools,
+             .quickLauncher, .colorPicker, .micMute,
              .scratchpad, .monitorPower, .killProcess,
              .portManager:
             return []
@@ -423,8 +419,7 @@ extension AppFeature {
              .clipboardHistory, .pastePlain, .shelf,
              .mixer, .micMute,
              .keepAwake, .brightness,
-             .quickLauncher, .quickToggles, .colorPicker, .screenOCR, .cleaningMode, .mediaTools,
-             .uninstaller, .appUpdates, .screenshot, .cameraPreview, .radialMenu,
+             .quickLauncher, .quickToggles, .colorPicker, .screenOCR, .cleaningMode, .uninstaller, .appUpdates, .screenshot, .cameraPreview, .radialMenu,
              .scratchpad, .commandBar, .screenRecorder,
              .notch, .notchCalendar, .notchNotifications, .notchGestures, .notchTimer, .notchAccessories,
              .notchLyrics, .notchQueue, .spotifyQueue, .notchLiveEqualizer, .notchDownloads, .notchAgents, .notchWatch,
