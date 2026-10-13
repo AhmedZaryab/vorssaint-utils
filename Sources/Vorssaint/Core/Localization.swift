@@ -1284,8 +1284,6 @@ struct Strings {
     let shelfClearOnCloseCaption: String
     let shelfShortcutFinderSelection: String
     let shelfShortcutFinderSelectionCaption: String
-    let spacesOrderName: String
-    let spacesOrderCaption: String
 }
 
 // MARK: - Português (Brasil)
@@ -2367,8 +2365,6 @@ extension Strings {
         shelfClearOnCloseCaption: "Esvazia a área somente quando você clica no botão de fechar. Ocultar automaticamente e encolher preservam os itens.",
         shelfShortcutFinderSelection: "Adicionar a seleção do Finder com o atalho",
         shelfShortcutFinderSelectionCaption: "Com o Finder em primeiro plano, o atalho abre a área temporária já com os arquivos selecionados. Sem seleção, ela abre como sempre.",
-        spacesOrderName: "Manter os Espaços em ordem fixa",
-        spacesOrderCaption: "Impede que o macOS reorganize os Espaços pelo uso mais recente, para que fiquem na ordem que você definiu. A configuração anterior volta ao desligar esta opção. O Dock pode reiniciar uma vez para aplicar a mudança."
     )
 }
 
@@ -3451,7 +3447,5 @@ extension Strings {
         shelfClearOnCloseCaption: "Empties the shelf only when you click its close button. Automatic hiding and collapsing keep the items.",
         shelfShortcutFinderSelection: "Add the Finder selection with the shortcut",
         shelfShortcutFinderSelectionCaption: "With Finder in front, the shortcut opens the shelf with the selected files already in it. With nothing selected, it opens as usual.",
-        spacesOrderName: "Keep Spaces in a fixed order",
-        spacesOrderCaption: "Stops macOS from rearranging Spaces by most recent use, so they stay in the order you set. Your previous setting returns when this is turned off. The Dock may restart once to apply the change."
     )
 }
