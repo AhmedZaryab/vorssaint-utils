@@ -174,7 +174,15 @@ enum NotchMusicExtrasTests {
                "resuming or seeking back schedules the next verse from the new playback position")
     }
 
+    private static func spotifyURIValidation(_ suite: TestSuite) {
+        suite.expect(SpotifyScriptSafety.isSafeURI("spotify:track:4uLU6hMCjMI75M1A2tKUQC"),
+                     "a plain track URI is accepted")
+        suite.expect(!SpotifyScriptSafety.isSafeURI("spotify:track:4uLU6hMCjMI75M1A2tKUQ\"") && !SpotifyScriptSafety.isSafeURI("spotify:track:abc\" & (do shell script \"id\") & \""),
+                     "a URI containing a quote is rejected before it can reach AppleScript")
+    }
+
     static func run(_ suite: TestSuite) {
+        spotifyURIValidation(suite)
         preferredPlayer(suite)
         preferredPlayerLoading(suite)
         lyricScheduleContracts(suite)
