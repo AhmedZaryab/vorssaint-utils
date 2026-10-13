@@ -90,8 +90,6 @@ enum SettingsDirectory {
             default: return false
             }
         }
-        // The companion lives in the island, and its settings in a tab of the
-        // island's page rather than a row of their own.
         let islandPages: Set<SettingsSidebarItem.ID> = [.page(.notch)]
         let island = grouped.first(where: { $0.id == 4 })?.items.filter {
             islandPages.contains($0.id)
@@ -109,7 +107,7 @@ enum SettingsDirectory {
         }
         let byGroup = SettingsSidebarSupport.featureGroupRows(
             windowsControls: rows(1), utilities: rows(4).filter {
-                !islandPages.contains($0.id) && $0.id != .page(.notchMascot)
+                !islandPages.contains($0.id)
             })
         let featured = [
             SettingsSidebarSection(id: 0, title: categories.essentials,
@@ -332,10 +330,6 @@ enum SettingsDirectory {
                                           + (NotchSupport.hasDisplayWithoutNotch
                                              ? [FeatureStrings.notch(language).withoutNotch,
                                                 FeatureStrings.notch(language).capsuleFit] : [])),
-                SettingsDirectoryItem(page: .notchMascot,
-                                      title: FeatureStrings.notchMascot(language).title,
-                                      icon: AppFeature.notchMascot.symbolName,
-                                      keywords: FeatureStrings.notchMascot(language).searchKeywords),
                 SettingsDirectoryItem(page: .commandBar,
                                       title: FeatureStrings.commandBar(language).pageTitle,
                                       icon: "command",

@@ -315,7 +315,7 @@ enum FeatureCatalogTests {
             "mixer", "micMute",
             "keepAwake", "brightness",
             "quickLauncher", "quickToggles", "colorPicker", "screenOCR", "cleaningMode", "uninstaller", "appUpdates", "screenshot", "cameraPreview",
-            "radialMenu", "scratchpad", "commandBar", "screenRecorder", "killProcess", "portManager", "menuBarTidy", "notch", "notchCalendar", "notchNotifications", "notchGestures", "notchTimer", "notchAccessories", "notchLyrics", "notchQueue", "spotifyQueue", "notchLiveEqualizer", "notchDownloads", "notchAgents", "notchWatch", "notchMascot",
+            "radialMenu", "scratchpad", "commandBar", "screenRecorder", "killProcess", "portManager", "menuBarTidy", "notch", "notchCalendar", "notchNotifications", "notchGestures", "notchTimer", "notchAccessories", "notchLyrics", "notchQueue", "spotifyQueue", "notchLiveEqualizer", "notchDownloads", "notchAgents", "notchWatch",
             "monitorPower",
         ], "feature ids are stable (they persist inside availability keys)")
         suite.expect(MouseAccelerationSupport.validatedRegistryID(nil) == nil
@@ -498,8 +498,7 @@ enum FeatureCatalogTests {
                 },
                "every feature an update already had stays installed and every other one ships uninstalled")
         suite.expect((AppFeature.availabilityDefaults[AppFeature.linearScroll.availabilityKey] as? Bool) == false
-                && (AppFeature.availabilityDefaults[AppFeature.focusFollowsMouse.availabilityKey] as? Bool) == false
-                && (AppFeature.availabilityDefaults[AppFeature.notchMascot.availabilityKey] as? Bool) == false,
+                && (AppFeature.availabilityDefaults[AppFeature.focusFollowsMouse.availabilityKey] as? Bool) == false,
                "features added after the list was frozen wait on the Features page instead of installing themselves")
         let linearScrollSuiteName = "com.vorssaint.tests.linear-scroll-availability.\(UUID().uuidString)"
         if let linearDefaults = UserDefaults(suiteName: linearScrollSuiteName) {
@@ -600,22 +599,14 @@ enum FeatureCatalogTests {
         suite.expect(AppFeature.features(in: .dynamicIsland) == [
             .notch, .notchCalendar, .notchNotifications, .notchGestures, .notchTimer,
             .notchAccessories, .notchLyrics, .notchQueue, .spotifyQueue, .notchLiveEqualizer, .notchDownloads, .notchAgents, .notchWatch,
-            .notchMascot,
         ], "the Dynamic Island heads its own hub section, followed by its extensions")
         suite.expect(AppFeature.dynamicIslandExtensions
                 == Array(AppFeature.features(in: .dynamicIsland).dropFirst()),
                "the Dynamic Island's extensions are every other feature of its section")
         suite.expect(AppFeature.notch.initialInstallGroup
-                        == AppFeature.features(in: .dynamicIsland).filter { $0 != .notchMascot && $0 != .notchAgents }
+                        == AppFeature.features(in: .dynamicIsland).filter { $0 != .notchAgents }
                      && AppFeature.mixer.initialInstallGroup == [.mixer],
-                     "choosing the island keeps Agents and the companion as separate installs")
-        suite.expect(AppFeature.dynamicIslandExtensions.contains(.notchMascot)
-                        && !AppFeature.notch.initialInstallGroup.contains(.notchMascot)
-                        && AppFeature.notchMascot.permissions.isEmpty
-                        && AppFeature.notchMascot.enabledKeys == [DefaultsKey.notchMascotEnabled]
-                        && AppFeature.notchMascot.settingsDestination == FeatureSettingsDestination(.notchMascot)
-                        && FeatureVisibilitySupport.features(for: .notchMascot) == [.notchMascot],
-                     "the companion leaves with the island but only comes when picked, with a page of its own")
+                     "choosing the island keeps Agents as a separate install")
         suite.expect(AppPermission.allCases.map(\.rawValue) == [
             "accessibility", "screenRecording", "fullDiskAccess", "filesAndFolders", "notifications",
             "automationFinder", "automationTerminal", "automationPlayback", "audioCapture", "microphone", "camera",
@@ -1315,14 +1306,6 @@ enum FeatureCatalogTests {
         suite.expect(AppFeature.monitorPower.settingsDestination == FeatureSettingsDestination(.notch),
                "the power switch leads to the island's battery rows")
         let settingsRouter = SettingsRouter.shared
-        let companionRouter = SettingsRouter()
-        companionRouter.request(AppFeature.notchMascot.settingsDestination)
-        suite.expect(companionRouter.page == .notch && companionRouter.notchCompanion
-                     && pageVisible(companionRouter.page, available: [.notchMascot]),
-                     "the companion's settings remain reachable when it alone is installed, including the install-island prompt")
-        suite.expect(pageVisible(companionRouter.page, available: [.notch, .notchMascot])
-                     && !pageVisible(companionRouter.page, available: []),
-                     "the companion shares the installed island's page without exposing it when every extension is uninstalled")
         var settingsRequestCount = 0
         var settingsRequestsPublishedReady = true
         let settingsRequestObservation = settingsRouter.$requestID

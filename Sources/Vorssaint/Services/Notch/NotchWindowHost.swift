@@ -131,26 +131,6 @@ final class NotchWindowHost: NSObject, CAAnimationDelegate {
         canvas.setOutline(enabled: enabled, color: color)
     }
 
-    /// The companion stands in the window's own layer while the island opens
-    /// or closes around it, sliding from `from` to `to`, its centre's offset
-    /// from the camera's, with its centre `baseline` below the top.
-    /// `scale` grows or shrinks it on the way, as into or out of a notice,
-    /// where it is drawn smaller. `trailsGrowth` starts it slowly, for a way
-    /// out toward an edge the island is still growing to.
-    /// `hop` lifts it in an arc on the way, as it hops back home.
-    func bridgeMascot(look: NotchMascotLook, size: CGFloat, mood: NotchMascotMood, from: CGFloat, to: CGFloat,
-                      baseline: CGFloat, duration: CFTimeInterval, scale: (from: CGFloat, to: CGFloat) = (1, 1),
-                      trailsGrowth: Bool = false, hop: CGFloat = 0) {
-        canvas.showMascotBridge(look: look, size: size, mood: mood, from: from, to: to, baseline: baseline,
-                                duration: duration, scale: scale, trailsGrowth: trailsGrowth, hop: hop)
-    }
-
-    func endMascotBridge(fading: Bool = false) { canvas.hideMascotBridge(fading: fading) }
-
-    func reactMascotBridge(_ event: NotchMascotReactionEvent, lift: CGFloat) {
-        canvas.reactMascotBridge(event, lift: lift)
-    }
-
     func hide(animated: Bool, transitionContent: NotchContentTransition = .dismiss) {
         guard isPresented else { return }
         let animate = animated && !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
@@ -1050,13 +1030,6 @@ private final class NotchCanvas: NSView {
     private var outlineEnabled = false
     private var outlineColor = NSColor.white
     private let contentVisibility = CALayer()
-    /// The companion beside the camera while the island opens or closes
-    /// around it, kept out of the content, which fades, blurs and grows as
-    /// it arrives, so it stays sharp in its place throughout.
-    private let mascotBridge = NotchMascotHostView(frame: .zero)
-    /// Where it stands: its centre's offset from the display's centre, its
-    /// centre's height from the top, and its size.
-    private var mascotBridgeSpot: (offset: CGFloat, baseline: CGFloat, size: CGFloat)?
     private var dropActions: NotchFileDropActions?
     private var acceptingDrag = false
     private var contentSize: CGSize
@@ -1083,8 +1056,6 @@ private final class NotchCanvas: NSView {
         layer?.mask = silhouette
         addSubview(backdrop)
         addSubview(host)
-        mascotBridge.isHidden = true
-        addSubview(mascotBridge)
         activationButton.isTransparent = true
         activationButton.isHidden = true
         activationButton.target = activationButton
@@ -1639,98 +1610,6 @@ private final class NotchCanvas: NSView {
         return CATransform3DTranslate(transform, -offset.x, -offset.y, 0)
     }
 
-    func showMascotBridge(look: NotchMascotLook, size: CGFloat, mood: NotchMascotMood, from: CGFloat, to: CGFloat,
-                          baseline: CGFloat, duration: CFTimeInterval, scale: (from: CGFloat, to: CGFloat),
-                          trailsGrowth: Bool, hop: CGFloat) {
-        let reduceMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
-        // Toward an edge still growing, it starts slowly and lets the edge
-        // lead; otherwise it sets off at once and settles.
-        let timing = trailsGrowth ? CAMediaTimingFunction(controlPoints: 0.6, 0, 0.3, 1)
-            : CAMediaTimingFunction(controlPoints: 0.22, 1, 0.36, 1)
-        mascotBridgeSpot = (to, baseline, size)
-        // Its layer is its own, which Core Animation would fade in and move
-        // from where it last was.
-        CATransaction.begin()
-        CATransaction.setDisableActions(true)
-        mascotBridge.configure(look: look, size: size, mood: mood, idles: false, reduceMotion: reduceMotion,
-                               animated: false)
-        layoutMascotBridge()
-        mascotBridge.place(at: nil, visible: nil)
-        mascotBridge.layer?.removeAnimation(forKey: "slide")
-        mascotBridge.layer?.removeAnimation(forKey: "fade")
-        mascotBridge.scale(from: scale.from, to: scale.to, duration: duration, timing: timing)
-        mascotBridge.isHidden = false
-        CATransaction.commit()
-        guard !reduceMotion, abs(from - to) > 0.25, let layer = mascotBridge.layer else { return }
-        // The little way between where the closed and the open island keep it.
-        let slide = CABasicAnimation(keyPath: "position.x")
-        slide.fromValue = from - to
-        slide.toValue = 0
-        slide.isAdditive = true
-        slide.duration = duration
-        slide.timingFunction = timing
-        layer.add(slide, forKey: "slide")
-        layer.removeAnimation(forKey: "hop")
-        guard hop > 0 else { return }
-        // Up and down again over the first part of the way, the canvas
-        // counting down from its top.
-        let arc = CAKeyframeAnimation(keyPath: "position.y")
-        arc.values = [0, -hop, 0]
-        arc.keyTimes = [0, 0.3, 0.62]
-        arc.timingFunctions = [CAMediaTimingFunction(name: .easeOut), CAMediaTimingFunction(name: .easeIn)]
-        arc.isAdditive = true
-        arc.duration = duration
-        layer.add(arc, forKey: "hop")
-    }
-
-    func reactMascotBridge(_ event: NotchMascotReactionEvent, lift: CGFloat) {
-        guard mascotBridgeSpot != nil else { return }
-        mascotBridge.react(event, lift: lift)
-    }
-
-    /// Out of sight at once, or with `fading` over a moment, for a stand-in
-    /// whose place went to something else while it was on its way.
-    func hideMascotBridge(fading: Bool = false) {
-        mascotBridgeSpot = nil
-        guard fading, !mascotBridge.isHidden, let layer = mascotBridge.layer,
-              !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion else { concealMascotBridge(); return }
-        let fade = CABasicAnimation(keyPath: "opacity")
-        fade.fromValue = layer.presentation()?.opacity ?? 1
-        fade.toValue = 0
-        fade.duration = 0.12
-        fade.timingFunction = CAMediaTimingFunction(name: .easeOut)
-        fade.fillMode = .forwards
-        fade.isRemovedOnCompletion = false
-        CATransaction.begin()
-        CATransaction.setCompletionBlock { [weak self] in
-            // Shown again meanwhile, it stays.
-            guard let self, self.mascotBridgeSpot == nil else { return }
-            self.concealMascotBridge()
-        }
-        layer.add(fade, forKey: "fade")
-        CATransaction.commit()
-    }
-
-    private func concealMascotBridge() {
-        CATransaction.begin()
-        CATransaction.setDisableActions(true)
-        mascotBridge.layer?.removeAnimation(forKey: "slide")
-        mascotBridge.layer?.removeAnimation(forKey: "hop")
-        mascotBridge.layer?.removeAnimation(forKey: "fade")
-        mascotBridge.isHidden = true
-        mascotBridge.scale(from: 1, to: 1, duration: 0)
-        CATransaction.commit()
-    }
-
-    /// Placed again whenever the canvas moves under the display's centre.
-    private func layoutMascotBridge() {
-        guard let spot = mascotBridgeSpot else { return }
-        let box = spot.size + 8
-        let centre = (stageCentreX?() ?? bounds.midX) + spot.offset
-        let frame = CGRect(x: centre - box / 2, y: spot.baseline - box / 2, width: box, height: box)
-        if mascotBridge.frame != frame { mascotBridge.frame = frame }
-    }
-
     private func endArrival() {
         arrivalGeneration += 1
         arrival = nil
@@ -1776,7 +1655,6 @@ private final class NotchCanvas: NSView {
         hostFrame.origin.x = centre - stage.width / 2
         if host.frame != hostFrame { host.frame = hostFrame }
         contentVisibility.frame = host.bounds
-        layoutMascotBridge()
         if let arrival, arrival.width != host.layer?.bounds.width { installArrivalScale() }
         var backdropFrame = NotchStage.frame(stage, in: bounds)
         backdropFrame.origin.x = hostFrame.minX

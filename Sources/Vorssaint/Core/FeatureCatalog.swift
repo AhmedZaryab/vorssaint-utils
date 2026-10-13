@@ -29,7 +29,7 @@ enum AppFeature: String, CaseIterable {
          commandBar, screenRecorder, killProcess, portManager, menuBarTidy
     // Dynamic Island, then its extensions
     case notch, notchCalendar, notchNotifications, notchGestures, notchTimer, notchAccessories, notchLyrics,
-         notchQueue, spotifyQueue, notchLiveEqualizer, notchDownloads, notchAgents, notchWatch, notchMascot
+         notchQueue, spotifyQueue, notchLiveEqualizer, notchDownloads, notchAgents, notchWatch
     // System monitor. The metric families, connected devices and fan control
     // are parked in Legacy/systemMonitor; power stays as the switch for the
     // island's battery notices, battery resting view and accessory batteries.
@@ -79,10 +79,8 @@ extension AppFeature {
                     && !WindowEdgeSnapZone.enabledZones(
                         from: edgeSnapDisabledZones
                     ).isEmpty)
-        // Watch asks when an area is chosen and checks on every reading. The
-        // companion uses no permission at all.
-        case .screenOCR, .cleaningMode, .screenshot, .commandBar, .screenRecorder, .notchWatch,
-             .notchMascot:
+        // Watch asks when an area is chosen and checks on every reading.
+        case .screenOCR, .cleaningMode, .screenshot, .commandBar, .screenRecorder, .notchWatch:
             return false
         default:
             return true
@@ -115,8 +113,7 @@ extension AppFeature {
              .scratchpad, .commandBar, .screenRecorder, .killProcess, .portManager, .menuBarTidy:
             return .tools
         case .notch, .notchCalendar, .notchNotifications, .notchGestures, .notchTimer, .notchAccessories,
-             .notchLyrics, .notchQueue, .spotifyQueue, .notchLiveEqualizer, .notchDownloads, .notchAgents, .notchWatch,
-             .notchMascot:
+             .notchLyrics, .notchQueue, .spotifyQueue, .notchLiveEqualizer, .notchDownloads, .notchAgents, .notchWatch:
             return .dynamicIsland
         case .monitorPower:
             return .monitor
@@ -170,7 +167,6 @@ extension AppFeature {
         case .notchCalendar: return "calendar"
         case .notchAgents: return "sparkles"
         case .notchWatch: return "eye"
-        case .notchMascot: return "face.smiling"
         case .notch: return "macbook"
         case .radialMenu: return "circle.grid.cross"
         case .scratchpad: return "note.text"
@@ -234,7 +230,6 @@ extension AppFeature {
         case .notchCalendar: return [DefaultsKey.notchCalendarEnabled]
         case .notchAgents: return [DefaultsKey.notchAgentsEnabled]
         case .notchWatch: return [DefaultsKey.notchWatchEnabled]
-        case .notchMascot: return [DefaultsKey.notchMascotEnabled]
         case .notch: return [DefaultsKey.notchEnabled]
         case .radialMenu: return [DefaultsKey.radialMenuEnabled]
         case .clipboardHistory: return [DefaultsKey.clipboardHistoryEnabled]
@@ -289,7 +284,6 @@ extension AppFeature {
         // every protected location, and no sign-in or keychain item is used.
         case .notchAgents: return []
         // It only draws, and hears of what happens from the island itself.
-        case .notchMascot: return []
         case .menuBarTidy: return []
         // The bars read the player's own audio output, which macOS gates
         // behind the same permission the mixer and the recorder ask for.
@@ -364,7 +358,7 @@ extension AppFeature {
     /// Agents reads local session histories, and the companion changes the
     /// resting island. Both are separate choices when installing the island.
     static var dynamicIslandInitialExtensions: [AppFeature] {
-        dynamicIslandExtensions.filter { $0 != .notchMascot && $0 != .notchAgents }
+        dynamicIslandExtensions.filter { $0 != .notchAgents }
     }
 
     var initialInstallGroup: [AppFeature] {
@@ -426,7 +420,7 @@ extension AppFeature {
              .monitorPower:
             return true
         case .focusFollowsMouse, .scrollHorizontal, .linearScroll,
-             .killProcess, .portManager, .notchMascot, .menuBarTidy:
+             .killProcess, .portManager, .menuBarTidy:
             return false
         }
     }

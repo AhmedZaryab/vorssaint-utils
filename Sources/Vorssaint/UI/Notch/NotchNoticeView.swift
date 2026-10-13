@@ -7,9 +7,6 @@ import SwiftUI
 struct NotchNoticeView: View {
     let notice: NotchNotice
     let geometry: NotchGeometry
-    /// The window's own layer shows the companion stepping in from its rest
-    /// and out again, and the notice leaves its own out meanwhile.
-    var hidesMascot = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var wings: NotchNoticeWings { notice.wings(in: geometry) }
@@ -24,11 +21,6 @@ struct NotchNoticeView: View {
     }
     /// The words of a timer's notice share its orange too.
     private var textTint: Color { notice.event == .timer ? .orange : .white }
-    /// With the companion on, it stands in for the symbol, and reacts unless
-    /// its reactions are off.
-    private var companionReaction: NotchMascotReaction? {
-        NotchMascotSupport.isEnabled() ? notice.mascot : nil
-    }
 
     var body: some View {
         HStack(spacing: 0) {
@@ -76,21 +68,7 @@ struct NotchNoticeView: View {
                 Group {
                     // A notice about the agent itself wears its mark, and a
                     // warning keeps a symbol that says what happened.
-                    if let reaction = companionReaction {
-                        let size = NotchMascotSupport.noticeSize
-                        NotchMascotView(look: NotchMascotSupport.look(), mood: NotchService.shared.mascotRestingMood,
-                                        size: size, reaction: NotchMascotSupport.reacts() ? reaction : nil)
-                            .frame(width: size, height: size)
-                            // Half a point low, on the line it rests on beside
-                            // the camera, so it steps in and out with no jump.
-                            .offset(y: 0.5)
-                            // One notice in place of another plays its own reaction,
-                            // swapped at once: two of it crossfading in one place dimmed it.
-                            .id("\(notice.event)|\(notice.title)|\(notice.detail)|\(reaction.rawValue)")
-                            .transition(.identity)
-                            .opacity(hidesMascot ? 0 : 1)
-                            .animation(nil, value: hidesMascot)
-                    } else if notice.event == .agents, let agent = notice.agent, notice.symbol == agent.symbol {
+                    if notice.event == .agents, let agent = notice.agent, notice.symbol == agent.symbol {
                         NotchAgentMark(provider: agent, size: 13)
                     } else if notice.event == .track {
                         NotchTrackArtwork(size: min(18, geometry.stripHeight - 6))

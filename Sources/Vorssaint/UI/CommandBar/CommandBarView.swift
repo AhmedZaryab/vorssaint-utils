@@ -125,7 +125,6 @@ struct CommandBarView: View {
     @ViewBuilder private var backdrop: some View {
         switch shownAs {
         case .window: HUDBackdrop(cornerRadius: 22, contrast: .high)
-        case .droplet: RoundedRectangle(cornerRadius: 22, style: .continuous).fill(Color.black)
         case .island: Color.clear
         }
     }
@@ -198,11 +197,6 @@ struct CommandBarView: View {
         }
         .onChange(of: service.presentationID) { _, _ in focusSearch() }
         .onChange(of: service.mode) { _, _ in focusSearch() }
-        // Typing as the drop still falls hurries it, so the bar shows what
-        // is being typed right away.
-        .onChange(of: service.query) { _, query in
-            if !query.isEmpty, service.presentation == .droplet { CommandBarDroplet.shared.hurry() }
-        }
     }
 
     /// Only the copy on screen asks for the keyboard: a hidden copy taking it
@@ -235,10 +229,11 @@ struct CommandBarView: View {
                             .help(text.dragHint)
                     )
             } else {
-                // Out of the island, the companion is the bar's face, and the
-                // bar stays where the island put it.
-                CommandBarMascot(service: service)
+                // Inside the island the bar stays where the island put it.
+                BrandMark(width: 22, tint: markTint)
+                    .opacity(0.85)
                     .frame(width: 22, height: 22)
+                    .allowsHitTesting(false)
             }
             if case .naming(let entryID) = service.mode,
                let entry = service.entry(withID: entryID) {
@@ -1260,37 +1255,5 @@ enum CommandBarIconCache {
         let result = NSImage(size: size)
         result.addRepresentation(rep)
         return result
-    }
-}
-
-/// The companion as the bar's face: it glances about as you type, thinks
-/// while answers load, hops when they arrive and looks lost when nothing
-/// matches.
-private struct CommandBarMascot: View {
-    @ObservedObject var service: CommandBarService
-    @State private var cue: NotchMascotCue?
-    @State private var cueID = 0
-
-    private var mood: NotchMascotMood {
-        NotchMascotSupport.commandBarMood(query: service.query, hasResults: !service.rows.isEmpty,
-                                          searching: service.awaitsAnswers)
-    }
-
-    var body: some View {
-        NotchMascotView(look: NotchMascotSupport.look(), mood: mood, size: 22, cue: cue, cueID: cueID)
-            .allowsHitTesting(false)
-            .accessibilityHidden(true)
-            // Its eyes go along what is typed, and come back once typing stops.
-            .onChange(of: service.query) { _, query in
-                cue = .look(NotchMascotSupport.readingGaze(for: query))
-                cueID += 1
-            }
-            // After the look, so results arriving with a keystroke win.
-            .onChange(of: mood) { old, new in
-                guard NotchMascotSupport.celebrates(from: old, to: new, query: service.query,
-                                                    hasResults: !service.rows.isEmpty) else { return }
-                cue = .celebrate
-                cueID += 1
-            }
     }
 }
