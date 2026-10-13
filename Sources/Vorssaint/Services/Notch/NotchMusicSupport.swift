@@ -32,10 +32,10 @@ struct NotchPlayback: Equatable {
 
     let track: RadialNowPlayingSnapshot
     let isPlaying: Bool
-    let elapsed: TimeInterval
+    private(set) var elapsed: TimeInterval
     let duration: TimeInterval
     let rate: Double
-    let sampledAt: Date
+    private(set) var sampledAt: Date
     let canSeek: Bool
     var hasPosition: Bool = true
     var itemIdentifier: String? = nil
@@ -53,6 +53,14 @@ struct NotchPlayback: Equatable {
 
     func position(at date: Date) -> TimeInterval {
         min(duration, max(0, elapsed + (isPlaying ? max(0, date.timeIntervalSince(sampledAt)) * rate : 0)))
+    }
+
+    /// The same reading re-anchored to a clock read from the player itself.
+    func anchored(to seconds: TimeInterval, at date: Date) -> NotchPlayback {
+        var copy = self
+        copy.elapsed = min(duration > 0 ? duration : seconds, max(0, seconds))
+        copy.sampledAt = date
+        return copy
     }
 
     func seekPosition(_ proposed: Double, allowed: Bool? = nil) -> Double? {
