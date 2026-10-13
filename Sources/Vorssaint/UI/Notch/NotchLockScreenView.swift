@@ -336,7 +336,7 @@ struct NotchLockScreenActivities: View {
             } == true,
             agents: gates.agents && !usage.snapshot.live.isEmpty,
             downloads: gates.downloads && downloads.items.contains { $0.active && !$0.completed },
-            battery: gates.battery && SystemInfo.batterySnapshot() != nil,
+            battery: gates.battery && CachedBattery.snapshot() != nil,
             keepAwake: gates.keepAwake && awake.isActive)
     }
 
@@ -404,7 +404,7 @@ struct NotchLockScreenActivities: View {
                                 + FeatureStrings.notchLockScreen(l10n.language).working)
             .accessibilityValue(reading)
         case .battery:
-            if let info = SystemInfo.batterySnapshot() {
+            if let info = CachedBattery.snapshot() {
                 let text = FeatureStrings.notchLockStatus(l10n.language)
                 HStack(spacing: 7) {
                     Image(systemName: info.isCharging ? "battery.100percent.bolt" : info.percent <= 20 ? "battery.25percent" : "battery.75percent")
@@ -447,5 +447,15 @@ private extension View {
     /// stays readable over a bright photo.
     func legibleOnWallpaper() -> some View {
         shadow(color: .black.opacity(0.3), radius: 8, y: 1)
+    }
+}
+
+/// Lock screen redraws every second; IOKit is polled at most every 30 seconds.
+enum CachedBattery {
+    private static var stamp = Date.distantPast
+    private static var value: BatteryInfo?
+    static func snapshot() -> BatteryInfo? {
+        if Date().timeIntervalSince(stamp) > 30 { value = SystemInfo.batterySnapshot(); stamp = Date() }
+        return value
     }
 }
