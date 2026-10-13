@@ -160,7 +160,6 @@ enum SelfUninstall {
         AutoQuitService.shared.suspend()
         FinderCutPaste.shared.suspend()
         FinderRenameService.shared.suspend()
-        KeyboardDebounceService.shared.suspend()
         MouseClickDebounceService.shared.suspend()
         // Also takes the Super key mapping back out, synchronously, so the
         // key is never left remapped behind a tap that is about to die.

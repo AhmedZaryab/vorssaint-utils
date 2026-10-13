@@ -109,7 +109,6 @@ final class CleaningModeManager: ObservableObject {
         // Debounce must not filter while the lock is up: its tap can run ahead
         // of ours (head-insert order depends on creation order) and would eat
         // the repeated same-key presses the unlock gesture counts on.
-        KeyboardDebounceService.shared.suspend()
         MouseClickDebounceService.shared.suspend()
         // Wiping the trackpad is nothing but stray three-finger contacts;
         // middle-click emulation must not fire from them.
@@ -197,7 +196,6 @@ final class CleaningModeManager: ObservableObject {
     private func resumeSuspendedFeatures() {
         // Each owner reads its current availability, preference and permission,
         // so a feature changed while Cleaning Mode was active stays changed.
-        KeyboardDebounceService.shared.syncWithPreferences()
         MouseClickDebounceService.shared.syncWithPreferences()
         MiddleClickService.shared.syncWithPreferences()
         MouseNavigationService.shared.syncWithPreferences()
