@@ -27,3 +27,24 @@ Measured 2026-10-13 on ours-cuts-wave2, installed to /Applications, pid 91516. 9
 | Log lines in 5 min | 2126 | 768 |
 | Top hot function (5 s sample, non-idle) | stat 101, AgentUsageService.pollOpenLogs 22 | Hasher.combine(bytes:) 90, newJSONString 26 |
 | Binary size (MacOS/Vorssaint) | 78,116,256 B | 77,624,736 B (-491,520 B, -0.6%) |
+
+## Clean after, wave 4
+
+Measured 2026-10-13 on ours at aa4c0671 (Merge integrate/wave3), installed /Applications/Vorssaint.app, pid 75836. No swift or xcode build running at start (waited about 4 min), no call window. Fresh relaunch, 3 min settle, notch closed, Spotify paused, no perl helper running. Caveat: one swift process appeared during the run (another agent), so CPU may be slightly inflated; the before run had music playing, so part of the delta is state.
+
+| Metric | Before (2026-10-13, original) | Now (wave 4) |
+| --- | --- | --- |
+| RSS, ps (MB) | 418, 461, 461 | 438, 464, 471 (mostly shared system libs) |
+| Memory footprint | 135 MB (top MEM) | 82 MB (footprint phys_footprint; peak 162 MB) |
+| Idle CPU % (ps, x3) | 3.3, 4.7, 3.6 | 2.2, 1.0, 7.0 (top x3: 0.0, 2.3, 1.0) |
+| Wakeups/s (top IDLEW) | about 4 to 6 | 0 |
+| Log lines per min (Vorssaint process) | about 208 (1039 per 5 min) | about 137 (686 per 5 min) |
+| Binary size (MacOS/Vorssaint) | 78,116,256 B (first after row) | 75,135,376 B (-2,980,880 B, -3.8%) |
+| App bundle size | not recorded | 81,328 KB (du -sk) |
+| Features compiled (AppFeature.allCases) | 77 | 85 by source count of the enum cases; the 77 came from the brief and was not re-derived, so treat the delta as unverified |
+| Main thread active samples (5 s, 3990) | 77 NotchPlayerClock.follow | none above 20; main is idle in mach_msg2_trap |
+
+Top remaining hot functions (5 s sample, 3990 samples):
+1. vImage colour conversion (vLookupTable_Planar16WithClipping 19, Planar8toPlanar16 18, vUnpremultiplyData 12, about 50 in all, 1.2%): CoreGraphics converting a captured window image, under the WindowEnumerator accessibility path. Worth chasing only if the idle ScreenCaptureKit captures persist (26 SLSHWCaptureWindowListToIOSurfaceProxying lines in 5 min); capture only on hover.
+2. ScreenCaptureKit and ReplayKit capture calls (26 log lines each per 5 min, about 5 per min): the same idle capture as item 1, a small but steady cost; worth gating on Dock hover.
+3. coreaudio setPlayState log (16 lines per 5 min, mixer IO thread): log noise, near zero CPU; not worth chasing.
