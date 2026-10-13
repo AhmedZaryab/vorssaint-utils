@@ -327,7 +327,19 @@ public func vorssaintNowPlayingWatch() {
         }
     }
     reader.async { vorssaintNowPlayingGet() }
-    withExtendedLifetime((observers, termination)) { RunLoop.main.run() }
+    // Players post notifications on play, pause, seek and track change, not
+    // while a song simply runs. Re-anchor every two seconds while one moves,
+    // so the island's extrapolated clock never drifts from the player's.
+    let anchor = Timer(timeInterval: 2, repeats: true) { _ in
+        // Checked on the reader queue, where the last position is written.
+        reader.async {
+            guard let last = lastPosition, last.rate > 0 else { return }
+            vorssaintNowPlayingGet()
+        }
+    }
+    anchor.tolerance = 0.2
+    RunLoop.main.add(anchor, forMode: .common)
+    withExtendedLifetime((observers, termination, anchor)) { RunLoop.main.run() }
 }
 
 private func sendPlaybackCommand(_ request: NotchPlaybackRequest) {
