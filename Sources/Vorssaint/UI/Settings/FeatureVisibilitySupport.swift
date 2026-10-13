@@ -8,7 +8,7 @@ import Foundation
 /// below and the unit tests can reason about pages without pulling UI in.
 enum SettingsPage: Hashable {
     case general, features, energy, monitor
-    case mouse, switcher, dock, superKey, cutPaste, autoQuit, cleaner, uninstaller, urlCleaner, homebrew, appUpdates, media, clipboard, windowLayout, shelf, quickTools, textSnippets, screenshot, radialMenu, commandBar, killProcess, portManager, notch, notchMascot
+    case mouse, switcher, dock, superKey, cutPaste, autoQuit, uninstaller, urlCleaner, homebrew, appUpdates, media, clipboard, windowLayout, shelf, quickTools, textSnippets, screenshot, radialMenu, commandBar, killProcess, portManager, notch, notchMascot
     case shortcuts, advanced, about, releaseNotes, support
 }
 
@@ -159,7 +159,6 @@ final class SettingsRouter: ObservableObject {
     @Published private(set) var pendingFeatureTarget: SettingsFeatureTargetRequest?
     /// One-shot hint for the Cleaner page's tool switcher, so a panel surface
     /// can land directly on a specific tool. Consumed and cleared on arrival.
-    @Published var cleanerTool: String?
     /// One-shot hint for the Dynamic Island page, so a section of the island
     /// can open its own options. Consumed and cleared on arrival.
     @Published var notchModule: NotchModule?
@@ -237,7 +236,6 @@ final class SettingsRouter: ObservableObject {
         guard let index = historyTarget(step: step, isPageVisible: isPageVisible) else { return }
         historyIndex = index
         isTraversingHistory = true
-        cleanerTool = nil
         notchModule = nil
         let entry = history[index]
         request(entry.destination, sidebarFeature: entry.sidebarFeature)
@@ -352,7 +350,6 @@ extension AppFeature {
         case .cleaningMode:
             return FeatureSettingsDestination(.quickTools, sectionAnchor: .cleaningMode)
         case .mediaTools: return FeatureSettingsDestination(.media)
-        case .cleaner: return FeatureSettingsDestination(.cleaner)
         case .uninstaller: return FeatureSettingsDestination(.uninstaller)
         case .killProcess: return FeatureSettingsDestination(.killProcess)
         case .portManager: return FeatureSettingsDestination(.portManager)
@@ -408,7 +405,6 @@ enum FeatureVisibilitySupport {
         case .quickTools: return [.quickLauncher, .quickToggles, .micMute,
                                   .cameraPreview, .wallpaper, .scratchpad, .cleaningMode, .menuBarTidy]
         case .urlCleaner: return [.urlCleaner]
-        case .cleaner: return [.cleaner]
         case .homebrew: return [.homebrew]
         case .appUpdates: return [.appUpdates]
         case .uninstaller: return [.uninstaller]

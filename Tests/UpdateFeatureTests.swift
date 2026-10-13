@@ -523,7 +523,6 @@ enum UpdateFeatureTests {
                "the real shared Monitor destination does not merge a multi-feature page")
 
         let actionCoveredMappings: [(SettingsPage, AppFeature)] = [
-            (.cleaner, .cleaner),
             (.uninstaller, .uninstaller),
             (.appUpdates, .appUpdates),
         ]

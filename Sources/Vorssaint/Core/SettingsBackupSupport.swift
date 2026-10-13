@@ -113,13 +113,10 @@ enum SettingsBackupSupport {
         DefaultsKey.micMuteSavedVolumes,
         DefaultsKey.micMuteSavedChannelVolumes,
         DefaultsKey.micMuteMutedDevices,
-        DefaultsKey.cleanerLastAutoRun,
         // When the last check ran and what it found belong to one Mac.
         DefaultsKey.appUpdatesLastCheck,
         DefaultsKey.appUpdatesLastCount,
         DefaultsKey.appUpdatesNotifiedIDs,
-        DefaultsKey.cleanerLastAutoFreed,
-        DefaultsKey.cleanerLastAutoFailed,
         DefaultsKey.whatsAppDownloadsAutomaticStartDate,
         DefaultsKey.whatsAppDownloadsLastAutoRun,
         DefaultsKey.whatsAppDownloadsLastCleanup,
