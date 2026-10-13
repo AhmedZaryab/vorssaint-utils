@@ -70,6 +70,7 @@ final class SpotifyQueueService: ObservableObject {
         pollTask?.cancel()
         pollTask = nil
         guard visible, Self.isAvailable, Self.isConnected else { return }
+        if Self.provider == .privateLogin { SpotifyConnectCommands.shared.warmUp() }
         pollTask = Task { [weak self] in
             while !Task.isCancelled {
                 await self?.refresh()
