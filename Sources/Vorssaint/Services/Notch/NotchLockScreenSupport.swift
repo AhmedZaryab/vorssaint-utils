@@ -7,7 +7,7 @@ import CoreGraphics
 /// What the lock screen reads out under the clock, in the order the line
 /// gives them up when it runs short.
 enum NotchLockScreenActivity: String, CaseIterable, Identifiable {
-    case timer, calendar, agents, downloads
+    case timer, calendar, agents, downloads, battery, keepAwake
 
     var id: String { rawValue }
 }
@@ -21,6 +21,16 @@ enum NotchLockScreenSupport {
 
     static func isEnabled(in defaults: UserDefaults = .standard) -> Bool {
         NotchSupport.isEnabled(in: defaults) && defaults.bool(forKey: DefaultsKey.notchLockScreen)
+    }
+
+    /// Battery and Keep Awake under the clock, the way Sapphire's lock screen
+    /// kept them. Off until chosen: both read out to anyone who can see the screen.
+    static func showsStatus(in defaults: UserDefaults = .standard) -> Bool {
+        NotchSupport.isEnabled(in: defaults) && defaults.bool(forKey: DefaultsKey.notchLockStatus)
+    }
+
+    static func showsKeepAwake(in defaults: UserDefaults = .standard) -> Bool {
+        showsStatus(in: defaults) && AppFeature.keepAwake.isAvailable(in: defaults)
     }
 
     static func playsSounds(in defaults: UserDefaults = .standard) -> Bool {
@@ -45,13 +55,16 @@ enum NotchLockScreenSupport {
         session.completed || session.deadline.map { now >= $0 } == true
     }
 
-    static func activities(timer: Bool, calendar: Bool, agents: Bool, downloads: Bool) -> [NotchLockScreenActivity] {
+    static func activities(timer: Bool, calendar: Bool, agents: Bool, downloads: Bool,
+                           battery: Bool = false, keepAwake: Bool = false) -> [NotchLockScreenActivity] {
         NotchLockScreenActivity.allCases.filter {
             switch $0 {
             case .timer: return timer
             case .calendar: return calendar
             case .agents: return agents
             case .downloads: return downloads
+            case .battery: return battery
+            case .keepAwake: return keepAwake
             }
         }
     }

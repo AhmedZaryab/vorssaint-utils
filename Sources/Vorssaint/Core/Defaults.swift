@@ -913,6 +913,7 @@ enum DefaultsKey {
     static let notchMusicActivity = "notchMusicActivity"
     static let notchShowInCaptures = "notchShowInCaptures"
     static let notchLockScreen = "notchLockScreen" // music and live activities over the lock screen
+    static let notchLockStatus = "notchLockStatus" // battery and Keep Awake as lines under the lock screen clock
     static let notchLockSounds = "notchLockSounds" // padlock sounds as the Mac locks and unlocks
     // Companion: a small friend who rests in the closed island and is the Command Bar's face.
     static let notchMascotEnabled = "notchMascotEnabled"
@@ -1494,6 +1495,7 @@ enum Defaults {
         DefaultsKey.notchMusicActivity: false,
         DefaultsKey.notchShowInCaptures: true,
         DefaultsKey.notchLockScreen: false,
+        DefaultsKey.notchLockStatus: false,
         DefaultsKey.notchLockSounds: false,
         DefaultsKey.notchMascotEnabled: false,
         DefaultsKey.notchMascotVisits: true,
