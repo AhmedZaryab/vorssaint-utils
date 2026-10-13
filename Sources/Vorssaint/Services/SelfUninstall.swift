@@ -145,7 +145,6 @@ enum SelfUninstall {
         CleaningModeManager.shared.deactivateForSystemTeardown()
         ScrollInverter.shared.suspend()
         FocusFollowsMouseService.shared.stop()
-        SmoothScrollService.shared.suspend()
         // Its machine-local recovery journal is deleted by a full uninstall,
         // so the uninstall cannot continue until every HID value is restored.
         let mouseAccelerationRestored = MouseAccelerationService.shared.stop()

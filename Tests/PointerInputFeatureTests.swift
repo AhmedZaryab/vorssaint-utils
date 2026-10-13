@@ -862,22 +862,10 @@ enum PointerInputFeatureTests {
                     elapsed: SmoothScrollSupport.frameInterval,
                     response: SmoothScrollSupport.defaultResponse)) < 0.000001,
                "a tick during a coasting landing answers at the shipped pace again")
-        suite.expect(Defaults.registeredDefaults[DefaultsKey.smoothScrollEnabled] as? Bool == false,
-               "smooth scrolling ships off by default")
         suite.expect(Defaults.registeredDefaults[DefaultsKey.scrollInverterHorizontalEnabled] as? Bool == false,
                "horizontal scroll inversion ships off by default")
         suite.expect(SettingsBackupSupport.exportKeys().contains(DefaultsKey.scrollInverterHorizontalEnabled),
                "horizontal scroll direction follows settings backups")
-        suite.expect(Defaults.registeredDefaults[DefaultsKey.smoothScrollStep] as? Int == 40,
-               "smooth scrolling step registers its default")
-        suite.expect(Defaults.registeredDefaults[DefaultsKey.smoothScrollResponse] as? Int
-                == SmoothScrollSupport.defaultResponse
-                && SettingsBackupSupport.exportKeys().contains(DefaultsKey.smoothScrollResponse),
-               "smooth scrolling response registers its default and follows settings backups")
-        suite.expect(Defaults.registeredDefaults[DefaultsKey.smoothScrollCoast] as? Int
-                == SmoothScrollSupport.defaultCoast
-                && SettingsBackupSupport.exportKeys().contains(DefaultsKey.smoothScrollCoast),
-               "smooth scrolling coast registers its default and follows settings backups")
 
         var sixtyHertzEngine = SmoothScrollSupport.Engine()
         var oneTwentyHertzEngine = SmoothScrollSupport.Engine()
@@ -2694,8 +2682,7 @@ enum PointerInputFeatureTests {
                "every feature's exception list registers empty, so they all start out working everywhere")
         suite.expect(Set(MouseExceptionScope.allCases.map(\.defaultsKey)).count == MouseExceptionScope.allCases.count,
                "each feature keeps its own list, never a key shared with another")
-        suite.expect(MouseExceptionScope.smoothScroll.feature == .smoothScroll
-                && MouseExceptionScope.linearScroll.feature == .linearScroll
+        suite.expect(MouseExceptionScope.linearScroll.feature == .linearScroll
                 && MouseExceptionScope.scrollDirection.feature == .scrollInverter
                 && MouseExceptionScope.focusFollowsMouse.feature == .focusFollowsMouse
                 && MouseExceptionScope.navigation.feature == .mouseNavigation
@@ -3384,7 +3371,6 @@ enum PointerInputFeatureTests {
         suite.expect(mouseAccelerationSource.contains("SessionActivitySupport.isOnConsole("),
                "mouse acceleration shares the safe initial session-state fallback")
         for tapOwner in ["Sources/Vorssaint/Services/ScrollInverter.swift",
-                         "Sources/Vorssaint/Services/SmoothScrollService.swift",
                          "Sources/Vorssaint/Services/MouseNavigation/MouseNavigationService.swift",
                          "Sources/Vorssaint/Services/MouseButtons/MouseButtonShortcutService.swift",
                          "Sources/Vorssaint/Services/MiddleClick/MiddleClickService.swift",
@@ -3469,53 +3455,12 @@ enum PointerInputFeatureTests {
         let accessibilitySink = mouseTapAppDelegateSource
             .components(separatedBy: "Permissions.shared.$accessibility")
             .dropFirst().first?.components(separatedBy: "Permissions.shared.$screenRecording").first ?? ""
-        let smoothSchedulerSource = (try? String(
-            contentsOfFile: "Sources/Vorssaint/Services/SmoothScrollService.swift",
-            encoding: .utf8)) ?? ""
-        let smoothSchedulerCode = smoothSchedulerSource.components(separatedBy: "\n")
-            .filter { !$0.trimmingCharacters(in: .whitespaces).hasPrefix("//") }
-            .joined(separator: "\n")
-        let steppedLoupeBypass = smoothSchedulerCode
-            .components(separatedBy: "if ScreenshotSelectionController.steppedLoupeNeedsRawWheel(")
-            .dropFirst().first?.components(separatedBy: "return").first ?? ""
-        suite.expect(steppedLoupeBypass.contains("stopGlide()"),
-               "entering stepped magnifier zoom cancels the fast glide before passing the raw notch")
         let scrollInverterSource = (try? String(
             contentsOfFile: "Sources/Vorssaint/Services/ScrollInverter.swift",
             encoding: .utf8)) ?? ""
-        for (name, source) in [("scroll inverter", scrollInverterSource),
-                               ("smooth scroll", smoothSchedulerCode)] {
-            suite.expect(source.contains("guard !tapCreationRetryUsed")
-                    && source.contains("tapCreationRetryWork?.cancel()"),
-                   "\(name) retries tap creation once instead of polling forever")
-        }
-        suite.expect(smoothSchedulerCode.contains("screen.displayLink(")
-                && smoothSchedulerCode.contains("displayLink.add(to: .main, forMode: .common)")
-                && smoothSchedulerCode.contains("sender.timestamp")
-                && smoothSchedulerCode.contains("sender.duration"),
-               "smooth scrolling follows the active display's native cadence and elapsed frame time")
-        suite.expect(smoothSchedulerCode.contains("displayLink?.invalidate()")
-                && smoothSchedulerCode.contains("frameTimer?.invalidate()")
-                && smoothSchedulerCode.contains("removeScreenObserver()")
-                && smoothSchedulerCode.contains("removeSleepObserver()"),
-               "smooth scrolling releases either scheduler and its lifecycle observers on stop")
-        suite.expect(smoothSchedulerCode.contains("NSScreen.withMouse")
-                && smoothSchedulerCode.contains("didChangeScreenParametersNotification")
-                && smoothSchedulerCode.contains("Timer(timeInterval: SmoothScrollSupport.frameInterval"),
-               "smooth scrolling follows display changes and keeps a no-screen timer fallback")
-        let smoothTapDisabled = smoothSchedulerCode.components(separatedBy: "tapDisabledByTimeout")
-            .dropFirst().first?.components(separatedBy: "return").first ?? ""
-        suite.expect(smoothTapDisabled.contains("tapDisabledByUserInput")
-                && smoothTapDisabled.contains("stopGlide()")
-                && smoothTapDisabled.contains("AppFeature.smoothScroll.isAvailable")
-                && smoothTapDisabled.contains("DefaultsKey.smoothScrollEnabled")
-                && smoothTapDisabled.contains("AXIsProcessTrusted()")
-                && smoothTapDisabled.contains("SessionActivity.shared.isActive"),
-               "a disabled smooth-scroll tap drops its tail and re-arms only while fully wanted")
-        let smoothSleep = smoothSchedulerCode.components(separatedBy: "willSleepNotification")
-            .dropFirst().first?.components(separatedBy: "private func removeSleepObserver").first ?? ""
-        suite.expect(smoothSleep.contains("stopGlide()"),
-               "smooth scrolling cannot carry a pre-sleep glide into the next wake")
+        suite.expect(scrollInverterSource.contains("guard !tapCreationRetryUsed")
+                && scrollInverterSource.contains("tapCreationRetryWork?.cancel()"),
+               "scroll inverter retries tap creation once instead of polling forever")
         let cleaningModeSource = (try? String(
             contentsOfFile: "Sources/Vorssaint/Services/CleaningMode/CleaningModeManager.swift",
             encoding: .utf8)) ?? ""

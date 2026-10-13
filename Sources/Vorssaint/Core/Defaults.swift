@@ -59,13 +59,9 @@ enum DefaultsKey {
     static let focusFollowsMouseRaise = "focusFollowsMouseRaise"
     static let focusFollowsMouseWaitForStop = "focusFollowsMouseWaitForStop"
     static let focusFollowsMouseExceptions = "focusFollowsMouseExceptions"
-    static let smoothScrollEnabled = "smoothScrollEnabled"
-    static let smoothScrollStep = "smoothScrollStep"      // pixels per wheel tick
     static let linearScrollEnabled = "linearScrollEnabled" // every mouse wheel notch scrolls the same lines (issue #403)
     static let linearScrollLines = "linearScrollLines"     // lines per wheel notch while linear scrolling is on
     static let mouseAccelerationDisabled = "mouseAccelerationDisabled" // sets HIDMouseAcceleration to -1 for mice
-    static let smoothScrollResponse = "smoothScrollResponse" // 0...100, higher follows the wheel sooner
-    static let smoothScrollCoast = "smoothScrollCoast" // 0...100, higher coasts the same distance out longer
     static let mouseNavigationEnabled = "mouseNavigationEnabled" // side buttons trigger Back and Forward
     static let mouseButtonShortcutsEnabled = "mouseButtonShortcutsEnabled" // extra buttons press a key combination (issue #282)
     static let mouseButtonShortcuts = "mouseButtonShortcuts" // [button number: GlobalShortcut storage value]
@@ -83,7 +79,6 @@ enum DefaultsKey {
     static let superKeyMappingApplied = "superKeyMappingApplied"
     static let superKeyMappedSource = "superKeyMappedSource"
     // One list of bundle ids per mouse feature: apps it leaves alone (issue #358).
-    static let smoothScrollExceptions = "smoothScrollExceptions"
     static let linearScrollExceptions = "linearScrollExceptions"
     static let scrollInverterExceptions = "scrollInverterExceptions"
     static let mouseNavigationExceptions = "mouseNavigationExceptions"
@@ -1190,13 +1185,9 @@ enum Defaults {
         DefaultsKey.focusFollowsMouseDelay: FocusFollowsMouseSupport.defaultDelayMilliseconds,
         DefaultsKey.focusFollowsMouseRaise: true,
         DefaultsKey.focusFollowsMouseWaitForStop: true,
-        DefaultsKey.smoothScrollEnabled: false,
-        DefaultsKey.smoothScrollStep: 40,
         DefaultsKey.linearScrollEnabled: false,
         DefaultsKey.linearScrollLines: ScrollWheelSupport.defaultLinesPerNotch,
         DefaultsKey.mouseAccelerationDisabled: false,
-        DefaultsKey.smoothScrollResponse: SmoothScrollSupport.defaultResponse,
-        DefaultsKey.smoothScrollCoast: SmoothScrollSupport.defaultCoast,
         DefaultsKey.mouseNavigationEnabled: false,
         DefaultsKey.mouseButtonShortcutsEnabled: false,
         DefaultsKey.mouseButtonShortcuts: [String: String](),
@@ -1209,7 +1200,6 @@ enum Defaults {
         DefaultsKey.superKeySource: SuperKeySource.capsLock.rawValue,
         DefaultsKey.superKeyModifiers: SuperKeySupport.defaultModifierStorageValue,
         DefaultsKey.superKeySoloAction: SuperKeySoloAction.none.rawValue,
-        DefaultsKey.smoothScrollExceptions: [String](),
         DefaultsKey.linearScrollExceptions: [String](),
         DefaultsKey.scrollInverterExceptions: [String](),
         DefaultsKey.focusFollowsMouseExceptions: [String](),

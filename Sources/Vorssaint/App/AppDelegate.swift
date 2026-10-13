@@ -173,7 +173,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSW
             .receive(on: DispatchQueue.main)
             .sink { _ in
                 FeatureRuntime.shared.sync([
-                    .scrollInverter, .scrollHorizontal, .focusFollowsMouse, .smoothScroll, .linearScroll, .mouseNavigation, .switcher,
+                    .scrollInverter, .scrollHorizontal, .focusFollowsMouse, .linearScroll, .mouseNavigation, .switcher,
                     .dockPreview, .finderCutPaste, .finderRename, .autoQuit, .dockClick,
                     .middleClick, .windowMaximizer, .keyboardDebounce, .windowLayout,
                     .textSnippets, .brightness, .radialMenu, .mouseButtonShortcuts,
@@ -308,7 +308,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSW
         MouseButtonShortcutService.shared.suspend()
         MiddleClickService.shared.suspend()
         ScrollInverter.shared.suspend()
-        SmoothScrollService.shared.suspend()
         if AppFeature.mouseAcceleration.isAvailable
             || MouseAccelerationRecovery.hasPendingEntries() {
             MouseAccelerationService.shared.stop()

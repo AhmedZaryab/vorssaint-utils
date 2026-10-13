@@ -64,13 +64,6 @@ enum LocalizationFeatureContractTests {
         }
         for (language, strings) in localizedStrings {
             let prefix = "localization \(language.rawValue)"
-            suite.expect(!strings.smoothScrollStepLabel.isEmpty
-                   && !strings.smoothScrollResponseLabel.isEmpty
-                   && !strings.smoothScrollCoastLabel.isEmpty
-                   && !strings.smoothScrollStepLabel.contains("—")
-                   && !strings.smoothScrollResponseLabel.contains("—")
-                   && !strings.smoothScrollCoastLabel.contains("—"),
-                   "\(prefix) smooth scrolling controls are present without em dash")
             expectFormat(strings.secureInputHeldFormat, ["@"], "\(prefix) secure input holder format")
             expectFormat(strings.secureInputRevealFormat, ["@"], "\(prefix) secure input reveal format")
             suite.expect(!strings.secureInputTitle.isEmpty

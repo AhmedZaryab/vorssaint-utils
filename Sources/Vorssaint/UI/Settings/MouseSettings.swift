@@ -10,7 +10,6 @@ struct MouseSettings: View {
     @ObservedObject private var features = FeatureRuntime.shared
     @ObservedObject private var permissions = Permissions.shared
     @ObservedObject private var inverter = ScrollInverter.shared
-    @ObservedObject private var smoothScroll = SmoothScrollService.shared
     @ObservedObject private var mouseNavigation = MouseNavigationService.shared
     @ObservedObject private var middleClick = MiddleClickService.shared
     @Environment(\.colorScheme) private var colorScheme
@@ -24,16 +23,10 @@ struct MouseSettings: View {
     @AppStorage(DefaultsKey.focusFollowsMouseWaitForStop) private var focusFollowsMouseWaitForStop = true
     @AppStorage(DefaultsKey.focusFollowsMouseDelay) private var focusFollowsMouseDelay =
         FocusFollowsMouseSupport.defaultDelayMilliseconds
-    @AppStorage(DefaultsKey.smoothScrollEnabled) private var smoothScrollEnabled = false
-    @AppStorage(DefaultsKey.smoothScrollStep) private var smoothScrollStep = SmoothScrollSupport.defaultStep
     @AppStorage(DefaultsKey.mouseAccelerationDisabled) private var mouseAccelerationDisabled = false
     @AppStorage(DefaultsKey.linearScrollEnabled) private var linearScrollEnabled = false
     @AppStorage(DefaultsKey.linearScrollLines) private var linearScrollLines =
         ScrollWheelSupport.defaultLinesPerNotch
-    @AppStorage(DefaultsKey.smoothScrollResponse) private var smoothScrollResponse =
-        SmoothScrollSupport.defaultResponse
-    @AppStorage(DefaultsKey.smoothScrollCoast) private var smoothScrollCoast =
-        SmoothScrollSupport.defaultCoast
     @AppStorage(DefaultsKey.mouseNavigationEnabled) private var mouseNavigationEnabled = false
     @AppStorage(DefaultsKey.mouseButtonShortcutsEnabled) private var mouseButtonShortcutsEnabled = false
     @AppStorage(DefaultsKey.mouseSpacesGestureEnabled) private var spacesEnabled = false
@@ -42,7 +35,6 @@ struct MouseSettings: View {
     @AppStorage(DefaultsKey.mouseClickDebounceEnabled) private var mouseClickDebounceEnabled = false
     @AppStorage(DefaultsKey.mouseClickDebounceWindowMs) private var mouseClickDebounceWindow =
         Defaults.defaultMouseClickDebounceWindowMs
-    @State private var smoothScrollMoreOptionsExpanded = false
 
     private var mouseClickDebounceText: MouseClickDebounceStrings {
         FeatureStrings.mouseClickDebounce(l10n.language)
@@ -70,10 +62,6 @@ struct MouseSettings: View {
                 if AppFeature.focusFollowsMouse.isAvailable {
                     focusFollowsMouseCard
                         .settingsSectionAnchor(.focusFollowsMouse, cornerRadius: 16)
-                }
-                if AppFeature.smoothScroll.isAvailable {
-                    smoothScrollCard
-                        .settingsSectionAnchor(.smoothScroll, cornerRadius: 16)
                 }
                 if AppFeature.linearScroll.isAvailable {
                     linearScrollCard
@@ -118,7 +106,7 @@ struct MouseSettings: View {
 
     /// The mouse features on this page, in page order, for the legend.
     private var legendFeatures: [AppFeature] {
-        [.scrollInverter, .scrollHorizontal, .focusFollowsMouse, .smoothScroll, .linearScroll, .mouseAcceleration,
+        [.scrollInverter, .scrollHorizontal, .focusFollowsMouse, .linearScroll, .mouseAcceleration,
          .mouseNavigation, .mouseButtonShortcuts, .mouseClickDebounce, .middleClick]
             .filter(\.isAvailable)
     }
@@ -130,7 +118,6 @@ struct MouseSettings: View {
         case .scrollInverter: return invertVertical || invertHorizontal
         case .scrollHorizontal: return horizontalScrollEnabled
         case .focusFollowsMouse: return focusFollowsMouseEnabled
-        case .smoothScroll: return smoothScrollEnabled
         case .linearScroll: return linearScrollEnabled
         case .mouseAcceleration: return mouseAccelerationDisabled
         case .mouseNavigation: return mouseNavigationEnabled
@@ -295,52 +282,6 @@ struct MouseSettings: View {
                         Toggle(l10n.s.focusFollowsMouseWaitForStop, isOn: $focusFollowsMouseWaitForStop)
                     }
                     MouseExceptionsList(scope: .focusFollowsMouse)
-                }
-                .padding(.leading, settingsRowTextInset)
-            }
-        }
-    }
-
-    // MARK: - Smooth scrolling
-
-    private var smoothScrollCard: some View {
-        SettingsCard {
-            SettingsRow(symbol: "scroll", title: l10n.s.smoothScrollName, caption: l10n.s.smoothScrollCaption) {
-                Toggle(l10n.s.smoothScrollName, isOn: $smoothScrollEnabled)
-                    .labelsHidden()
-                    .onChange(of: smoothScrollEnabled) { _, enabled in
-                        SmoothScrollService.shared.syncWithPreferences()
-                        if enabled { permissions.requestAccessibility() }
-                    }
-            }
-            if smoothScrollEnabled {
-                VStack(alignment: .leading, spacing: 10) {
-                    sliderRow(l10n.s.smoothScrollStepLabel,
-                              value: smoothScrollStepBinding,
-                              range: Double(SmoothScrollSupport.stepRange.lowerBound)
-                                  ... Double(SmoothScrollSupport.stepRange.upperBound),
-                              step: 10,
-                              readout: "\(SmoothScrollSupport.sanitizedStep(smoothScrollStep))")
-                    DisclosureGroup(isExpanded: $smoothScrollMoreOptionsExpanded) {
-                        sliderRow(l10n.s.smoothScrollResponseLabel,
-                                  value: smoothScrollResponseBinding,
-                                  range: Double(SmoothScrollSupport.responseRange.lowerBound)
-                                      ... Double(SmoothScrollSupport.responseRange.upperBound),
-                                  step: 5,
-                                  readout: "\(SmoothScrollSupport.sanitizedResponse(smoothScrollResponse))%")
-                            .padding(.top, 6)
-                        sliderRow(l10n.s.smoothScrollCoastLabel,
-                                  value: smoothScrollCoastBinding,
-                                  range: Double(SmoothScrollSupport.coastRange.lowerBound)
-                                      ... Double(SmoothScrollSupport.coastRange.upperBound),
-                                  step: 5,
-                                  readout: "\(SmoothScrollSupport.sanitizedCoast(smoothScrollCoast))%")
-                            .padding(.top, 6)
-                    } label: {
-                        Text(mouseClickDebounceText.moreOptions)
-                            .font(.subheadline.weight(.medium))
-                    }
-                    MouseExceptionsList(scope: .smoothScroll)
                 }
                 .padding(.leading, settingsRowTextInset)
             }
@@ -542,7 +483,6 @@ struct MouseSettings: View {
     private var accessibilityNoteVisible: Bool {
         let anyEngaged = scrollDirectionEnabled
             || (focusFollowsMouseEnabled && AppFeature.focusFollowsMouse.isAvailable)
-            || (smoothScrollEnabled && AppFeature.smoothScroll.isAvailable)
             || (linearScrollEnabled && AppFeature.linearScroll.isAvailable)
             || (mouseNavigationEnabled && AppFeature.mouseNavigation.isAvailable)
             || ((mouseButtonShortcutsEnabled || spacesEnabled)
@@ -559,27 +499,6 @@ struct MouseSettings: View {
     private var scrollDirectionEnabled: Bool {
         scrollInversionEnabled
             || (AppFeature.scrollHorizontal.isAvailable && horizontalScrollEnabled)
-    }
-
-    private var smoothScrollStepBinding: Binding<Double> {
-        Binding(
-            get: { Double(SmoothScrollSupport.sanitizedStep(smoothScrollStep)) },
-            set: { smoothScrollStep = Int($0) }
-        )
-    }
-
-    private var smoothScrollResponseBinding: Binding<Double> {
-        Binding(
-            get: { Double(SmoothScrollSupport.sanitizedResponse(smoothScrollResponse)) },
-            set: { smoothScrollResponse = Int($0) }
-        )
-    }
-
-    private var smoothScrollCoastBinding: Binding<Double> {
-        Binding(
-            get: { Double(SmoothScrollSupport.sanitizedCoast(smoothScrollCoast)) },
-            set: { smoothScrollCoast = Int($0) }
-        )
     }
 
     private var linearScrollLinesBinding: Binding<Double> {
