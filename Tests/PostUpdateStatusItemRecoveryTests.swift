@@ -140,7 +140,6 @@ enum PostUpdateStatusItemRecoveryTests {
         }
 
         let cancellations: [(String, (Host) -> Void)] = [
-            ("user hides the icon", { _ in UserDefaults.standard.hideIcon = true }),
             ("system hides the item", { $0.statusController?.statusItem.isVisible = false }),
             ("panel is open", { $0.popover.isShown = true }),
             ("context menu is open", { $0.statusController?.statusItem.menu = NSMenu() }),

@@ -497,19 +497,19 @@ enum UpdateFeatureTests {
                 && structurallyMerged.first?.feature == .homebrew,
                "differently titled Homebrew rows merge into the stable page row")
 
-        let monitorPage = SettingsSearchItem(id: .page(.monitor),
-                                             destination: FeatureSettingsDestination(.monitor),
-                                             title: "Monitor", icon: "display")
-        let monitorCPUFeature = SettingsSearchSupport.featureItems(language: .enUS) {
-            $0 == .monitorCPU ? "Generated CPU Monitor" : $0.rawValue
-        }.first { $0.id == .feature(.monitorCPU) }!
+        let islandPage = SettingsSearchItem(id: .page(.notch),
+                                            destination: FeatureSettingsDestination(.notch),
+                                            title: "Dynamic Island", icon: "macbook")
+        let calendarFeature = SettingsSearchSupport.featureItems(language: .enUS) {
+            $0 == .notchCalendar ? "Generated Calendar" : $0.rawValue
+        }.first { $0.id == .feature(.notchCalendar) }!
         let multiFeatureMerged = SettingsSearchSupport.combinedItems(
-            pageItems: [monitorPage], featureItems: [monitorCPUFeature])
-        suite.expect(monitorPage.destination == monitorCPUFeature.destination
-                && monitorCPUFeature.destination == AppFeature.monitorCPU.settingsDestination
-                && monitorCPUFeature.destination.sectionAnchor == nil
-                && multiFeatureMerged.map(\.id) == [.page(.monitor), .feature(.monitorCPU)],
-               "the real shared Monitor destination does not merge a multi-feature page")
+            pageItems: [islandPage], featureItems: [calendarFeature])
+        suite.expect(islandPage.destination == calendarFeature.destination
+                && calendarFeature.destination == AppFeature.notchCalendar.settingsDestination
+                && calendarFeature.destination.sectionAnchor == nil
+                && multiFeatureMerged.map(\.id) == [.page(.notch), .feature(.notchCalendar)],
+               "the real shared island destination does not merge a multi-feature page")
 
         let actionCoveredMappings: [(SettingsPage, AppFeature)] = [
             (.uninstaller, .uninstaller),

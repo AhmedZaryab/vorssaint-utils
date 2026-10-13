@@ -17,14 +17,12 @@ struct MenuPanelFocusRequest: Equatable {
 enum MenuPanelFocusTarget: Equatable {
     case normal
     case section(PanelSectionID)
-    case metric(MetricDetailKind)
 }
 
 final class MenuPanelFocus: ObservableObject {
     static let shared = MenuPanelFocus()
 
     @Published private(set) var request: MenuPanelFocusRequest?
-    @Published private(set) var activeMetric: MetricDetailKind?
     @Published private(set) var isSwitchingMetricAnchor = false
     @Published private(set) var popoverIsVisible = false
     private var serial = 0
@@ -33,24 +31,12 @@ final class MenuPanelFocus: ObservableObject {
 
     func showNormalPanel() {
         serial += 1
-        activeMetric = nil
         request = MenuPanelFocusRequest(target: .normal, serial: serial)
     }
 
     func focus(_ section: PanelSectionID) {
         serial += 1
-        activeMetric = nil
         request = MenuPanelFocusRequest(target: .section(section), serial: serial)
-    }
-
-    func focus(_ metric: MetricDetailKind) {
-        serial += 1
-        activeMetric = metric
-        request = MenuPanelFocusRequest(target: .metric(metric), serial: serial)
-    }
-
-    func clearMetricFocus() {
-        activeMetric = nil
     }
 
     func setSwitchingMetricAnchor(_ switching: Bool) {
@@ -64,7 +50,7 @@ final class MenuPanelFocus: ObservableObject {
 }
 
 /// Content of the menu bar popover: keep-awake controls, the volume mixer and
-/// the system monitor.
+/// the tool sections.
 struct MenuPanelView: View {
     var notchSize: CGSize? = nil
     @ObservedObject private var l10n = L10n.shared
@@ -73,11 +59,6 @@ struct MenuPanelView: View {
     @ObservedObject private var features = FeatureRuntime.shared
     @Environment(\.colorScheme) private var colorScheme
     @AppStorage(DefaultsKey.monitorShowMixer) private var showMixer = true
-    @AppStorage(DefaultsKey.monitorShowSystem) private var showSystem = true
-    @AppStorage(DefaultsKey.monitorShowNetwork) private var showNetwork = true
-    @AppStorage(DefaultsKey.monitorShowDisk) private var showDisk = true
-    @AppStorage(DefaultsKey.monitorShowPower) private var showPower = true
-    @AppStorage(DefaultsKey.panelShowFanControl) private var showFanControl = true
     @AppStorage(DefaultsKey.panelShowKeepAwake) private var showKeepAwake = true
     @AppStorage(DefaultsKey.panelShowBrightness) private var showBrightness = true
     @AppStorage(DefaultsKey.brightnessControlEnabled) private var brightnessEnabled = false
@@ -86,10 +67,8 @@ struct MenuPanelView: View {
     @AppStorage(DefaultsKey.panelShowToggles) private var showToggles = true
     @AppStorage(DefaultsKey.panelSectionOrder) private var sectionOrderRaw = ""
     @State private var navigableContentHeight: CGFloat = 0
-    @State private var metricContentHeight: CGFloat = 0
     @State private var updateBannerHeight: CGFloat = 0
     @State private var selectedSection: PanelSectionID = PanelLayout.order.first ?? .keepAwake
-    @State private var selectedMetric: MetricDetailKind?
     @FocusState private var focusedSection: PanelSectionID?
 
     /// Cap the panel to the usable screen height so it never overflows the menu
@@ -109,8 +88,6 @@ struct MenuPanelView: View {
         Group {
             if let notchSize {
                 embeddedPanel(size: notchSize)
-            } else if selectedMetric != nil {
-                metricPanel
             } else {
                 navigablePanel
             }
@@ -118,18 +95,6 @@ struct MenuPanelView: View {
         .onAppear {
             applyFocus(panelFocus.request)
             KeepAwakeManager.shared.refreshPasswordlessStatus()
-            syncMonitorSampling()
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .menuPanelWillShow)) { _ in
-            syncMonitorSampling()
-        }
-        .onDisappear {
-            if !panelFocus.isSwitchingMetricAnchor {
-                SystemMonitor.shared.setMenuPanelNeeds(.none)
-            }
-        }
-        .onChange(of: monitorNeeds) { _, _ in
-            syncMonitorSampling()
         }
         .onChange(of: updates.state) { _, state in
             if !state.showsMenuPanelBanner {
@@ -144,37 +109,15 @@ struct MenuPanelView: View {
         }
     }
 
-    private var monitorNeeds: SystemMonitorPanelNeeds {
-        if let selectedMetric {
-            return selectedMetric.monitorNeeds
-        }
-        switch activeSection {
-        case .system: return SystemMonitorPanelNeeds(system: true)
-        case .network: return SystemMonitorPanelNeeds(network: true)
-        case .disk: return SystemMonitorPanelNeeds(disk: true)
-        case .power: return SystemMonitorPanelNeeds(power: true)
-        default: return .none
-        }
-    }
-
-    private func syncMonitorSampling() {
-        SystemMonitor.shared.setMenuPanelNeeds(monitorNeeds)
-    }
-
     private func applyFocus(_ request: MenuPanelFocusRequest?) {
         guard let request else { return }
         switch request.target {
         case .normal:
-            selectedMetric = nil
+            break
         case .section(let section):
             guard isSectionVisible(section) else { return }
-            selectedMetric = nil
             selectedSection = section
             focusedSection = section
-        case .metric(let metric):
-            focusedSection = nil
-            selectedMetric = metric
-            selectedSection = metric.panelSection
         }
     }
 
@@ -183,17 +126,11 @@ struct MenuPanelView: View {
     /// keeps long sections usable without nesting two scroll regions.
     private func embeddedPanel(size: CGSize) -> some View {
         VStack(spacing: 12) {
-            Group {
-                if let selectedMetric { metricNavigationHeader(selectedMetric) }
-                else { sectionNavigation }
-            }
-            .frame(height: 38)
+            sectionNavigation
+                .frame(height: 38)
             OverlayScrollView(measuredHeight: $navigableContentHeight) {
-                Group {
-                    if let selectedMetric { MetricDetailView(kind: selectedMetric) }
-                    else { section(for: activeSection, collapsible: false) }
-                }
-                .frame(width: size.width)
+                section(for: activeSection, collapsible: false)
+                    .frame(width: size.width)
                 .environment(\.notchPresentation, true)
                 .environment(\.colorScheme, .dark)
             }
@@ -225,28 +162,6 @@ struct MenuPanelView: View {
         .panelGlassSurface()
     }
 
-    private var metricPanel: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            UpdateBanner()
-                .reportHeight($updateBannerHeight)
-            header
-
-            if let selectedMetric {
-                metricNavigationHeader(selectedMetric)
-                OverlayScrollView(measuredHeight: $metricContentHeight) {
-                    MetricDetailView(kind: selectedMetric)
-                        .frame(width: 308)
-                }
-                .frame(width: 308, height: metricScrollHeight)
-            }
-
-            footer
-        }
-        .padding(12)
-        .frame(width: 332, height: metricPanelHeight)
-        .panelGlassSurface()
-    }
-
     /// The major sections in the user's saved order. Reading `sectionOrderRaw`
     /// (the @AppStorage backing) establishes the dependency so reordering in
     /// Settings refreshes the live panel; PanelLayout fills in any sections the
@@ -273,15 +188,6 @@ struct MenuPanelView: View {
         min(maxHeight, max(220, navigableScrollHeight + navigableChromeHeight))
     }
 
-    private var metricScrollHeight: CGFloat {
-        let measured = metricContentHeight == 0 ? estimatedMetricContentHeight : metricContentHeight
-        return min(measured, max(80, maxHeight - navigableChromeHeight))
-    }
-
-    private var metricPanelHeight: CGFloat {
-        min(maxHeight, max(220, metricScrollHeight + navigableChromeHeight))
-    }
-
     private var navigableChromeHeight: CGFloat {
         let bannerHeight = updates.state.showsMenuPanelBanner
             ? (max(updateBannerHeight, 48) + 12)
@@ -294,25 +200,9 @@ struct MenuPanelView: View {
         case .keepAwake: return 250
         case .brightness: return 140
         case .mixer: return 250
-        case .system: return 460
-        case .network: return 190
-        case .disk: return 360
-        case .power: return 170
-        case .fanControl: return 220
         case .utilities: return 500
         case .controls: return 360
         case .toggles: return 420
-        }
-    }
-
-    private var estimatedMetricContentHeight: CGFloat {
-        guard let selectedMetric else { return 320 }
-        switch selectedMetric {
-        case .cpu, .gpu, .memory: return 430
-        case .network: return 330
-        case .disk: return 360
-        case .battery, .power: return 360
-        case .fan: return 240
         }
     }
 
@@ -325,19 +215,6 @@ struct MenuPanelView: View {
         case .keepAwake: KeepAwakeCard(collapsible: collapsible)
         case .brightness: if showBrightness { BrightnessSection(collapsible: collapsible) }
         case .mixer: if showMixer { mixerOrPrioritySection(collapsible: collapsible) }
-        case .system:
-            if showSystem {
-                SystemSection(collapsible: collapsible)
-            }
-        case .network: if showNetwork { NetworkSection(collapsible: collapsible) }
-        case .disk: if showDisk { DiskSection(collapsible: collapsible) }
-        case .power: if showPower { PowerSection(collapsible: collapsible) }
-        case .fanControl:
-            // The popover retains its host after closing; detach the curve editor
-            // so cooling heartbeats cannot keep laying out an unseen panel.
-            if showFanControl, notchSize != nil || panelFocus.popoverIsVisible {
-                FanControlSection(collapsible: collapsible)
-            }
         case .utilities: UtilitiesSection(collapsible: collapsible, startCleaning: startCleaning)
         case .controls: QuickControlsSection(collapsible: collapsible)
         case .toggles: QuickTogglesSection(collapsible: collapsible)
@@ -353,8 +230,8 @@ struct MenuPanelView: View {
     /// The rule lives in PanelLayout; reading the @AppStorage values here is
     /// what keeps the tabs refreshing when Settings flips one of them.
     private func isSectionVisible(_ id: PanelSectionID) -> Bool {
-        _ = (showKeepAwake, showBrightness, brightnessEnabled, showMixer, showSystem, showNetwork,
-             showDisk, showPower, showFanControl, showUtilities, showControls, showToggles)
+        _ = (showKeepAwake, showBrightness, brightnessEnabled, showMixer, showUtilities, showControls,
+             showToggles)
         return PanelLayout.isVisibleInPanel(id)
     }
 
@@ -400,36 +277,6 @@ struct MenuPanelView: View {
     private var navigationActiveFill: Color {
         if notchSize != nil { return .black }
         return colorScheme == .light ? Color.accentColor.opacity(0.13) : Color.accentColor.opacity(0.20)
-    }
-
-    private func metricNavigationHeader(_ kind: MetricDetailKind) -> some View {
-        HStack(spacing: 8) {
-            Button {
-                selectedMetric = nil
-                selectedSection = kind.panelSection
-                MenuPanelFocus.shared.clearMetricFocus()
-            } label: {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 11, weight: .semibold))
-                    .frame(width: 24, height: 24)
-                    .contentShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
-            }
-            .buttonStyle(.plain)
-            .foregroundStyle(.secondary)
-            .background(
-                RoundedRectangle(cornerRadius: 7, style: .continuous)
-                    .fill(PanelSurface.cardFill(for: colorScheme))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 7, style: .continuous)
-                    .strokeBorder(PanelSurface.border(for: colorScheme), lineWidth: 0.7)
-            )
-
-            Label(kind.title(l10n.s), systemImage: kind.symbolName)
-                .font(.system(size: 12.5, weight: .semibold))
-                .lineLimit(1)
-                .frame(maxWidth: .infinity, alignment: .leading)
-        }
     }
 
     /// Starts cleaning mode and closes the panel so the lock overlay is the only

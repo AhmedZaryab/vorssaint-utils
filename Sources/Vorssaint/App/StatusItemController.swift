@@ -11,17 +11,12 @@ final class StatusItemController {
     /// Receives the button that was clicked, so a menu can open from it
     /// while the main item is out of the bar.
     var onRightClick: ((NSStatusBarButton?) -> Void)?
-    var onMetricClick: ((MenuBarMetric, NSStatusBarButton) -> Void)?
     var onClipboardPreviewClick: (() -> Void)?
 
     private(set) var statusItem: NSStatusItem!
-    /// The optional "show latest copy" item: same shape as a metric item —
-    /// independent, opt-in and separately clickable — but not itself a
-    /// MenuBarMetric, since its content comes from ClipboardHistoryService
-    /// rather than a SystemSnapshot reading.
+    /// The optional "show latest copy" item: independent, opt-in and
+    /// separately clickable, its content comes from ClipboardHistoryService.
     private var clipboardPreviewStatusItem: NSStatusItem?
-    private var metricStatusItems: [String: NSStatusItem] = [:]
-    private var metricStatusItemFocus: [String: MenuBarMetric] = [:]
     private var cancellables = Set<AnyCancellable>()
     private var titleTimer: Timer?
     private var defaultsObserver: NSObjectProtocol?
@@ -32,20 +27,12 @@ final class StatusItemController {
     /// avoids loading NotchService when its feature was never installed.
     private(set) var islandHiddenInFullscreen = false
     /// True while the app itself keeps the main item out of the bar, for
-    /// Dynamic Island or for separate metrics, as opposed to macOS dropping
-    /// it. Recovery leaves such an item alone.
+    /// Dynamic Island, as opposed to macOS dropping it. Recovery leaves such
+    /// an item alone.
     private(set) var mainItemHiddenByChoice = false
     private var heldMicBadgeActive: Bool?
-    private var heldKeepAwakeSignal: Bool?
     /// A settings reply already waiting for the next turn of the run loop.
     private var settingsSyncScheduled = false
-    /// How many readings in a row each metric has failed to render, so an
-    /// item is kept through a hiccup but not forever.
-    private var metricEmptyRenders: [String: Int] = [:]
-    /// How many metric items are actually showing a reading. An item kept
-    /// through a hiccup shows nothing, so it must not be what makes the main
-    /// item step aside: that would leave the menu bar with nothing to click.
-    private var renderedMetricItemCount = 0
     /// True while a refresh is running. Anything the menu bar announces back
     /// to us in the middle of one is a consequence of that same work, so it
     /// is answered once afterwards rather than on top of it.
@@ -58,18 +45,11 @@ final class StatusItemController {
     /// rather than for every launch regardless of whether anyone uses it.
     private var clipboardBindingsInstalled = false
     private static let mainAutosaveName = "VorssaintMenuBarItem"
-    private static let metricAutosavePrefix = "VorssaintMetric"
     private static let clipboardPreviewAutosaveName = "VorssaintClipboardPreview"
     private static let emptyStatusImage = NSImage()
-
-    /// One separate menu bar item: a metric, or a metric with its temperature
-    /// when the two are combined.
-    struct MetricStatusGroup {
-        let id: String
-        let metrics: [MenuBarMetric]
-        let focusMetric: MenuBarMetric
-        let title: String
-    }
+    /// The countdown's font. The live metrics that used to share it are
+    /// parked in Legacy/systemMonitor (MenuBarRenderer).
+    static let statusFont = NSFont.monospacedSystemFont(ofSize: 11.6, weight: .medium)
 
     /// Cached so the countdown tooltip doesn't allocate a DateFormatter (expensive)
     /// on every refresh while a keep-awake session is active.
@@ -82,7 +62,7 @@ final class StatusItemController {
     var button: NSStatusBarButton? { statusItem.button }
 
     func containsStatusItem(at screenPoint: NSPoint) -> Bool {
-        let items = [statusItem, clipboardPreviewStatusItem].compactMap { $0 } + Array(metricStatusItems.values)
+        let items = [statusItem, clipboardPreviewStatusItem].compactMap { $0 }
         // A hidden item keeps its last frame, which another app's item may
         // occupy by now.
         let buttons = items.filter(\.isVisible).compactMap(\.button)
@@ -128,7 +108,7 @@ final class StatusItemController {
         statusItem.isVisible = true
         if let button = statusItem.button {
             button.image = BlackHoleGlyph.image(active: false)
-            button.font = MenuBarRenderer.statusFont(stacked: false)
+            button.font = Self.statusFont
             button.alignment = .left
             button.cell?.lineBreakMode = .byClipping
             button.cell?.usesSingleLineMode = false
@@ -137,7 +117,6 @@ final class StatusItemController {
             button.sendAction(on: [.leftMouseUp, .rightMouseUp])
         }
         refresh()
-        syncMonitorMode()
         updateIconAppearance()
     }
 
@@ -194,14 +173,6 @@ final class StatusItemController {
             .sink { [weak self] _ in self?.refresh() }
             .store(in: &cancellables)
 
-        SystemMonitor.shared.$snapshot
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in
-                guard MenuBarMetric.anyEnabled(in: .standard) else { return }
-                self?.refresh()
-            }
-            .store(in: &cancellables)
-
         NotificationCenter.default.publisher(for: NotchService.fullscreenVisibilityDidChange)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] notification in
@@ -232,7 +203,6 @@ final class StatusItemController {
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
             self.settingsSyncScheduled = false
-            self.syncMonitorMode()
             self.updateIconAppearance()
             self.refresh()
             self.bindClipboardPreviewIfAvailable()
@@ -267,21 +237,9 @@ final class StatusItemController {
         // a block observer that outlives this instance.
         titleTimer?.invalidate()
         if let defaultsObserver { NotificationCenter.default.removeObserver(defaultsObserver) }
-        for item in metricStatusItems.values {
-            NSStatusBar.system.removeStatusItem(item)
-        }
         if let clipboardPreviewStatusItem {
             NSStatusBar.system.removeStatusItem(clipboardPreviewStatusItem)
         }
-    }
-
-    /// Keeps the background sampler in step with the menu bar settings: it runs
-    /// continuously only while at least one metric is pinned to the menu bar.
-    private func syncMonitorMode() {
-        let defaults = UserDefaults.standard
-        let interval = Defaults.sanitizedMonitorInterval(defaults.integer(forKey: DefaultsKey.monitorInterval))
-        SystemMonitor.shared.setInterval(seconds: interval)
-        SystemMonitor.shared.setMenuBarActive(MenuBarMetric.anyEnabled(in: defaults))
     }
 
     private func syncTitleTimer(keepAwakeActive: Bool,
@@ -314,31 +272,17 @@ final class StatusItemController {
         heldMicBadgeActive ?? currentMicBadgeActive
     }
 
-    private var currentKeepAwakeSignal: Bool {
-        MenuBarSpacingSupport.keepAwakeSignals(active: KeepAwakeManager.shared.isActive,
-                                               tint: .current, style: .current)
-    }
-
-    /// Whether a running Keep Awake session brings back the glyph the
-    /// metrics option hides. Held with the mic badge while a panel is open.
-    private var keepAwakeSignal: Bool {
-        heldKeepAwakeSignal ?? currentKeepAwakeSignal
-    }
-
-    /// Keeps the variable-width mic badge, and whether Keep Awake brings the
-    /// hidden glyph back, unchanged while any status item is anchoring an
-    /// open panel: either one would resize or show an item and move the
-    /// panel with it. The current state is rendered after it closes.
+    /// Keeps the variable-width mic badge unchanged while any status item is
+    /// anchoring an open panel: it would resize the item and move the panel
+    /// with it. The current state is rendered after it closes.
     func setMicBadgeHeld(_ held: Bool) {
         if held {
             guard heldMicBadgeActive == nil else { return }
             heldMicBadgeActive = currentMicBadgeActive
-            heldKeepAwakeSignal = currentKeepAwakeSignal
             return
         }
         guard heldMicBadgeActive != nil else { return }
         heldMicBadgeActive = nil
-        heldKeepAwakeSignal = nil
         // The title's leading space follows the glyph, so the whole refresh
         // runs, not just the icon; refresh() ends with updateIconAppearance().
         refresh()
@@ -347,9 +291,9 @@ final class StatusItemController {
     /// Reflects keep-awake state and an available update in the icon. Updates
     /// keep the blue attention glyph; an active session uses the chosen icon.
     /// With the mute indicator option on, a red slashed mic joins the glyph
-    /// while the microphone is muted, whatever the underlying state. The
-    /// glyph can also hide entirely while metrics render in the title (user
-    /// option); the decision reads the button's actual title, so it must run
+    /// while the microphone is muted, whatever the underlying state. With
+    /// Dynamic Island standing in, the item goes whenever it has no text of
+    /// its own; the decision reads the button's actual title, so it must run
     /// AFTER refresh() writes it — refresh() calls this at its end.
     private func updateIconAppearance() {
         guard let button = statusItem?.button else { return }
@@ -361,34 +305,16 @@ final class StatusItemController {
             updateAvailable = false
         }
         let micBadgeActive = renderedMicBadgeActive
-        let optionEnabled = defaults.bool(forKey: DefaultsKey.menuBarHideIconWithMetrics)
-        let separateMetrics = defaults.bool(forKey: DefaultsKey.menuBarSeparateMetrics)
         let signal = updateAvailable || micBadgeActive
-        let islandHides = MenuBarSpacingSupport.islandHidesStatusIcon(
+        let hidden = MenuBarSpacingSupport.islandHidesStatusIcon(
             in: defaults, hiddenInFullscreen: islandHiddenInFullscreen) && !signal
-        let hidden = islandHides || MenuBarSpacingSupport.shouldHideStatusIcon(
-            optionEnabled: optionEnabled,
-            separateMetrics: separateMetrics,
-            metricsEnabled: MenuBarMetric.anyEnabled(in: defaults),
-            renderedTitleLength: button.attributedTitle.length,
-            mustShowForSignal: signal || keepAwakeSignal)
-        // In the separate-items mode the metrics are their own clickable
-        // items, so hiding means the whole main item steps aside instead of
-        // just its image (which is all that item has). With Dynamic Island
-        // standing in, the item goes whenever it has no text of its own.
-        let mainItemHidden = (islandHides && button.attributedTitle.length == 0)
-            || MenuBarSpacingSupport.shouldHideMainStatusItem(
-                optionEnabled: optionEnabled,
-                separateMetrics: separateMetrics,
-                metricItemsShown: renderedMetricItemCount,
-                renderedTitleLength: button.attributedTitle.length,
-                mustShowForSignal: signal || keepAwakeSignal)
+        let mainItemHidden = hidden && button.attributedTitle.length == 0
         mainItemHiddenByChoice = mainItemHidden
         let keepAwakeActive = KeepAwakeManager.shared.isActive
 
-        // refresh() runs on every monitor tick and lands here; re-rendering
-        // the same image every 2 seconds would be wasted composition, so the
-        // image is only touched when some ingredient actually changed.
+        // refresh() runs on every countdown tick and settings change and lands
+        // here; re-rendering the same image would be wasted composition, so
+        // the image is only touched when some ingredient actually changed.
         let stateKey = [String(hidden), String(mainItemHidden), String(updateAvailable),
                         String(keepAwakeActive), KeepAwakeIconTint.current.rawValue,
                         KeepAwakeActiveIcon.current.rawValue, BlackHoleGlyph.chosenSymbolName,
@@ -430,7 +356,7 @@ final class StatusItemController {
     /// that is out of the bar has nowhere on screen to open from.
     func menuHost(for button: NSStatusBarButton?) -> NSStatusItem {
         guard !statusItem.isVisible, let button else { return statusItem }
-        let others = [clipboardPreviewStatusItem].compactMap { $0 } + Array(metricStatusItems.values)
+        let others = [clipboardPreviewStatusItem].compactMap { $0 }
         return others.first { $0.button === button } ?? statusItem
     }
 
@@ -456,19 +382,13 @@ final class StatusItemController {
         let manager = KeepAwakeManager.shared
         let strings = L10n.shared.s
         let defaults = UserDefaults.standard
-        let snapshot = SystemMonitor.shared.snapshot
-        let metrics = MenuBarMetric.enabled(in: defaults)
-        let separateMetrics = defaults.bool(forKey: DefaultsKey.menuBarSeparateMetrics)
 
         syncTitleTimer(keepAwakeActive: manager.isActive,
                        showsCountdown: defaults.bool(forKey: DefaultsKey.showCountdown),
                        endDate: manager.endDate)
 
-        // Compose the title from the keep-awake countdown (when shown) followed by
-        // the pinned live metrics. Built attributed so the memory pressure dot can
-        // carry its green/yellow/red color; all other runs stay adaptive.
+        // The title is the keep-awake countdown, when shown.
         let title = NSMutableAttributedString()
-        var includesCountdown = false
         if manager.isActive, defaults.bool(forKey: DefaultsKey.showCountdown) {
             let countdown: String
             if let end = manager.endDate {
@@ -480,29 +400,12 @@ final class StatusItemController {
                 countdown = "∞"
             }
             title.append(NSAttributedString(string: countdown))
-            includesCountdown = true
-        }
-        if separateMetrics {
-            refreshMetricStatusItems(metrics: metrics, snapshot: snapshot, strings: strings)
-        } else {
-            removeMetricStatusItems(except: Set<String>())
-            renderedMetricItemCount = 0
-        }
-        if !separateMetrics, !metrics.isEmpty {
-            let metricsTitle = MenuBarRenderer.attributed(for: snapshot,
-                                                          metrics: metrics,
-                                                          allowStacked: !includesCountdown,
-                                                          linePrefix: " ")
-            if metricsTitle.length > 0 {
-                if title.length > 0 { title.append(NSAttributedString(string: "  ")) }
-                title.append(metricsTitle)
-            }
         }
 
         // Every write below invalidates the button's layout and redraws the
         // status window even when the value is identical — and this runs on
-        // every monitor tick and defaults change. Rounded metric strings
-        // repeat most ticks, so skipping no-op writes skips that churn.
+        // every countdown tick and defaults change, so skipping no-op writes
+        // skips that churn.
         if statusItem.length != NSStatusItem.variableLength {
             statusItem.length = NSStatusItem.variableLength
         }
@@ -516,10 +419,9 @@ final class StatusItemController {
             }
         } else {
             // The leading space separates the glyph from the text; with the
-            // glyph hidden by the metrics-only option or by Dynamic Island it
-            // would be pure dead padding on the item's left edge. Same
-            // decision inputs as updateIconAppearance, with a sentinel length:
-            // the title is known non-empty on this branch.
+            // glyph hidden by Dynamic Island it would be pure dead padding on
+            // the item's left edge. Same decision inputs as
+            // updateIconAppearance.
             let updateAvailable: Bool
             if case .available = UpdateService.shared.state {
                 updateAvailable = true
@@ -527,32 +429,12 @@ final class StatusItemController {
                 updateAvailable = false
             }
             let signal = updateAvailable || renderedMicBadgeActive
-            let glyphHidden = (MenuBarSpacingSupport.islandHidesStatusIcon(
-                in: defaults, hiddenInFullscreen: islandHiddenInFullscreen) && !signal)
-                || MenuBarSpacingSupport.shouldHideStatusIcon(
-                    optionEnabled: defaults.bool(forKey: DefaultsKey.menuBarHideIconWithMetrics),
-                    separateMetrics: separateMetrics,
-                    metricsEnabled: !metrics.isEmpty,
-                    renderedTitleLength: 1,
-                    mustShowForSignal: signal || keepAwakeSignal)
+            let glyphHidden = MenuBarSpacingSupport.islandHidesStatusIcon(
+                in: defaults, hiddenInFullscreen: islandHiddenInFullscreen) && !signal
             let full = NSMutableAttributedString(string: glyphHidden ? "" : " ")
             full.append(title)
-            let stacked = full.string.contains("\n")
-            let font = MenuBarRenderer.statusFont(stacked: stacked)
+            let font = Self.statusFont
             full.addAttribute(.font, value: font, range: NSRange(location: 0, length: full.length))
-            if stacked {
-                let paragraph = NSMutableParagraphStyle()
-                paragraph.alignment = .left
-                paragraph.lineBreakMode = .byClipping
-                paragraph.minimumLineHeight = MenuBarRenderer.statusLineHeight(stacked: true)
-                paragraph.maximumLineHeight = MenuBarRenderer.statusLineHeight(stacked: true)
-                full.addAttribute(.paragraphStyle,
-                                  value: paragraph,
-                                  range: NSRange(location: 0, length: full.length))
-                full.addAttribute(.baselineOffset,
-                                  value: -0.4,
-                                  range: NSRange(location: 0, length: full.length))
-            }
             if !full.isEqual(to: button.attributedTitle) {
                 button.font = font
                 button.attributedTitle = full
@@ -579,183 +461,9 @@ final class StatusItemController {
             button.toolTip = toolTip
         }
 
-        // The icon decision depends on the title just written (the glyph may
-        // hide only while metrics actually render), so it re-runs here — the
-        // one place where title and icon can never get out of step.
+        // The icon decision depends on the title just written, so it re-runs
+        // here — the one place where title and icon can never get out of step.
         updateIconAppearance()
-    }
-
-    private func refreshMetricStatusItems(metrics: [MenuBarMetric],
-                                          snapshot: SystemSnapshot,
-                                          strings: Strings) {
-        let groups = Self.metricStatusGroups(for: metrics, strings: strings)
-        let wanted = Set(groups.map(\.id))
-        removeMetricStatusItems(except: wanted)
-        var rendered = 0
-        defer { renderedMetricItemCount = rendered }
-
-        for group in groups {
-            let title = MenuBarRenderer.attributed(for: snapshot,
-                                                   metrics: group.metrics,
-                                                   allowStacked: false)
-            let empties = title.length > 0 ? 0 : (metricEmptyRenders[group.id] ?? 0) + 1
-            metricEmptyRenders[group.id] = empties
-            guard MenuBarSpacingSupport.keepsMetricStatusItem(
-                hasRenderedTitle: title.length > 0,
-                itemExists: metricStatusItems[group.id] != nil,
-                consecutiveEmptyRenders: empties) else {
-                // The reading has been gone long enough to call it gone.
-                removeMetricStatusItem(for: group.id)
-                continue
-            }
-            if title.length > 0 { rendered += 1 }
-
-            metricStatusItemFocus[group.id] = group.focusMetric
-            let item = metricStatusItems[group.id] ?? installMetricStatusItem(for: group)
-            if item.length != NSStatusItem.variableLength {
-                item.length = NSStatusItem.variableLength
-            }
-            guard let button = item.button else { continue }
-
-            let full = NSMutableAttributedString(attributedString: title)
-            let font = MenuBarRenderer.statusFont(stacked: false)
-            full.addAttribute(.font,
-                              value: font,
-                              range: NSRange(location: 0, length: full.length))
-            if button.font?.isEqual(font) != true {
-                button.font = font
-            }
-            if !full.isEqual(to: button.attributedTitle) {
-                button.attributedTitle = full
-            }
-            if button.image !== Self.emptyStatusImage {
-                button.image = Self.emptyStatusImage
-            }
-            if button.imagePosition != .noImage {
-                button.imagePosition = .noImage
-            }
-            if button.toolTip != group.title {
-                button.toolTip = group.title
-            }
-        }
-    }
-
-    /// How the enabled metrics split into separate items. Static so the
-    /// Settings preview draws the same split the bar does.
-    static func metricStatusGroups(for metrics: [MenuBarMetric], strings: Strings) -> [MetricStatusGroup] {
-        guard MenuBarMetricAppearance.current.allowsCombinedTemperatures,
-              UserDefaults.standard.bool(forKey: DefaultsKey.menuBarCombineTemperatures) else {
-            return metrics.map {
-                MetricStatusGroup(id: $0.rawValue, metrics: [$0], focusMetric: $0, title: $0.title(strings))
-            }
-        }
-
-        let enabled = Set(metrics)
-        var emittedIDs = Set<String>()
-        var groups: [MetricStatusGroup] = []
-
-        func appendComponentGroup(id: String,
-                                  primary: MenuBarMetric,
-                                  temperature: MenuBarMetric,
-                                  primaryTitle: String) {
-            guard emittedIDs.insert(id).inserted else { return }
-            var groupedMetrics: [MenuBarMetric] = []
-            if enabled.contains(primary) { groupedMetrics.append(primary) }
-            if enabled.contains(temperature) { groupedMetrics.append(temperature) }
-            guard let focusMetric = groupedMetrics.first else { return }
-            let title = groupedMetrics.count > 1 ? primaryTitle : focusMetric.title(strings)
-            groups.append(MetricStatusGroup(id: id,
-                                            metrics: groupedMetrics,
-                                            focusMetric: focusMetric,
-                                            title: title))
-        }
-
-        for metric in metrics {
-            switch metric {
-            case .cpu, .cpuTemperature:
-                appendComponentGroup(id: "cpu",
-                                     primary: .cpu,
-                                     temperature: .cpuTemperature,
-                                     primaryTitle: strings.monitorShowCPU)
-            case .gpu, .gpuTemperature:
-                appendComponentGroup(id: "gpu",
-                                     primary: .gpu,
-                                     temperature: .gpuTemperature,
-                                     primaryTitle: strings.monitorShowGPU)
-            case .battery, .batteryTemperature:
-                appendComponentGroup(id: "battery",
-                                     primary: .battery,
-                                     temperature: .batteryTemperature,
-                                     primaryTitle: strings.batteryLabel)
-            case .memory, .network, .diskUsage, .diskActivity, .batteryTime, .peripheralBattery, .power,
-                 .fanSpeed:
-                let id = metric.rawValue
-                guard emittedIDs.insert(id).inserted else { continue }
-                groups.append(MetricStatusGroup(id: id,
-                                                metrics: [metric],
-                                                focusMetric: metric,
-                                                title: metric.title(strings)))
-            }
-        }
-
-        return groups
-    }
-
-    private func installMetricStatusItem(for group: MetricStatusGroup) -> NSStatusItem {
-        let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        item.autosaveName = "\(Self.metricAutosavePrefix).\(group.id)"
-        item.behavior = []
-        // Registered before it is shown: showing it writes its remembered
-        // position and announces that write while this call is still on the
-        // stack, and an unregistered item would be built all over again by
-        // whoever answers that announcement.
-        metricStatusItems[group.id] = item
-        metricStatusItemFocus[group.id] = group.focusMetric
-        item.isVisible = true
-        if let button = item.button {
-            button.font = MenuBarRenderer.statusFont(stacked: false)
-            button.alignment = .left
-            button.cell?.lineBreakMode = .byClipping
-            button.cell?.usesSingleLineMode = true
-            button.target = self
-            button.action = #selector(metricClicked(_:))
-            button.sendAction(on: [.leftMouseUp, .rightMouseUp])
-            button.identifier = NSUserInterfaceItemIdentifier("\(Self.metricAutosavePrefix).\(group.id)")
-        }
-        return item
-    }
-
-    @objc private func metricClicked(_ sender: NSStatusBarButton) {
-        if NSApp.currentEvent?.type == .rightMouseUp {
-            onRightClick?(sender)
-            return
-        }
-        guard let metric = focusMetric(from: sender) else {
-            onLeftClick?()
-            return
-        }
-        onMetricClick?(metric, sender)
-    }
-
-    private func focusMetric(from button: NSStatusBarButton) -> MenuBarMetric? {
-        let prefix = "\(Self.metricAutosavePrefix)."
-        guard let identifier = button.identifier?.rawValue,
-              identifier.hasPrefix(prefix) else { return nil }
-        return metricStatusItemFocus[String(identifier.dropFirst(prefix.count))]
-    }
-
-    private func removeMetricStatusItems(except wanted: Set<String>) {
-        let staleMetrics = metricStatusItems.keys.filter { !wanted.contains($0) }
-        for id in staleMetrics {
-            removeMetricStatusItem(for: id)
-        }
-    }
-
-    private func removeMetricStatusItem(for id: String) {
-        metricStatusItemFocus.removeValue(forKey: id)
-        metricEmptyRenders.removeValue(forKey: id)
-        guard let item = metricStatusItems.removeValue(forKey: id) else { return }
-        NSStatusBar.system.removeStatusItem(item)
     }
 
     // MARK: - Clipboard preview item
@@ -814,17 +522,15 @@ final class StatusItemController {
             item.isVisible = entry != nil
         }
         guard let button = item.button else { return }
-        // A non-nil empty image, not the metric items' actual glyph: same
-        // reasoning as their own emptyStatusImage use, so this text also
-        // dims correctly on an inactive display instead of staying full
-        // strength beside metrics that do.
+        // A non-nil empty image rather than none, so this text dims correctly
+        // on an inactive display instead of staying full strength.
         if button.image !== Self.emptyStatusImage {
             button.image = Self.emptyStatusImage
         }
         if button.imagePosition != .noImage {
             button.imagePosition = .noImage
         }
-        let font = MenuBarRenderer.statusFont(stacked: false)
+        let font = Self.statusFont
         if button.font?.isEqual(font) != true {
             button.font = font
         }
@@ -847,13 +553,13 @@ final class StatusItemController {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         item.autosaveName = Self.clipboardPreviewAutosaveName
         item.behavior = []
-        // Registered before it is shown, for the same reason as
-        // installMetricStatusItem: showing it writes and announces its
-        // remembered position while this call is still on the stack.
+        // Registered before it is shown: showing it writes and announces its
+        // remembered position while this call is still on the stack, and an
+        // unregistered item would be built all over again by whoever answers.
         clipboardPreviewStatusItem = item
         item.isVisible = true
         if let button = item.button {
-            button.font = MenuBarRenderer.statusFont(stacked: false)
+            button.font = Self.statusFont
             button.alignment = .left
             button.cell?.lineBreakMode = .byClipping
             button.cell?.usesSingleLineMode = true

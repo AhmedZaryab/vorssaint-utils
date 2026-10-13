@@ -6,16 +6,6 @@ import Foundation
 enum PeripheralBatteryKind: String, Comparable {
     case keyboard, mouse, trackpad, audio, device
 
-    var menuLabel: String {
-        switch self {
-        case .keyboard: return "KBD"
-        case .mouse: return "MOU"
-        case .trackpad: return "TRK"
-        case .audio: return "AUD"
-        case .device: return "PER"
-        }
-    }
-
     static func < (lhs: PeripheralBatteryKind, rhs: PeripheralBatteryKind) -> Bool {
         lhs.rawValue < rhs.rawValue
     }
@@ -322,12 +312,6 @@ enum PeripheralBatterySupport {
         }
     }
 
-    static func menuBarMetric(for devices: [PeripheralBatteryDevice]) -> (label: String, value: String)? {
-        let devices = sorted(devices)
-        guard let first = devices.first else { return nil }
-        let extra = devices.count > 1 ? "+\(min(9, devices.count - 1))" : ""
-        return (first.kind.menuLabel, "\(first.percent)%\(extra)")
-    }
 }
 
 /// A cache keeps the time of its observation, including per-device sources:

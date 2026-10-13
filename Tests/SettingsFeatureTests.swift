@@ -34,7 +34,6 @@ enum SettingsFeatureTests {
             DefaultsKey.windowLayoutMarginPercent] as? Double == 12,
             "custom maximize margin survives a settings backup round trip")
         suite.expect(backupKeys.contains(DefaultsKey.switcherEnabled)
-                && backupKeys.contains(DefaultsKey.menuBarCPU)
                 && backupKeys.contains(DefaultsKey.language)
                 && backupKeys.contains(DefaultsKey.appVolumes)
                 && !backupKeys.contains(DefaultsKey.mixerUniversalOutputDevice)
@@ -42,7 +41,7 @@ enum SettingsFeatureTests {
                 && backupKeys.contains(DefaultsKey.mixerHideInactiveApps)
                 && backupKeys.contains(DefaultsKey.keepAwakeActiveIcon)
                 && backupKeys.contains(AppFeature.dockPreview.availabilityKey),
-               "backup carries preferences, menu bar pins, Keep Awake appearance, language and hub availability, never a session's all-apps output")
+               "backup carries preferences, Keep Awake appearance, language and hub availability, never a session's all-apps output")
         suite.expect(backupKeys.contains(DefaultsKey.launchAtLoginWanted),
                "the launch at login choice travels with the settings backup")
         let islandKeys: Set<String> = [
@@ -283,18 +282,6 @@ enum SettingsFeatureTests {
                 && backupKeys.contains(DefaultsKey.panelToggleKeyboardLight)
                 && backupKeys.contains(DefaultsKey.panelToggleMicMute),
                "the quick toggles layout travels with the settings backup")
-        suite.expect(backupKeys.contains(DefaultsKey.panelShowFanControl)
-                && backupKeys.contains(DefaultsKey.fanControlMode)
-                && backupKeys.contains(DefaultsKey.fanControlCoolingLevel)
-                && backupKeys.contains(DefaultsKey.fanControlCurves)
-                && backupKeys.contains(DefaultsKey.menuBarFanSpeed)
-                && backupKeys.contains(DefaultsKey.fanControlResume)
-                && !backupKeys.contains(DefaultsKey.fanControlRecoveryNeeded)
-                && !backupKeys.contains(DefaultsKey.fanControlHelperVersion)
-                && !backupKeys.contains(DefaultsKey.fanControlResumeConfiguration),
-               "fan display and cooling preferences travel while helper recovery state stays on one Mac")
-        suite.expect(Defaults.registeredDefaults[DefaultsKey.fanControlResume] as? Bool == false,
-               "resuming fan control after a restart or sleep is opt-in")
         suite.expect(backupKeys.contains(DefaultsKey.screenshotSharingEnabled),
                "the temporary screenshot links preference travels with settings backup")
         suite.expect(!backupKeys.contains(DefaultsKey.clipboardHistoryEntries)
@@ -520,7 +507,7 @@ enum SettingsFeatureTests {
             SettingsBackupSupport.formatVersionKey: 1,
             SettingsBackupSupport.settingsKey: [
                 DefaultsKey.linearScrollEnabled: "yes please",
-                DefaultsKey.monitorInterval: "soon",
+                DefaultsKey.notchLowBatteryThreshold: "soon",
                 DefaultsKey.linearScrollLines: 60,
                 DefaultsKey.switcherAppRules: "not a rule dictionary",
             ] as [String: Any],
@@ -528,7 +515,7 @@ enum SettingsFeatureTests {
         let shapeChecked = SettingsBackupSupport.sanitizedSettings(from: wrongShapes)
         suite.expect(shapeChecked?[DefaultsKey.linearScrollEnabled] == nil,
                "text where a switch belongs is dropped on import")
-        suite.expect(shapeChecked?[DefaultsKey.monitorInterval] == nil,
+        suite.expect(shapeChecked?[DefaultsKey.notchLowBatteryThreshold] == nil,
                "text where a number belongs is dropped on import")
         suite.expect(shapeChecked?[DefaultsKey.switcherAppRules] == nil,
                "text where a per-app rule dictionary belongs is dropped on import")
@@ -538,7 +525,7 @@ enum SettingsFeatureTests {
             SettingsBackupSupport.formatVersionKey: 1,
             SettingsBackupSupport.settingsKey: [
                 DefaultsKey.switcherEnabled: 1,
-                DefaultsKey.monitorInterval: true,
+                DefaultsKey.notchLowBatteryThreshold: true,
                 DefaultsKey.dockPreviewBackgroundOpacity: true,
                 DefaultsKey.linearScrollLines: 60,
                 DefaultsKey.scratchpadBackgroundOpacity: 0.5,
@@ -559,7 +546,7 @@ enum SettingsFeatureTests {
             bridgedSettings = SettingsBackupSupport.sanitizedSettings(from: payload)
         }
         suite.expect(bridgedSettings?[DefaultsKey.switcherEnabled] == nil
-                && bridgedSettings?[DefaultsKey.monitorInterval] == nil
+                && bridgedSettings?[DefaultsKey.notchLowBatteryThreshold] == nil
                 && bridgedSettings?[DefaultsKey.dockPreviewBackgroundOpacity] == nil,
                "property-list numbers and booleans do not cross scalar setting types")
         suite.expect(bridgedSettings?[DefaultsKey.linearScrollExceptions] == nil

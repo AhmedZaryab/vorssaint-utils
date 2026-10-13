@@ -100,12 +100,11 @@ enum NotchActivityTests {
 
     private static func lowBatteryContracts(_ suite: TestSuite) {
         let keys = [DefaultsKey.notchLowBatteryTint, DefaultsKey.notchLowBatteryThreshold, DefaultsKey.notchLowBatteryEarly,
-                    DefaultsKey.notchLowBatteryEarlyThreshold, DefaultsKey.notchLowBatteryMenuBar]
+                    DefaultsKey.notchLowBatteryEarlyThreshold]
         suite.expect(Defaults.registeredDefaults[DefaultsKey.notchLowBatteryTint] as? Bool == false
                && Defaults.registeredDefaults[DefaultsKey.notchLowBatteryThreshold] as? Int == 10
                && Defaults.registeredDefaults[DefaultsKey.notchLowBatteryEarly] as? Bool == false
                && Defaults.registeredDefaults[DefaultsKey.notchLowBatteryEarlyThreshold] as? Int == 20
-               && Defaults.registeredDefaults[DefaultsKey.notchLowBatteryMenuBar] as? Bool == true
                && SettingsBackupSupport.exportKeys().isSuperset(of: keys),
                "the low battery warning starts off at 10%, amber at 20%, and travels with settings backups")
         func warning(_ percent: Int?, plugged: Bool = false, tint: Bool = true, threshold: Int = 10,
@@ -147,13 +146,8 @@ enum NotchActivityTests {
         defaults.set(true, forKey: DefaultsKey.notchLowBatteryTint)
         defaults.set(true, forKey: DefaultsKey.notchLowBatteryEarly)
         suite.expect(NotchSupport.batteryWarning(percent: 10, externalConnected: false, in: defaults) == .low
-                     && NotchSupport.batteryWarning(percent: 20, externalConnected: false, in: defaults) == .early
-                     && NotchSupport.menuBarBatteryWarning(percent: 10, externalConnected: false, in: defaults) == .low,
-                     "stored preferences use the default levels and reach the menu bar")
-        defaults.set(false, forKey: DefaultsKey.notchLowBatteryMenuBar)
-        suite.expect(NotchSupport.menuBarBatteryWarning(percent: 10, externalConnected: false, in: defaults) == .none
-                     && NotchSupport.batteryWarning(percent: 10, externalConnected: false, in: defaults) == .low,
-                     "the menu bar can keep its usual color while the island warns")
+                     && NotchSupport.batteryWarning(percent: 20, externalConnected: false, in: defaults) == .early,
+                     "stored preferences use the default levels")
     }
 
     private static func alertContracts(_ suite: TestSuite) {

@@ -115,7 +115,6 @@ final class NotchService: ObservableObject {
     @Published private(set) var songPeek: SongPeekModel?
     @Published private(set) var choosingFileDropDestination = false
     @Published private(set) var targetsMediaDrop = false
-    @Published private(set) var selectedMetric: MetricDetailKind?
     @Published private(set) var captureControls: ScreenCaptureSelectionOptions?
     @Published private(set) var captureControlsCollapsed = false
     @Published private(set) var captureSelectionInProgress = false
@@ -154,8 +153,6 @@ final class NotchService: ObservableObject {
     /// reach the app in front instead.
     @Published private(set) var panelIsKey = false
     @Published private var captureContentHeight: CGFloat?
-    /// Kept after closing, so the next Fan Control detail opens at its size.
-    @Published private var fanDetailHeight: CGFloat?
     @Published private(set) var power = PowerReading()
     @Published private var musicDetailVisible = false
 
@@ -251,7 +248,6 @@ final class NotchService: ObservableObject {
     /// When the output last moved its own level, so the rest of that ramp
     /// stays quiet with it.
     private var lastVolumeRide: TimeInterval = -.infinity
-    private var notchNeedsMonitor = false
     private var menuSpaceTimer: Timer?
     private var menuSpaceReading = false
     private var menuSpaceGeneration = 0
@@ -788,8 +784,8 @@ final class NotchService: ObservableObject {
         let musicExtras = NotchLyricsSupport.isEnabled() || NotchQueueSupport.isEnabled()
         let launcher = QuickLauncherService.shared
         return pageSize(in: expandedGeometry, module: showingAppPanel ? .tools : selected,
-                        detail: selectedMetric != nil, panel: showingAppPanel,
-                        detailHeight: selectedMetric == .fan ? fanDetailHeight : nil,
+                        detail: false, panel: showingAppPanel,
+                        detailHeight: nil,
                         musicExtraHeight: musicExtras && musicDetailVisible ? geometry.musicExtrasHeight : 0,
                         fileMediaHeight: !choosingFileDropDestination && AppFeature.mediaTools.isAvailable
                             && NotchFileToolsService.shared.mediaPresented ? NotchFileToolsService.shared.mediaContentHeight : nil,
@@ -844,8 +840,6 @@ final class NotchService: ObservableObject {
                                      sliderCount: sliders, controlsHaveMusic: controls.contains(.music), musicHasContent: NotchMusicService.shared.playback != nil,
                                      musicHasControlsRow: AppFeature.mixer.isAvailable || musicExtras,
                                      musicExtraHeight: musicExtraHeight, fileMediaHeight: fileMediaHeight,
-                                     systemCards: NotchSupport.systemCardCount(hasBattery: PowerSampler.hasInternalBattery,
-                                                                               fans: SystemMonitor.shared.snapshot.fanSpeeds.count),
                                      toolCount: toolCount, capturePreviewHeight: capturePreviewHeight,
                                      timerHasSession: NotchTimerService.shared.session.hasSession,
                                      timerMode: NotchTimerService.shared.session.hasSession
@@ -868,7 +862,7 @@ final class NotchService: ObservableObject {
         var result = geometry
         // Capture editing has a full toolbar whose actions must stay reachable.
         result.requiresFullWidthHeader = selected == .captures && captureActions != nil
-            && !showingSections && !showingAppPanel && selectedMetric == nil
+            && !showingSections && !showingAppPanel
         result.headerTitleWidth = headerTitleWidth
         return result
     }
@@ -877,19 +871,16 @@ final class NotchService: ObservableObject {
     /// takes the room its side leaves.
     private var headerTitleWidth: CGFloat {
         guard !showingSections else { return 0 }
-        let detail = showingAppPanel || selectedMetric != nil
+        let detail = showingAppPanel
         guard detail || modules.isEmpty else {
             return NotchLayout.headerTitleWidth(selected.title(L10n.shared.language), button: headerShowsSectionsButton)
         }
         return NotchLayout.headerTitleWidth(detailTitle, font: NotchLayout.detailTitleFont, button: detail)
     }
-    /// A detail's title, the app panel's, or the island's own with no sections.
+    /// The app panel's title, or the island's own with no sections.
     var detailTitle: String {
         if showingAppPanel { return "Vorssaint" }
-        let language = L10n.shared.language
-        guard let metric = selectedMetric else { return FeatureStrings.notch(language).title }
-        // The fan card opens Fan Control, so its page shares that title.
-        return metric == .fan ? FeatureStrings.fanControl(language).title : metric.title(L10n.shared.s)
+        return FeatureStrings.notch(L10n.shared.language).title
     }
     var contentSize: CGSize { expandedGeometry.contentSize(for: expandedSize) }
     var usesGlassSurface: Bool {
@@ -1171,7 +1162,6 @@ final class NotchService: ObservableObject {
             + NotchSupport.idleContent().rawValue + String(NotchSupport.watchesMusicActivity())
             + String(NotchKeepAwakeSupport.showsActivity())
             + modules.map(\.rawValue).joined()
-            + String(AppFeature.fanControl.isAvailable)
             + String(NotchSupport.routesShelf()) + String(NotchSupport.revealsShelfDrag())
             + String(NotchSupport.routesCaptureControls())
             + String(NotchMascotSupport.isEnabled())
@@ -1214,11 +1204,6 @@ final class NotchService: ObservableObject {
         if modules != updated { modules = updated }
         let selection = modules.contains(selected) ? selected : modules.first ?? .controls
         if selected != selection { selected = selection }
-        if let selectedMetric, !metricIsAvailable(selectedMetric) { self.selectedMetric = nil }
-    }
-
-    private func metricIsAvailable(_ metric: MetricDetailKind) -> Bool {
-        MenuBarMetric.allCases.contains { $0.detailKind == metric && $0.feature.isAvailable }
     }
 
     func stop(restoreCapture: Bool = true) {
@@ -1295,7 +1280,6 @@ final class NotchService: ObservableObject {
         endFileDrop()
         fileInteractionActive = false
         heldDrag = false
-        selectedMetric = nil
         pinned = false
         notice = nil
         noticeExpanded = false
@@ -1318,7 +1302,6 @@ final class NotchService: ObservableObject {
         removeHiddenHoverMonitors()
         removeHoverExitMonitors()
         removePointerMonitors()
-        releaseMonitor()
         musicTitleWork?.cancel(); musicTitleWork = nil
         capsuleMusicTitleShown = false
         closeMirrors()
@@ -1376,13 +1359,13 @@ final class NotchService: ObservableObject {
     }
 
     func open(_ module: NotchModule? = nil, pinned: Bool = false, takeFocus: Bool = true,
-              appPanel: Bool = false, metric: MetricDetailKind? = nil, feedback: Bool = true, sections: Bool = false) {
+              appPanel: Bool = false, feedback: Bool = true, sections: Bool = false) {
         guard NotchSupport.isEnabled(), !suspended else { return }
         if !running || self.panel == nil { syncWithPreferences() }
         else { refreshModules() }
         guard let panel else { return }
         let reopening = reopeningDestination
-        let useReopeningSurface = module == nil && !expanded && !appPanel && !sections && metric == nil
+        let useReopeningSurface = module == nil && !expanded && !appPanel && !sections
         let destination = module.flatMap { modules.contains($0) ? $0 : nil } ?? reopening.module
         let appPanel = appPanel || (useReopeningSurface && reopening.appPanel)
         let sections = sections || (useReopeningSurface && reopening.sections)
@@ -1392,11 +1375,10 @@ final class NotchService: ObservableObject {
             sectionRow = 0
             highlightedSection = destination
         }
-        let metric = metric.flatMap { metricIsAvailable($0) ? $0 : nil }
         let closesCommandBar = showingCommandBar
         let changesPresentation = !expanded || selected != destination || closesCommandBar
-            || showingAppPanel != appPanel || selectedMetric != metric || showingSections != sections
-        if changesPresentation, destination == .tools, !appPanel, !sections, metric == nil {
+            || showingAppPanel != appPanel || showingSections != sections
+        if changesPresentation, destination == .tools, !appPanel, !sections {
             QuickLauncherService.shared.prepareForPresentation()
         }
         (NSApp.delegate as? AppDelegate)?.closePopover(preservingNotch: true)
@@ -1407,7 +1389,7 @@ final class NotchService: ObservableObject {
         // Entering a detail decides what lies behind it; switching details or
         // passing through the gallery keeps that answer.
         if !expanded { detailHasPage = false }
-        else if appPanel || metric != nil, !showingAppPanel, selectedMetric == nil { detailHasPage = true }
+        else if appPanel, !showingAppPanel { detailHasPage = true }
         // Following the closed island ends the moment it opens, before a page
         // or a capture preview under the pointer can be told the pointer left.
         // An open page is followed again only from an exit report.
@@ -1419,7 +1401,6 @@ final class NotchService: ObservableObject {
             showingSections = sections
             if selected != destination { selected = destination }
             if pinned { self.pinned = true }
-            selectedMetric = metric
             peeking = false
             openedByHover = !takeFocus
             expanded = true
@@ -1450,7 +1431,6 @@ final class NotchService: ObservableObject {
             expanded = false
             openedByHover = false
             peeking = false
-            selectedMetric = nil
             showingAppPanel = false
             showingSections = false
             showingCommandBar = false
@@ -1698,14 +1678,14 @@ final class NotchService: ObservableObject {
     func toggleSections() {
         guard captureControls == nil, !heldDrag else { return }
         if showingSections {
-            open(appPanel: showingAppPanel, metric: selectedMetric)
+            open(appPanel: showingAppPanel)
         } else {
             sectionQuery = ""
             // The gallery opens from its top, stepping only as far as the
             // current section's row.
             sectionRow = 0
             highlightedSection = selected
-            open(appPanel: showingAppPanel, metric: selectedMetric, sections: true)
+            open(appPanel: showingAppPanel, sections: true)
         }
     }
 
@@ -1776,7 +1756,7 @@ final class NotchService: ObservableObject {
     /// The floating pad's tab shortcuts work on its page too. With one pad
     /// left, Command-W closes the island the way it hides the pad.
     private func handleScratchpadKey(_ event: NSEvent) -> Bool {
-        guard selected == .scratchpad, !showingAppPanel, !showingSections, selectedMetric == nil else { return false }
+        guard selected == .scratchpad, !showingAppPanel, !showingSections else { return false }
         let pad = ScratchpadService.shared
         let commandOnly = event.modifierFlags.intersection([.command, .control, .option]) == .command
         let shift = event.modifierFlags.contains(.shift)
@@ -1807,7 +1787,7 @@ final class NotchService: ObservableObject {
     }
 
     private func handleClipboardPasteKey(_ event: NSEvent) -> Bool {
-        guard selected == .clipboard, !showingAppPanel, !showingSections, selectedMetric == nil else { return false }
+        guard selected == .clipboard, !showingAppPanel, !showingSections else { return false }
         let commandOnly = event.modifierFlags.intersection([.command, .control, .option, .shift]) == .command
         guard let index = NotchClipboardPastePress.index(keyCode: event.keyCode, commandOnly: commandOnly)
         else { return false }
@@ -1828,7 +1808,6 @@ final class NotchService: ObservableObject {
             case .microphone: MicMuteService.shared.toggle()
             case .screenshot: perform { ScreenshotService.shared.capture() }
             case .recording: perform { ScreenRecorderService.shared.toggle() }
-            case .speedTest: showMetric(.network)
             case .panel: openAppPanel()
             case .mixer: select(.mixer)
             case .music: select(.music)
@@ -1856,7 +1835,7 @@ final class NotchService: ObservableObject {
     func showScratchpad(toggle: Bool = false) -> Bool {
         guard NotchSupport.routesScratchpad(), acceptsUserInteraction else { return false }
         if toggle, expanded, selected == .scratchpad, !showingAppPanel, !showingSections, !showingCommandBar,
-           selectedMetric == nil, panel?.isKeyWindow == true { collapse() }
+           panel?.isKeyWindow == true { collapse() }
         else { open(.scratchpad) }
         return true
     }
@@ -1884,28 +1863,9 @@ final class NotchService: ObservableObject {
         return true
     }
 
-    func showMetric(_ metric: MetricDetailKind, toggle: Bool = false) {
-        guard metricIsAvailable(metric) else { return }
-        if toggle, expanded, selectedMetric == metric, !showingSections, !showingCommandBar { collapse(); return }
-        open(.system, metric: metric)
-        // A metric opened from its menu bar item closes on Escape, like the popover.
-        if toggle { detailHasPage = false }
-    }
-
-    /// Fan Control is a single card, so its detail fits the card instead of
-    /// opening a tall, mostly empty page. A taller card still scrolls in it.
-    func updateFanDetailHeight(_ height: CGFloat) {
-        guard expanded, selectedMetric == .fan, !showingAppPanel, !showingSections,
-              height.isFinite, height > 0 else { return }
-        let measured = ceil(height)
-        guard fanDetailHeight != measured else { return }
-        fanDetailHeight = measured
-        refreshPresentation()
-    }
-
     func goBack() {
-        let changesPresentation = selectedMetric != nil || showingAppPanel
-        mutatePresentation(transitionContent: changesPresentation ? .replace : .none) { selectedMetric = nil; showingAppPanel = false }
+        let changesPresentation = showingAppPanel
+        mutatePresentation(transitionContent: changesPresentation ? .replace : .none) { showingAppPanel = false }
         syncVisibleConsumers()
         if changesPresentation { provideHapticFeedback() }
     }
@@ -1915,7 +1875,7 @@ final class NotchService: ObservableObject {
     /// once nothing lies behind.
     private func stepBack() {
         guard captureControls == nil, !heldDrag else { return }
-        if showingAppPanel || selectedMetric != nil {
+        if showingAppPanel {
             if detailHasPage { goBack() } else { collapse() }
         } else if let close = pageLayers[selected] {
             close()
@@ -2267,7 +2227,7 @@ final class NotchService: ObservableObject {
             return
         }
         open(selectedNotice.event == .download ? .downloads : selectedNotice.event == .timer ? .timer
-             : selectedNotice.event == .accessory ? .system : selectedNotice.event == .systemNotification ? .notifications
+             : selectedNotice.event == .systemNotification ? .notifications
              : selectedNotice.event == .clipboard ? .clipboard : selectedNotice.event == .agents ? .agents
              : selectedNotice.event == .track ? .music : selectedNotice.event == .microphone ? .mixer
              : selectedNotice.event == .watch ? .watch : .controls)
@@ -2432,7 +2392,7 @@ final class NotchService: ObservableObject {
 
     func isCaptureVisible(id: UUID) -> Bool {
         acceptsSystemFeedback && expanded && selected == .captures
-            && !showingAppPanel && !showingSections && !showingCommandBar && selectedMetric == nil
+            && !showingAppPanel && !showingSections && !showingCommandBar
             && captureControls == nil && captureID == id && captureContent != nil
     }
 
@@ -3839,17 +3799,6 @@ final class NotchService: ObservableObject {
                     self.refreshPresentation()
                 }.store(in: &subscriptions)
         }
-        if modules.contains(.system), AppFeature.fanControl.isAvailable {
-            // The fan card only exists once the page's first sample lands; the
-            // strip that was sized without it reserves its row again.
-            SystemMonitor.shared.$snapshot.map { $0.fanSpeeds.isEmpty }.removeDuplicates().dropFirst()
-                .receive(on: DispatchQueue.main)
-                .sink { [weak self] _ in
-                    guard let self, self.expanded, self.selected == .system, self.selectedMetric == nil,
-                          !self.showingAppPanel, !self.showingSections else { return }
-                    self.refreshPresentation()
-                }.store(in: &subscriptions)
-        }
         if NotchSupport.routes(.download) {
             NotchDownloadService.shared.$items.receive(on: DispatchQueue.main).sink { [weak self] _ in
                 self?.syncMenuSpaceMonitoring()
@@ -4048,7 +3997,7 @@ final class NotchService: ObservableObject {
 
     private func startPower() {
         guard PowerSampler.hasInternalBattery else { return }
-        powerSampler = PowerSampler(smc: nil)
+        powerSampler = PowerSampler()
         power = powerSampler?.sample() ?? PowerReading()
         let callback: IOPowerSourceCallbackType = { context in
             guard let context else { return }
@@ -4094,13 +4043,12 @@ final class NotchService: ObservableObject {
 
     private func syncVisibleConsumers() {
         syncMenuSpaceMonitoring()
-        guard running, !suspended else { releaseMonitor(); return }
+        guard running, !suspended else { return }
         if fullscreenCompact {
             CameraPreviewService.shared.hideEmbedded()
             // A copy on another display still shows the song playing.
             let copiesShowMusic = showsCopies && NotchSupport.watchesMusicActivity()
             if copiesShowMusic { NotchMusicService.shared.start() } else { NotchMusicService.shared.stop() }
-            releaseMonitor()
             return
         }
         if !NotchCameraSupport.canPresent(expanded: expanded && !showingSections && !showingCommandBar, selected: selected,
@@ -4111,23 +4059,6 @@ final class NotchService: ObservableObject {
             && !showingAppPanel && !showingSections && !showingCommandBar)
             || (!hiddenUntilHover && (NotchSupport.watchesMusicActivity() || NotchSupport.routes(.track))))
         if musicWanted { NotchMusicService.shared.start() } else { NotchMusicService.shared.stop() }
-        let needs = expanded && selected == .system && selectedMetric == nil && modules.contains(.system) && !showingAppPanel
-            && !showingSections && !showingCommandBar
-        var detailNeeds = expanded && !showingSections ? selectedMetric?.monitorNeeds ?? .none : .none
-        if needs, AppFeature.monitorDisk.isAvailable { detailNeeds.disk = true }
-        if needs, AppFeature.fanControl.isAvailable { detailNeeds.fanSpeed = true }
-        SystemMonitor.shared.setNotchDetailNeeds(detailNeeds)
-        if needs != notchNeedsMonitor {
-            notchNeedsMonitor = needs
-            SystemMonitor.shared.setNotchVisible(needs)
-        }
-    }
-
-    private func releaseMonitor() {
-        SystemMonitor.shared.setNotchDetailNeeds(.none)
-        guard notchNeedsMonitor else { return }
-        notchNeedsMonitor = false
-        SystemMonitor.shared.setNotchVisible(false)
     }
 }
 
@@ -4512,7 +4443,6 @@ extension NotchService {
             showingCommandBar = true
             showingAppPanel = false
             showingSections = false
-            selectedMetric = nil
             peeking = false
             openedByHover = false
             expanded = true

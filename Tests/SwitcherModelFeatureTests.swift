@@ -1611,33 +1611,8 @@ enum SwitcherModelFeatureTests {
                "committing to an app with no window and coming from none changes no history")
         suite.expect(registeredDefaults[DefaultsKey.minimalWindowPreviews] as? Bool == false,
                "minimal previews preserve the existing appearance until enabled")
-        suite.expect(SettingsBackupSupport.exportKeys().isSuperset(of: [DefaultsKey.minimalWindowPreviews,
-                                                                  DefaultsKey.monitorPwrTemperature,
-                                                                  DefaultsKey.monitorSysBattery]),
-               "preview appearance and moved battery visibility travel in settings backups")
-        let batteryVisibilitySuite = "com.vorssaint.tests.batteryVisibility.\(UUID().uuidString)"
-        if let batteryVisibilityDefaults = UserDefaults(suiteName: batteryVisibilitySuite) {
-            batteryVisibilityDefaults.removePersistentDomain(forName: batteryVisibilitySuite)
-            batteryVisibilityDefaults.set(false, forKey: DefaultsKey.monitorSysTemps)
-            Defaults.migrateBatteryTemperatureVisibility(in: batteryVisibilityDefaults)
-            suite.expect(!batteryVisibilityDefaults.bool(forKey: DefaultsKey.monitorPwrTemperature),
-                   "moving battery temperature preserves a hidden temperature section")
-            batteryVisibilityDefaults.set(true, forKey: DefaultsKey.monitorSysTemps)
-            Defaults.migrateBatteryTemperatureVisibility(in: batteryVisibilityDefaults)
-            suite.expect(!batteryVisibilityDefaults.bool(forKey: DefaultsKey.monitorPwrTemperature),
-                   "subsequent System visibility changes cannot overwrite the Power choice")
-            batteryVisibilityDefaults.removePersistentDomain(forName: batteryVisibilitySuite)
-            Defaults.migrateBatteryTemperatureVisibility(in: batteryVisibilityDefaults)
-            suite.expect(batteryVisibilityDefaults.bool(forKey: DefaultsKey.monitorPwrTemperature),
-                   "a fresh installation keeps battery temperature visible in Power")
-            batteryVisibilityDefaults.set(false, forKey: DefaultsKey.monitorSysTemps)
-            Defaults.migrateBatteryTemperatureVisibility(in: batteryVisibilityDefaults)
-            suite.expect(batteryVisibilityDefaults.bool(forKey: DefaultsKey.monitorPwrTemperature),
-                   "a restored Power preference wins over the previous temperature section")
-            batteryVisibilityDefaults.removePersistentDomain(forName: batteryVisibilitySuite)
-        } else {
-            suite.expect(false, "battery visibility migration has isolated preferences")
-        }
+        suite.expect(SettingsBackupSupport.exportKeys().contains(DefaultsKey.minimalWindowPreviews),
+               "preview appearance travels in settings backups")
         let visibleDockCard = CGRect(x: 0, y: 25, width: 120, height: 80)
         for eventType: NSEvent.EventType in [.leftMouseDown, .rightMouseDown, .otherMouseDown, .otherMouseUp, .mouseMoved] {
             for button in [0, 1, 2, 3, 4] {
@@ -2124,103 +2099,6 @@ enum SwitcherModelFeatureTests {
                "copy text from screen reads QR codes by default")
         suite.expect(registeredDefaults[DefaultsKey.micMuteMenuBarIndicator] as? Bool == true,
                "mic mute menu bar indicator ships on by default (badge only shows while muted)")
-        suite.expect(registeredDefaults[DefaultsKey.menuBarMetricSpacing] as? String == "compact",
-               "menu bar metric spacing defaults to the compact look")
-        suite.expect(registeredDefaults[DefaultsKey.menuBarMetricAppearance] as? String == "values",
-               "menu bar usage metrics keep numeric values by default")
-        suite.expect(registeredDefaults[DefaultsKey.menuBarUsageBarNormalColor] as? String == "#64D2FF",
-               "menu bar bars use a bright normal color by default")
-        suite.expect(registeredDefaults[DefaultsKey.menuBarUsageBarElevatedColor] as? String == "#FFD60A"
-               && registeredDefaults[DefaultsKey.menuBarUsageBarCriticalColor] as? String == "#FF453A",
-               "menu bar bars keep visible elevated and critical defaults")
-        suite.expect(registeredDefaults[DefaultsKey.menuBarUsageBarMediumThreshold] as? Int == 70
-               && registeredDefaults[DefaultsKey.menuBarUsageBarHighThreshold] as? Int == 90,
-               "menu bar bar thresholds default to seventy and ninety percent")
-        suite.expect(Defaults.sanitizedMonitorAlertCooldown(2) == 2,
-               "the two minute alert cooldown is a valid stored choice")
-        suite.expect(Defaults.sanitizedMonitorAlertCooldown(7) == 15,
-               "unknown alert cooldowns fall back to fifteen minutes")
-        suite.expect(registeredDefaults[DefaultsKey.monitorAlertBatteryTemperature] as? Bool == false,
-               "battery temperature alerts are opt-in")
-        suite.expect(registeredDefaults[DefaultsKey.monitorAlertBatteryTemperatureThreshold] as? Int == 40,
-               "battery temperature alerts default to forty degrees")
-        suite.expect(Defaults.sanitizedMenuBarMetricSpacing("standard") == "standard",
-               "standard menu bar spacing is a valid stored choice")
-        suite.expect(Defaults.sanitizedMenuBarMetricSpacing("banana") == "compact",
-               "unknown menu bar spacing values fall back to the compact default")
-        suite.expect(Defaults.sanitizedMenuBarMetricAppearance("bars") == "bars",
-               "bar appearance is a valid stored choice")
-        suite.expect(Defaults.sanitizedMenuBarMetricAppearance("banana") == "values",
-               "unknown menu bar appearances fall back to numeric values")
-        suite.expect(MenuBarMetricAppearance.values.allowsCombinedTemperatures,
-               "numeric menu bar values may combine usage and temperature")
-        suite.expect(!MenuBarMetricAppearance.bars.allowsCombinedTemperatures,
-               "menu bar bars keep usage and temperature separate")
-        suite.expectClose(MenuBarUsageBarSupport.memoryFraction(used: 3, total: 4) ?? -1, 0.75,
-                    "menu bar memory bars use the current used fraction")
-        suite.expect(MenuBarUsageBarSupport.memoryFraction(used: 3, total: 0) == nil,
-               "menu bar memory bars keep missing totals unavailable")
-        suite.expectClose(MenuBarUsageBarSupport.clampedFraction(-0.2), 0,
-                    "menu bar bars clamp negative readings")
-        suite.expectClose(MenuBarUsageBarSupport.clampedFraction(1.4), 1,
-                    "menu bar bars clamp readings above full")
-        suite.expect(MenuBarUsageBarSupport.fillLevel(for: 0.5, steps: 16) == 8,
-               "menu bar bars quantize fractions to visible fill steps")
-        suite.expect(MenuBarUsageBarSupport.level(for: 0.69) == .normal,
-               "menu bar usage stays blue below seventy percent")
-        suite.expect(MenuBarUsageBarSupport.level(for: 0.70) == .elevated,
-               "menu bar usage turns yellow at seventy percent")
-        suite.expect(MenuBarUsageBarSupport.level(for: 0.89) == .elevated,
-               "menu bar usage stays yellow below ninety percent")
-        suite.expect(MenuBarUsageBarSupport.level(for: 0.90) == .critical,
-               "menu bar usage turns red at ninety percent")
-        suite.expect(MenuBarUsageBarSupport.level(for: 0.50,
-                                            mediumPercent: 40,
-                                            highPercent: 80) == .elevated,
-               "custom menu bar medium thresholds change the bar level")
-        suite.expect(MenuBarUsageBarSupport.level(for: 0.80,
-                                            mediumPercent: 40,
-                                            highPercent: 80) == .critical,
-               "custom menu bar high thresholds change the bar level")
-        let repairedBarThresholds = MenuBarUsageBarSupport.thresholds(medium: 100, high: 20)
-        suite.expect(repairedBarThresholds.medium == 99 && repairedBarThresholds.high == 100,
-               "invalid menu bar thresholds keep medium below high")
-        suite.expect(MenuBarUsageBarSupport.sanitizedColorHex(" 64d2ff ", fallback: "#000000") == "#64D2FF",
-               "menu bar colors normalize stored hex values")
-        suite.expect(MenuBarUsageBarSupport.sanitizedColorHex("bad", fallback: "#FFD60A") == "#FFD60A",
-               "invalid menu bar colors use their visible fallback")
-        let customBarRGB = MenuBarUsageBarSupport.rgb(for: "#804020", fallback: "#000000")
-        suite.expectClose(customBarRGB.red, 128.0 / 255.0, "menu bar color parses red")
-        suite.expectClose(customBarRGB.green, 64.0 / 255.0, "menu bar color parses green")
-        suite.expectClose(customBarRGB.blue, 32.0 / 255.0, "menu bar color parses blue")
-        suite.expect(MenuBarUsageBarSupport.hex(red: 1, green: 0.5, blue: 0) == "#FF8000",
-               "menu bar color picker writes stable hex values")
-        suite.expect(MenuBarSpacingSupport.digitMatchedReserve(for: "14%") == "88%",
-               "compact spacing reserves the current digit count for percentages")
-        suite.expect(MenuBarSpacingSupport.digitMatchedReserve(for: "999°") == "888°",
-               "compact spacing reserves the current digit count for temperatures")
-        suite.expect(MenuBarSpacingSupport.digitMatchedReserve(for: "1.5M") == "8.8M",
-               "compact spacing keeps units and separators while widening digits")
-        suite.expect(MenuBarSpacingSupport.digitMatchedReserve(for: "") == "",
-               "compact spacing reserve of an empty value stays empty")
-        suite.expect(MenuBarSpacingSupport.digitMatchedReserve(for: "4%", minimumDigits: 2) == "88%",
-               "compact spacing pads single digits up to the stability floor")
-        suite.expect(MenuBarSpacingSupport.digitMatchedReserve(for: "14%", minimumDigits: 2) == "88%",
-               "a one and a two digit value reserve the same width, so 4% to 10% never moves the bar")
-        suite.expect(MenuBarSpacingSupport.digitMatchedReserve(for: "100%", minimumDigits: 2) == "888%",
-               "values above the floor keep their own digit count")
-        suite.expect(MenuBarSpacingSupport.compactFloor(currentDigits: 1, highWater: nil) == 2,
-               "the compact floor starts at two digits")
-        suite.expect(MenuBarSpacingSupport.compactFloor(currentDigits: 3, highWater: 2) == 3,
-               "a three digit value raises the floor")
-        suite.expect(MenuBarSpacingSupport.compactFloor(currentDigits: 2, highWater: 3) == 3,
-               "the session high-water mark keeps a block from shrinking back and wobbling")
-        suite.expect(MenuBarSpacingSupport.blockGlue(readableStyle: false, spacing: .standard) == " ",
-               "standard dense spacing keeps the full space between blocks")
-        suite.expect(MenuBarSpacingSupport.blockGlue(readableStyle: false, spacing: .compact) == "\u{200A}",
-               "compact dense spacing joins blocks with a hair space")
-        suite.expect(MenuBarSpacingSupport.blockGlue(readableStyle: true, spacing: .compact) == " ",
-               "compact readable spacing tightens the double space to a single one")
         suite.expect(StatusItemAnchorSupport.anchorDriftX(clickX: 1135, reportedMidX: 1452, buttonWidth: 38) == -317,
                "a click far left of the status item's reported frame re-anchors the panel at the click")
         suite.expect(StatusItemAnchorSupport.anchorDriftX(clickX: 1452, reportedMidX: 1135, buttonWidth: 38) == 317,
@@ -2414,9 +2292,8 @@ enum SwitcherModelFeatureTests {
             stripCommentLines((panelViewSource.components(separatedBy: header).last ?? "")
                 .components(separatedBy: "\n    }").first ?? "")
         }
-        suite.expect(panelBodyCode("private var navigablePanel: some View {").contains(".panelGlassSurface()")
-                   && panelBodyCode("private var metricPanel: some View {").contains(".panelGlassSurface()"),
-               "both the navigable panel and the metric panel wear that surface")
+        suite.expect(panelBodyCode("private var navigablePanel: some View {").contains(".panelGlassSurface()"),
+               "the navigable panel wears that surface")
 
         // The popover window is the panel plus 13 pt for the arrow and 13 pt
         // below it. A window taller than the usable height opens beside the
@@ -2463,35 +2340,11 @@ enum SwitcherModelFeatureTests {
                                                         visibleFrame: CGRect(x: 0, y: 0,
                                                                              width: 1470, height: 300)).maxY == 300,
                "a screen too short for the panel still shows its top")
-        suite.expect(registeredDefaults[DefaultsKey.menuBarHideIconWithMetrics] as? Bool == false,
-               "the menu bar icon stays visible by default")
-        suite.expect(MenuBarSpacingSupport.keepAwakeSignals(active: true, tint: .orange, style: .vorssaint)
-                     && MenuBarSpacingSupport.keepAwakeSignals(active: true, tint: .none, style: .coffee),
-               "an active Keep Awake brings back the glyph that shows it")
-        suite.expect(!MenuBarSpacingSupport.keepAwakeSignals(active: false, tint: .orange, style: .coffee)
-                     && !MenuBarSpacingSupport.keepAwakeSignals(active: true, tint: .none, style: .vorssaint),
-               "nothing returns while Keep Awake is off, or when its active glyph looks the same as the idle one")
-        // Both hide decisions and the title's leading space ask it, and an open
-        // panel holds it: the returning glyph widens the item, and a separate
-        // main item coming back shifts the metric item the panel hangs from.
-        let keepAwakeHoldCode = stripCommentLines((statusControllerSource
-            .components(separatedBy: "func setMicBadgeHeld(_ held: Bool) {").last ?? "")
-            .components(separatedBy: "\n    }").first ?? "")
-        suite.expect(statusControllerSource
-                        .components(separatedBy: "mustShowForSignal: signal || keepAwakeSignal").count == 4,
-               "every hide path brings the glyph back for a running Keep Awake")
-        suite.expect(keepAwakeHoldCode.contains("heldKeepAwakeSignal = currentKeepAwakeSignal")
-                     && keepAwakeHoldCode.contains("heldKeepAwakeSignal = nil")
-                     && keepAwakeHoldCode.contains("refresh()")
-                     && statusControllerSource.contains("heldKeepAwakeSignal ?? currentKeepAwakeSignal"),
-               "starting or stopping Keep Awake from an open panel does not bring the glyph back under it")
         // popoverDidClose keeps the hold while the panel switches anchors, so
         // a switch that ends with the panel closed has to release it itself.
         // Otherwise the glyph ignores Keep Awake until the next panel closes.
         // Each failure branch is sliced at its own closing brace.
         for (header, guardEnd, branchEnd, condition, label) in [
-            ("private func reanchorMetricPopover(", "activeMetric == detailKind else {",
-             "\n            }", "if !self.popover.isShown {", "closes while moving between metric items"),
             ("private func useStablePopoverPositioningViewIfNeeded(", "view.window else {",
              "\n        }", "if !popover.isShown {", "does not come back on its stable anchor"),
         ] {
@@ -2506,47 +2359,6 @@ enum SwitcherModelFeatureTests {
                          && releaseCode.contains("endPanelActivationTracking()"),
                    "a panel that \(label) releases the held glyph, its resources and activation tracking")
         }
-        suite.expect(MenuBarSpacingSupport.shouldHideStatusIcon(optionEnabled: true, separateMetrics: false,
-                                                          metricsEnabled: true, renderedTitleLength: 12,
-                                                          mustShowForSignal: false),
-               "the glyph hides when metrics render in the title and the option is on")
-        suite.expect(!MenuBarSpacingSupport.shouldHideStatusIcon(optionEnabled: false, separateMetrics: false,
-                                                           metricsEnabled: true, renderedTitleLength: 12,
-                                                           mustShowForSignal: false),
-               "the glyph never hides while the option is off")
-        suite.expect(!MenuBarSpacingSupport.shouldHideStatusIcon(optionEnabled: true, separateMetrics: false,
-                                                           metricsEnabled: true, renderedTitleLength: 0,
-                                                           mustShowForSignal: false),
-               "an empty rendered title keeps the glyph, so the item can never turn invisible")
-        suite.expect(!MenuBarSpacingSupport.shouldHideStatusIcon(optionEnabled: true, separateMetrics: false,
-                                                           metricsEnabled: false, renderedTitleLength: 6,
-                                                           mustShowForSignal: false),
-               "a countdown-only title keeps the glyph when no metric is enabled")
-        suite.expect(!MenuBarSpacingSupport.shouldHideStatusIcon(optionEnabled: true, separateMetrics: true,
-                                                           metricsEnabled: true, renderedTitleLength: 6,
-                                                           mustShowForSignal: false),
-               "separate metric items keep the glyph in the otherwise empty main item")
-        suite.expect(!MenuBarSpacingSupport.shouldHideStatusIcon(optionEnabled: true, separateMetrics: false,
-                                                           metricsEnabled: true, renderedTitleLength: 12,
-                                                           mustShowForSignal: true),
-               "an available update or muted mic brings the glyph back to carry the signal")
-        suite.expect(MenuBarSpacingSupport.shouldHideMainStatusItem(optionEnabled: true, separateMetrics: true,
-                                                              metricItemsShown: 2, renderedTitleLength: 0,
-                                                              mustShowForSignal: false),
-               "with separate metric items installed the whole main item may step aside")
-        suite.expect(!MenuBarSpacingSupport.shouldHideMainStatusItem(optionEnabled: true, separateMetrics: true,
-                                                               metricItemsShown: 0, renderedTitleLength: 0,
-                                                               mustShowForSignal: false),
-               "no installed metric items keep the main item, so the app never vanishes")
-        suite.expect(!MenuBarSpacingSupport.shouldHideMainStatusItem(optionEnabled: true, separateMetrics: true,
-                                                               metricItemsShown: 2, renderedTitleLength: 5,
-                                                               mustShowForSignal: false),
-               "an active countdown renders in the main item and keeps it visible")
-        suite.expect(!MenuBarSpacingSupport.shouldHideMainStatusItem(optionEnabled: true, separateMetrics: false,
-                                                               metricItemsShown: 2, renderedTitleLength: 0,
-                                                               mustShowForSignal: false),
-               "the whole-item hiding only applies to the separate-items mode")
-
         // Dynamic Island may take the icon's place, but only while it runs:
         // with the island off or removed, nothing else on screen would lead
         // back to the app.
@@ -2579,29 +2391,6 @@ enum SwitcherModelFeatureTests {
                    "removing the island in the hub brings the icon back")
         }
 
-        // A pinned metric that momentarily has nothing to show keeps its item
-        // instead of being taken away and put back every tick.
-        suite.expect(MenuBarSpacingSupport.keepsMetricStatusItem(hasRenderedTitle: true, itemExists: false),
-               "a metric with something to show gets its own item")
-        suite.expect(MenuBarSpacingSupport.keepsMetricStatusItem(hasRenderedTitle: false, itemExists: true,
-                                                           consecutiveEmptyRenders: 1),
-               "a reading that goes missing for a tick blanks its item instead of removing it")
-        suite.expect(!MenuBarSpacingSupport.keepsMetricStatusItem(
-            hasRenderedTitle: false, itemExists: true,
-            consecutiveEmptyRenders: MenuBarSpacingSupport.emptyMetricRendersBeforeRemoval),
-               "a reading that stops for good takes its item away instead of leaving a gap")
-        suite.expect(MenuBarSpacingSupport.keepsMetricStatusItem(
-            hasRenderedTitle: true, itemExists: true,
-            consecutiveEmptyRenders: 99),
-               "a reading that comes back keeps its item whatever came before")
-        suite.expect(!MenuBarSpacingSupport.keepsMetricStatusItem(hasRenderedTitle: false, itemExists: false),
-               "a metric with nothing to show yet gets no item at all")
-        suite.expect(MenuBarSpacingSupport.keepsMetricStatusItem(hasRenderedTitle: true, itemExists: true),
-               "an item already showing a reading stays")
-        suite.expect(!MenuBarSpacingSupport.shouldHideMainStatusItem(optionEnabled: true, separateMetrics: true,
-                                                               metricItemsShown: 2, renderedTitleLength: 0,
-                                                               mustShowForSignal: true),
-               "a signal brings the main item back even in the separate-items mode")
         suite.expect(MenuBarSpacingSupport.needsTitleRefreshTimer(keepAwakeActive: true,
                                                             showsCountdown: true,
                                                             hasEndDate: true),
@@ -2832,9 +2621,8 @@ enum SwitcherModelFeatureTests {
         let reshowCode = stripCommentLines((statusAnchorAppDelegateSource
             .components(separatedBy: "func reshowStatusItem() {").last ?? "")
             .components(separatedBy: "\n    }").first ?? "")
-        suite.expect(reshowCode.contains("DefaultsKey.menuBarHideIconWithMetrics")
-                     && reshowCode.contains("DefaultsKey.notchHidesMenuBarIcon"),
-               "Show menu bar icon turns off both ways of hiding it")
+        suite.expect(reshowCode.contains("DefaultsKey.notchHidesMenuBarIcon"),
+               "Show menu bar icon turns off the island's way of hiding it")
 
         // macOS 26 lets the person switch an app's menu bar items off per app,
         // and remembers the choice in Control Center's group container. The
@@ -2982,66 +2770,6 @@ enum SwitcherModelFeatureTests {
                 DefaultsKey.panelToggleDisplayOff, DefaultsKey.panelToggleScreenSaver]
                 .allSatisfy { registeredDefaults[$0] as? Bool == true },
                "every quick toggle row is visible by default")
-        suite.expect(registeredDefaults[DefaultsKey.monitorInterval] as? Int == 2,
-               "monitor default interval stays at 2 seconds")
-        suite.expect(registeredDefaults[DefaultsKey.monitorShowDisk] as? Bool == true,
-               "disk monitor panel section is shown by default")
-        suite.expect(registeredDefaults[DefaultsKey.monitorSysAlerts] as? Bool == true,
-               "system alert controls are shown by default")
-        suite.expect(registeredDefaults[DefaultsKey.monitorSysCPUCores] as? Bool == true
-                     && SettingsBackupSupport.exportKeys().contains(DefaultsKey.monitorSysCPUCores),
-               "the CPU row's per-core bars are shown by default and travel in backups")
-        suite.expect(registeredDefaults[DefaultsKey.monitorGraphDisk] as? Bool == true,
-               "disk monitor graph is shown by default")
-        suite.expect(registeredDefaults[DefaultsKey.monitorNetApps] as? Bool == true,
-               "network app usage block is shown by default")
-        suite.expect(registeredDefaults[DefaultsKey.monitorNetAddresses] as? Bool == true,
-               "local address block is shown by default and travels in backups")
-        suite.expect(registeredDefaults[DefaultsKey.monitorDiskUsage] as? Bool == true,
-               "disk usage block is shown by default")
-        suite.expect(registeredDefaults[DefaultsKey.monitorDiskActivity] as? Bool == true,
-               "disk activity block is shown by default")
-        suite.expect(registeredDefaults[DefaultsKey.monitorDiskSMART] as? Bool == true,
-               "disk SMART block is shown by default")
-        suite.expect(registeredDefaults[DefaultsKey.monitorDiskProtection] as? Bool == true,
-               "disk protection block is shown by default")
-        suite.expect(registeredDefaults[DefaultsKey.monitorDiskTools] as? Bool == true,
-               "disk tools block is shown by default")
-        suite.expect(registeredDefaults[DefaultsKey.temperatureUnit] as? String == TemperatureUnit.celsius.rawValue,
-               "temperature defaults to Celsius")
-        suite.expect(registeredDefaults[DefaultsKey.menuBarCPUTemperature] as? Bool == false,
-               "menu bar CPU temperature is opt-in")
-        suite.expect(registeredDefaults[DefaultsKey.menuBarGPUTemperature] as? Bool == false,
-               "menu bar GPU temperature is opt-in")
-        suite.expect(registeredDefaults[DefaultsKey.menuBarBatteryTemperature] as? Bool == false,
-               "menu bar battery temperature is opt-in")
-        suite.expect(registeredDefaults[DefaultsKey.menuBarBatteryTime] as? Bool == false,
-               "menu bar battery time is opt-in")
-        suite.expect(registeredDefaults[DefaultsKey.menuBarDiskUsage] as? Bool == false,
-               "menu bar disk usage is opt-in")
-        suite.expect(registeredDefaults[DefaultsKey.menuBarDiskActivity] as? Bool == false,
-               "menu bar disk activity is opt-in")
-        suite.expect(registeredDefaults[DefaultsKey.menuBarPeripheralBattery] as? Bool == false,
-               "menu bar peripheral battery is opt-in")
-        suite.expect(registeredDefaults[DefaultsKey.menuBarFanSpeed] as? Bool == false,
-               "menu bar fan speed is opt-in")
-        suite.expect(registeredDefaults[DefaultsKey.menuBarMetricOrder] as? String
-               == "cpu,cpuTemperature,gpu,gpuTemperature,memory,battery,batteryTime,batteryTemperature,peripheralBattery,network,diskUsage,diskActivity,power,fanSpeed",
-               "menu bar metric order keeps temperature sensors next to their components and disk near live I/O")
-        suite.expect(registeredDefaults[DefaultsKey.menuBarCombineTemperatures] as? Bool == true,
-               "menu bar combines usage and temperature by default")
-        suite.expect(registeredDefaults[DefaultsKey.menuBarSeparateMetrics] as? Bool == false,
-               "separate menu bar metric items are opt-in")
-        suite.expect(registeredDefaults[DefaultsKey.menuBarNetworkUploadFirst] as? Bool == false,
-               "network menu bar upload-first layout is opt-in")
-        suite.expect(registeredDefaults[DefaultsKey.networkSpeedUnit] as? String == NetworkSpeedUnit.bytes.rawValue,
-               "network speeds keep bytes per second by default")
-        suite.expect(registeredDefaults[DefaultsKey.menuBarLabelStyle] as? String == "compact",
-               "menu bar label style defaults to compact")
-        suite.expect(registeredDefaults[DefaultsKey.menuBarMemoryStyle] as? String == "percent",
-               "memory menu bar style defaults to percent")
-        suite.expect(registeredDefaults[DefaultsKey.monitorPwrTimeRemaining] as? Bool == true,
-               "battery time is shown in the Power panel by default")
         suite.expect(registeredDefaults[DefaultsKey.windowLayoutShortcutsEnabled] as? Bool == false,
                "window layout shortcuts stay off until enabled")
         suite.expect(registeredDefaults[DefaultsKey.windowEdgeSnapEnabled] as? Bool == false,

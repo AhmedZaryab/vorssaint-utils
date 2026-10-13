@@ -81,7 +81,6 @@ enum LocalizationFeatureContractTests {
                    && !strings.shelfClearOnClose.contains("—")
                    && !strings.shelfClearOnCloseCaption.contains("—"),
                    "\(prefix) shelf clear-on-close labels are present without em dash")
-            expectFormat(strings.powerAdapterMaxFormat, ["@"], "\(prefix) adapter max format")
             expectFormat(strings.mixerInputErrorFormat, ["@"], "\(prefix) mixer input error format")
             suite.expect(!strings.mixerSoundEffectsOutputTitle.isEmpty
                    && !strings.mixerSoundEffectsOutputTooltip.isEmpty
@@ -156,11 +155,6 @@ enum LocalizationFeatureContractTests {
                    && !strings.switcherWindowlessAppsFinder.contains("—")
                    && !strings.switcherWindowlessAppsAll.contains("—"),
                    "\(prefix) App Switcher windowless apps choices are all present without em dash")
-            suite.expect(!strings.diskAvailable.isEmpty
-                   && !strings.diskPurgeable.isEmpty
-                   && !strings.diskAvailable.contains("—")
-                   && !strings.diskPurgeable.contains("—"),
-                   "\(prefix) disk available and purgeable labels are present without em dash")
             suite.expect(!strings.switcherNoOpenWindow.isEmpty
                    && !strings.switcherNoOpenWindow.contains("—"),
                    "\(prefix) App Switcher no-open-window tile label is present without em dash")
@@ -196,16 +190,6 @@ enum LocalizationFeatureContractTests {
             suite.expect(!strings.switcherShortcutHintWindows.isEmpty, "\(prefix) App Switcher window shortcut hint is present")
             suite.expect(GlobalShortcutRole.switcher.title(strings) != strings.switcherSection,
                    "\(prefix) the cross-app switcher shortcut is named for apps, not after the window switcher")
-            suite.expect(!strings.networkApps.isEmpty, "\(prefix) network app usage title is present")
-            suite.expect(!strings.networkAppsIdle.isEmpty, "\(prefix) network app idle text is present")
-            suite.expect(!strings.monitorOpenActivityMonitor.isEmpty
-                   && !strings.monitorOpenActivityMonitor.contains("—"),
-                   "\(prefix) Activity Monitor action is present without em dash")
-            suite.expect(!strings.memoryCompressed.isEmpty
-                   && !strings.memoryCompressed.contains("—")
-                   && !strings.memoryCachedFiles.isEmpty
-                   && !strings.memoryCachedFiles.contains("—"),
-                   "\(prefix) memory compressed and cached labels are present without em dash")
             suite.expect(!strings.launchAtLoginNeedsApplications.isEmpty
                    && !strings.launchAtLoginNeedsApplications.contains("—"),
                    "\(prefix) launch at login location note is present without em dash")
@@ -334,7 +318,6 @@ enum LocalizationFeatureContractTests {
                 String(format: strings.uninstallerSelectedFormat, 1, 3),
                 String(format: strings.uninstallerFreedFormat, "1 MB"),
                 String(format: strings.shelfSelectedFormat, 2),
-                String(format: strings.powerAdapterMaxFormat, "30 W"),
                 String(format: strings.mixerInputErrorFormat, "OSStatus -1"),
                 String(format: strings.homebrewConfirmInstallBodyFormat, "jq"),
                 String(format: strings.homebrewConfirmUninstallBodyFormat, "jq"),
@@ -385,27 +368,6 @@ enum LocalizationFeatureContractTests {
                + "shipped only: \(shippedFolders.subtracting(declared).sorted()))")
         suite.expect(bundleLocalizations.count == AppLanguage.allCases.count,
                "the bundle speaks exactly the languages the app does")
-        // The fan helper's launchd plist ships with the release identifier in
-        // three places, and the Developer build rewrites each one so the two
-        // apps can run side by side. A fourth mention added without a matching
-        // rewrite would leave the Developer build asking launchd for a service
-        // that is registered under the other name, and fan control would just
-        // never answer.
-        let helperTemplate = (try? String(
-            contentsOfFile: "Resources/com.vorssaint.utils.fan-control.plist",
-            encoding: .utf8)) ?? ""
-        suite.expect(!helperTemplate.isEmpty, "the helper template reads back")
-        let releaseHelperID = "com.vorssaint.utils.fan-control"
-        let mentions = helperTemplate.components(separatedBy: releaseHelperID).count - 1
-        suite.expect(mentions == 3,
-               "the helper template names the release service exactly where the build rewrites it (\(mentions))")
-        let buildText = (try? String(contentsOfFile: "build.sh", encoding: .utf8)) ?? ""
-        for key in ["Set :Label $FAN_HELPER_ID",
-                    "Set :BundleProgram Contents/Library/LaunchServices/$FAN_HELPER_ID",
-                    "Delete :MachServices:" + releaseHelperID,
-                    "Add :MachServices:$FAN_HELPER_ID"] {
-            suite.expect(buildText.contains(key), "the Developer build rewrites \(key)")
-        }
         // Every shortcut the app ships with is written to disk as a string and
         // read back on the next launch. One that does not survive the trip
         // would leave that feature with no shortcut at all, on a fresh install,

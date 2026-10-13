@@ -309,7 +309,7 @@ struct NotchView: View {
             .frame(width: service.surfaceSize.width, height: service.surfaceSize.height, alignment: .top)
     }
 
-    private var showsDetail: Bool { service.showingAppPanel || service.selectedMetric != nil }
+    private var showsDetail: Bool { service.showingAppPanel }
 
     private var expanded: some View {
         VStack(spacing: NotchLayout.spacing) {
@@ -388,7 +388,7 @@ struct NotchView: View {
 
     private var scrollsVertically: Bool {
         guard !service.showingAppPanel else { return false }
-        return contentOverflows || service.selectedMetric != nil
+        return contentOverflows
             || (service.selected == .captures && service.captureContent != nil)
             || (service.selected == .tools && launcher.isEditing && launcher.activeUtility == nil)
     }
@@ -567,7 +567,7 @@ struct NotchView: View {
         let revealed = headerHovered || updating
         return HStack(spacing: 6) {
             NotchUpdateControl(action: service.showUpdate)
-            if service.selected == .tools, !service.showingAppPanel, !service.showingSections, service.selectedMetric == nil,
+            if service.selected == .tools, !service.showingAppPanel, !service.showingSections,
                !service.modules.isEmpty, launcher.activeUtility == nil {
                 NotchIconButton(symbol: launcher.isEditing ? "checkmark" : "slider.horizontal.3",
                                 title: text.customizeTools, selected: launcher.isEditing) {
@@ -646,13 +646,6 @@ struct NotchView: View {
     @ViewBuilder private var content: some View {
         if service.showingAppPanel {
             MenuPanelView(notchSize: pageSize)
-        } else if let metric = service.selectedMetric {
-            if metric == .fan {
-                NotchFanControlView()
-                    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { service.updateFanDetailHeight($0) }
-            } else {
-                MetricDetailView(kind: metric)
-            }
         } else if service.modules.isEmpty {
             NotchEmptyView(symbol: "slider.horizontal.3", message: text.empty)
         } else {
@@ -673,8 +666,6 @@ struct NotchView: View {
                     RecentCapturesView(onClose: nil, notchSize: pageSize)
                 }
             case .files: NotchFilesView(service: service)
-            case .system:
-                NotchSystemView(size: pageSize) { service.showMetric($0) }
             case .tools: QuickLauncherView(notchSize: pageSize)
             case .scratchpad: NotchScratchpadView(service: service)
             case .agents: NotchAgentsView(size: pageSize)
@@ -750,15 +741,6 @@ private struct NotchClearCapturesButton: View {
         NotchIconButton(symbol: "trash", title: FeatureStrings.recentCaptures(l10n.language).clear,
                         action: RecentCapturesView.confirmClearAboveIsland)
             .disabled(RecentCapturesView.visible(history.entries).isEmpty)
-    }
-}
-
-/// Read-only RPM telemetry stays available when the protected fan helper fails.
-private struct NotchFanControlView: View {
-    @ObservedObject private var monitor = SystemMonitor.shared
-
-    var body: some View {
-        FanControlSection(collapsible: false, fallbackFanSpeeds: monitor.snapshot.fanSpeeds)
     }
 }
 
@@ -976,7 +958,6 @@ extension NotchModule: PanelOrderItem {
         case .clipboard: return FeatureStrings.clipboard(language).title
         case .captures: return FeatureStrings.recentCaptures(language).title
         case .files: return FeatureStrings.notch(language).files
-        case .system: return FeatureStrings.notch(language).system
         case .tools: return FeatureStrings.notch(language).tools
         case .scratchpad: return FeatureStrings.scratchpad(language).pageTitle
         case .agents: return FeatureStrings.notchAgents(language).title

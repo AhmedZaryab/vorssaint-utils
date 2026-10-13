@@ -45,7 +45,7 @@ final class PeripheralBatterySampler {
         self.currentTime = currentTime
     }
 
-    /// SystemMonitor supplies the combined demand, not one surface's demand.
+    /// The owner supplies the combined demand, not one surface's demand.
     func setEnabled(_ enabled: Bool) {
         lock.lock()
         guard self.enabled != enabled else { lock.unlock(); return }

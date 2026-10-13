@@ -18,18 +18,6 @@ enum NotchMusicVisibilityTests {
         func stop() { running = false }
     }
     enum PowerSampler { static var hasInternalBattery = true }
-    struct MonitorNeeds {
-        var disk = false
-        var fanSpeed = false
-        static let none = Self()
-    }
-    struct Metric { let monitorNeeds = MonitorNeeds.none }
-    final class SystemMonitor {
-        static let shared = SystemMonitor()
-        var detailNeeds = MonitorNeeds.none
-        func setNotchDetailNeeds(_ needs: MonitorNeeds) { detailNeeds = needs }
-        func setNotchVisible(_ visible: Bool) {}
-    }
     final class CameraPreviewService {
         static let shared = CameraPreviewService()
         func hideEmbedded() {}
@@ -74,7 +62,6 @@ enum NotchMusicVisibilityTests {
         }
         func commandBarDidClose() { commandBarClosings += 1 }
         var selected: NotchModule = .controls
-        var selectedMetric: Metric?
         var modules: [NotchModule] = []
         var captureControls: CaptureControls?
         var captureControlsCollapsed = false

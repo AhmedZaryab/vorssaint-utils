@@ -236,23 +236,6 @@ struct Strings {
     let clamshellNeedsPassword: String
 
     // MARK: Panel — system monitor
-    let systemSection: String
-    let temperatures: String
-    let cpuLabel: String
-    let gpuLabel: String
-    let batteryLabel: String
-    let usageSection: String
-    let memorySection: String
-    let memoryPressure: String
-    let memorySwapUsed: String
-    let memoryCompressed: String
-    let memoryCachedFiles: String
-    let pressureNormal: String
-    let pressureWarning: String
-    let pressureCritical: String
-    let monitorUnavailable: String
-    let energyAppsTitle: String
-    let energyAppsIdle: String
 
     // MARK: Notifications
     let notifySessionEndedTitle: String
@@ -756,7 +739,6 @@ struct Strings {
     let shelfActionUnpin: String
 
     // MARK: Panel — per-app breakdown
-    let breakdownMeasuring: String
 
     // MARK: Panel — volume mixer
     let mixerSection: String
@@ -889,23 +871,6 @@ struct Strings {
     let obPurposeSkip: String
 
     // MARK: Settings — monitor / menu bar metrics
-    let tabMonitor: String
-    let monitorMenuBarSection: String
-    let monitorMenuBarCaption: String
-    let monitorCombineTemperatures: String
-    let monitorCombineTemperaturesCaption: String
-    let monitorSeparateMenuBarMetrics: String
-    let monitorSeparateMenuBarMetricsCaption: String
-    let monitorNetworkUploadFirst: String
-    let monitorShowCPU: String
-    let monitorShowMemory: String
-    let monitorShowNetwork: String
-    let monitorShowPowerLabel: String
-    let monitorIntervalLabel: String
-    let monitorInterval1: String
-    let monitorInterval2: String
-    let monitorInterval5: String
-    let monitorPanelSection: String
     let panelNavigationMode: String
     let panelNavigationCaption: String
     let panelFooterSections: String
@@ -914,69 +879,18 @@ struct Strings {
     let betaFeatureWarning: String
 
     // MARK: Panel — network
-    let networkSection: String
-    let networkIPAddresses: String
-    let networkLocalIP: String
-    let networkDownload: String
-    let networkUpload: String
-    let networkThisSession: String
-    let networkMeasuring: String
-    let networkApps: String
-    let networkAppsIdle: String
 
     // MARK: Panel — disk
-    let diskSection: String
-    let diskUsed: String
     let diskFree: String
-    let diskMenuBarStyleLabel: String
-    let diskMenuBarUsedPercentage: String
-    let diskMenuBarAvailableSpace: String
-    let diskMenuBarUsedSpace: String
-    let diskAvailable: String
-    let diskPurgeable: String
-    let diskInternal: String
-    let diskExternal: String
-    let diskSelect: String
-    let diskRead: String
-    let diskWrite: String
-    let diskSMARTStatus: String
-    let diskSMARTUnavailable: String
-    let diskTotalRead: String
-    let diskTotalWritten: String
-    let diskTemperature: String
-    let diskHealth: String
-    let diskPowerCycles: String
-    let diskPowerOnHours: String
     let diskUnsafeShutdowns: String
     let diskMediaErrors: String
-    let diskEject: String
-    let diskEjectAll: String
     let diskEjecting: String
-    let diskReadyToRemove: String
     let diskEjectFailed: String
-    let diskProtectionCaption: String
     let diskNoExternal: String
-    let diskOpenInFinder: String
-    let diskStorageSettings: String
-    let diskNoDisks: String
 
     // MARK: Panel — power
     let powerSection: String
-    let powerSystem: String
-    let powerAdapter: String
-    let powerBattery: String
-    let powerCharging: String
-    let powerOnBattery: String
     let powerPluggedIn: String
-    let powerUnavailable: String
-    let powerAdapterMaxFormat: String   // + rated watts, e.g. "30 W max"
-    let monitorShowGPU: String
-    let monitorShowCPUTemperature: String
-    let monitorShowGPUTemperature: String
-    let monitorShowBatteryTemperature: String
-    let monitorShowPeripheralBattery: String
-    let peripheralBatteryNoDevices: String
-    let monitorGraphsSection: String
 
     // MARK: Update notification + onboarding menu bar setup
     let updateBannerTitle: String
@@ -987,47 +901,21 @@ struct Strings {
     let monitorMenuBarPresetLabel: String
     let menuBarPresetReadable: String
     let menuBarPresetDense: String
-    let menuBarSpacingLabel: String
-    let menuBarSpacingStandard: String
-    let menuBarSpacingCompact: String
-    let menuBarHideIconToggle: String
-    let menuBarHideIconCaption: String
     let monitorLabelStyleLabel: String
     let menuBarLabelStyleCompact: String
     let menuBarLabelStyleClassic: String
-    let monitorMemoryStyleLabel: String
-    let monitorMemoryPressureDot: String
     let memoryStyleDot: String
     let memoryStylePercent: String
     let memoryStyleBoth: String
     // MARK: System uptime, battery health, speed test
     let systemUptime: String
-    let batteryCharge: String
-    let powerHealth: String
-    let powerCycles: String
-    let speedTestRun: String
-    let speedTestAgain: String
-    let speedTestLatency: String
-    let speedTestTesting: String
-    let speedTestFailed: String
 
     // MARK: Per-item panel config (Settings + onboarding)
-    let monitorShowInPanel: String
     let disclosureExpanded: String
     let disclosureCollapsed: String
     let panelHideItem: String
     let panelShowItem: String
     let panelHiddenItem: String
-    let monitorItemUptime: String
-    let monitorItemNetSpeed: String
-    let monitorItemNetTotals: String
-    let monitorItemNetTest: String
-    let monitorItemDiskUsage: String
-    let monitorItemDiskActivity: String
-    let monitorItemDiskSMART: String
-    let monitorItemDiskProtection: String
-    let monitorItemDiskTools: String
-    let monitorPanelConfigHint: String
     let monitorOrderHint: String
     let obStepPanelTitle: String
     let obStepPanelBody: String
@@ -1208,12 +1096,8 @@ struct Strings {
     let previewSizeSmall: String
     let mixerSoundEffectsOutputTitle: String
     let mixerSoundEffectsOutputTooltip: String
-    let monitorOpenActivityMonitor: String
     let dockClickHide: String
     let dockClickHideCaption: String
-    let monitorMemoryMetricLabel: String
-    let memoryMetricUsed: String
-    let memoryMetricApp: String
     let keepAwakeRightClickToggle: String
     let keepAwakeRightClickToggleCaption: String
     let urlCleanerRulesTitle: String
@@ -1351,23 +1235,6 @@ extension Strings {
         clamshellReady: "Pronto. Liga e desliga sem senha",
         clamshellNeedsPassword: "Pedirá a senha de administrador uma vez",
 
-        systemSection: "Sistema",
-        temperatures: "Temperaturas",
-        cpuLabel: "CPU",
-        gpuLabel: "GPU",
-        batteryLabel: "Bateria",
-        usageSection: "Uso de hardware",
-        memorySection: "Memória",
-        memoryPressure: "Pressão",
-        memorySwapUsed: "Swap em uso",
-        memoryCompressed: "Comprimida",
-        memoryCachedFiles: "Arquivos em cache",
-        pressureNormal: "Normal",
-        pressureWarning: "Atenção",
-        pressureCritical: "Crítico",
-        monitorUnavailable: "Sensores indisponíveis neste Mac",
-        energyAppsTitle: "Uso significativo de energia",
-        energyAppsIdle: "Sem uso significativo de energia",
 
         notifySessionEndedTitle: "Sessão encerrada",
         notifySessionEndedBody: "O tempo acabou. O Mac voltará a suspender normalmente.",
@@ -1848,7 +1715,6 @@ extension Strings {
         shelfActionPin: "Fixar",
         shelfActionUnpin: "Desafixar",
 
-        breakdownMeasuring: "Medindo…",
 
         mixerSection: "Mixer de volume",
         mixerEmpty: "Apps que usam áudio aparecem aqui",
@@ -1971,23 +1837,6 @@ extension Strings {
         obPurposeBody: "Escolha uma configuração pronta ou marque exatamente o que quer usar.",
         obPurposeSkip: "Você pode adicionar ou remover recursos depois nos Ajustes.",
 
-        tabMonitor: "Monitor",
-        monitorMenuBarSection: "Na barra de menus",
-        monitorMenuBarCaption: "Escolha o que aparece ao lado do ícone na barra de menus.",
-        monitorCombineTemperatures: "Combinar uso e temperatura",
-        monitorCombineTemperaturesCaption: "Quando uso e temperatura do mesmo item estiverem ativos, mostra tudo em um bloco só.",
-        monitorSeparateMenuBarMetrics: "Separar métricas em itens próprios",
-        monitorSeparateMenuBarMetricsCaption: "Separa os blocos ativos na barra de menus e mantém uso e temperatura juntos quando combinar estiver ativo.",
-        monitorNetworkUploadFirst: "Upload acima do download",
-        monitorShowCPU: "CPU",
-        monitorShowMemory: "Memória",
-        monitorShowNetwork: "Rede",
-        monitorShowPowerLabel: "Energia",
-        monitorIntervalLabel: "Atualizar a cada",
-        monitorInterval1: "1 segundo",
-        monitorInterval2: "2 segundos",
-        monitorInterval5: "5 segundos",
-        monitorPanelSection: "No painel",
         panelNavigationMode: "Navegar por seções no painel",
         panelNavigationCaption: "Mostra uma seção por vez. Escolha Lista para ver tudo em uma rolagem contínua.",
         panelFooterSections: "Seções",
@@ -1995,67 +1844,16 @@ extension Strings {
         betaBadge: "BETA",
         betaFeatureWarning: "Beta. Você pode encontrar alguns bugs.",
 
-        networkSection: "Rede",
-        networkIPAddresses: "Endereços IP",
-        networkLocalIP: "IPv4 local",
-        networkDownload: "Download",
-        networkUpload: "Upload",
-        networkThisSession: "Nesta sessão",
-        networkMeasuring: "Medindo…",
-        networkApps: "Apps usando rede",
-        networkAppsIdle: "Nenhum app usando rede agora",
 
-        diskSection: "Discos",
-        diskUsed: "usado",
         diskFree: "livre",
-        diskMenuBarStyleLabel: "Exibição do disco",
-        diskMenuBarUsedPercentage: "Porcentagem usada",
-        diskMenuBarAvailableSpace: "Espaço disponível",
-        diskMenuBarUsedSpace: "Espaço usado",
-        diskAvailable: "disponível",
-        diskPurgeable: "purgável",
-        diskInternal: "Interno",
-        diskExternal: "Externo",
-        diskSelect: "Selecionar disco",
-        diskRead: "Leitura",
-        diskWrite: "Escrita",
-        diskSMARTStatus: "Status",
-        diskSMARTUnavailable: "SMART indisponível para este disco",
-        diskTotalRead: "Total lido",
-        diskTotalWritten: "Total escrito",
-        diskTemperature: "Temperatura",
-        diskHealth: "Saúde",
-        diskPowerCycles: "Ciclos",
-        diskPowerOnHours: "Horas ligado",
         diskUnsafeShutdowns: "Desligamentos inseguros",
         diskMediaErrors: "Erros de mídia",
-        diskEject: "Ejetar",
-        diskEjectAll: "Ejetar todos",
         diskEjecting: "Ejetando…",
-        diskReadyToRemove: "Pronto para remover",
         diskEjectFailed: "Não foi possível ejetar",
-        diskProtectionCaption: "Ejete antes de desconectar.",
         diskNoExternal: "Nenhum disco externo pronto para ejeção.",
-        diskOpenInFinder: "Abrir",
-        diskStorageSettings: "Armazenamento",
-        diskNoDisks: "Nenhum disco montado encontrado.",
 
         powerSection: "Energia",
-        powerSystem: "Sistema",
-        powerAdapter: "Adaptador",
-        powerBattery: "Bateria",
-        powerCharging: "Carregando",
-        powerOnBattery: "Na bateria",
         powerPluggedIn: "Na tomada",
-        powerUnavailable: "Métricas de energia indisponíveis neste Mac",
-        powerAdapterMaxFormat: "%@ máx.",
-        monitorShowGPU: "GPU",
-        monitorShowCPUTemperature: "Temperatura da CPU",
-        monitorShowGPUTemperature: "Temperatura da GPU",
-        monitorShowBatteryTemperature: "Temperatura da bateria",
-        monitorShowPeripheralBattery: "Bateria dos periféricos",
-        peripheralBatteryNoDevices: "Nenhum periférico encontrado",
-        monitorGraphsSection: "Gráficos",
 
         updateBannerTitle: "Atualização disponível",
         updateBannerAction: "Atualizar",
@@ -2065,45 +1863,19 @@ extension Strings {
         monitorMenuBarPresetLabel: "Estilo",
         menuBarPresetReadable: "Legível",
         menuBarPresetDense: "Denso",
-        menuBarSpacingLabel: "Espaçamento na barra",
-        menuBarSpacingStandard: "Padrão",
-        menuBarSpacingCompact: "Compacto",
-        menuBarHideIconToggle: "Ocultar o ícone do app enquanto houver métricas",
-        menuBarHideIconCaption: "O ícone volta sozinho quando as métricas saem da barra e quando há algo a avisar (atualização pronta, “Manter acordado” ativo ou microfone silenciado).",
         monitorLabelStyleLabel: "Rótulos",
         menuBarLabelStyleCompact: "Compactos",
         menuBarLabelStyleClassic: "Clássicos",
-        monitorMemoryStyleLabel: "Mostrar memória como",
-        monitorMemoryPressureDot: "Ponto de pressão",
         memoryStyleDot: "Ponto",
         memoryStylePercent: "%",
         memoryStyleBoth: "Ambos",
         systemUptime: "Ativo há",
-        batteryCharge: "Carga",
-        powerHealth: "Saúde da bateria",
-        powerCycles: "Ciclos",
-        speedTestRun: "Testar velocidade",
-        speedTestAgain: "Testar de novo",
-        speedTestLatency: "Latência",
-        speedTestTesting: "Testando…",
-        speedTestFailed: "Falha no teste",
 
-        monitorShowInPanel: "Mostrar no painel",
         disclosureExpanded: "Expandido",
         disclosureCollapsed: "Recolhido",
         panelHideItem: "Ocultar do painel",
         panelShowItem: "Mostrar no painel",
         panelHiddenItem: "Oculto",
-        monitorItemUptime: "Tempo ativo",
-        monitorItemNetSpeed: "Velocidade ao vivo",
-        monitorItemNetTotals: "Totais da sessão",
-        monitorItemNetTest: "Teste de velocidade",
-        monitorItemDiskUsage: "Uso do disco",
-        monitorItemDiskActivity: "Atividade ao vivo",
-        monitorItemDiskSMART: "SMART",
-        monitorItemDiskProtection: "Proteção externa",
-        monitorItemDiskTools: "Ferramentas",
-        monitorPanelConfigHint: "Abra um bloco para escolher o que ele mostra.",
         monitorOrderHint: "Arraste para reordenar as seções do painel e use o olho para mostrar ou ocultar cada uma.",
         obStepPanelTitle: "O que aparece no painel",
         obStepPanelBody: "Abra cada bloco e escolha exatamente o que mostrar quando você clica no ícone.",
@@ -2275,12 +2047,8 @@ extension Strings {
         previewSizeSmall: "Pequeno",
         mixerSoundEffectsOutputTitle: "Sons do sistema",
         mixerSoundEffectsOutputTooltip: "Escolher onde alertas e efeitos sonoros tocam",
-        monitorOpenActivityMonitor: "Abrir o Monitor de Atividade",
         dockClickHide: "Clicar no Dock oculta o app",
         dockClickHideCaption: "O app ativo é ocultado ao clicar no ícone dele no Dock. Clique de novo para trazê-lo de volta.",
-        monitorMemoryMetricLabel: "Medir memória como",
-        memoryMetricUsed: "Memória usada",
-        memoryMetricApp: "Memória de apps",
         keepAwakeRightClickToggle: "Clique com o botão direito no ícone da barra de menus para alternar “Manter acordado”",
         keepAwakeRightClickToggleCaption: "Substitui o menu de contexto do clique com o botão direito.",
         urlCleanerRulesTitle: "Regras de limpeza",
@@ -2419,23 +2187,6 @@ extension Strings {
         clamshellReady: "Ready. Toggles without a password",
         clamshellNeedsPassword: "Will ask for the administrator password once",
 
-        systemSection: "System",
-        temperatures: "Temperatures",
-        cpuLabel: "CPU",
-        gpuLabel: "GPU",
-        batteryLabel: "Battery",
-        usageSection: "Hardware usage",
-        memorySection: "Memory",
-        memoryPressure: "Pressure",
-        memorySwapUsed: "Swap used",
-        memoryCompressed: "Compressed",
-        memoryCachedFiles: "Cached files",
-        pressureNormal: "Normal",
-        pressureWarning: "Caution",
-        pressureCritical: "Critical",
-        monitorUnavailable: "Sensors unavailable on this Mac",
-        energyAppsTitle: "Apps using significant energy",
-        energyAppsIdle: "No significant energy use",
 
         notifySessionEndedTitle: "Session ended",
         notifySessionEndedBody: "Time is up. The Mac will sleep normally again.",
@@ -2916,7 +2667,6 @@ extension Strings {
         shelfActionPin: "Pin",
         shelfActionUnpin: "Unpin",
 
-        breakdownMeasuring: "Measuring…",
 
         mixerSection: "Volume mixer",
         mixerEmpty: "Apps that use audio show up here",
@@ -3039,23 +2789,6 @@ extension Strings {
         obPurposeBody: "Choose a ready setup or select exactly what you want to use.",
         obPurposeSkip: "You can add or remove features later in Settings.",
 
-        tabMonitor: "Monitor",
-        monitorMenuBarSection: "In the menu bar",
-        monitorMenuBarCaption: "Choose what appears next to the icon in the menu bar.",
-        monitorCombineTemperatures: "Combine usage and temperature",
-        monitorCombineTemperaturesCaption: "When usage and temperature for the same item are enabled, show them in one block.",
-        monitorSeparateMenuBarMetrics: "Separate metrics into their own items",
-        monitorSeparateMenuBarMetricsCaption: "Separates active blocks in the menu bar and keeps usage and temperature together when combine is on.",
-        monitorNetworkUploadFirst: "Upload above download",
-        monitorShowCPU: "CPU",
-        monitorShowMemory: "Memory",
-        monitorShowNetwork: "Network",
-        monitorShowPowerLabel: "Power",
-        monitorIntervalLabel: "Update every",
-        monitorInterval1: "1 second",
-        monitorInterval2: "2 seconds",
-        monitorInterval5: "5 seconds",
-        monitorPanelSection: "In the panel",
         panelNavigationMode: "Navigate panel by sections",
         panelNavigationCaption: "Shows one section at a time. Choose List to see everything in one continuous scroll.",
         panelFooterSections: "Sections",
@@ -3063,67 +2796,16 @@ extension Strings {
         betaBadge: "BETA",
         betaFeatureWarning: "Beta. You may run into some bugs.",
 
-        networkSection: "Network",
-        networkIPAddresses: "IP addresses",
-        networkLocalIP: "Local IPv4",
-        networkDownload: "Download",
-        networkUpload: "Upload",
-        networkThisSession: "This session",
-        networkMeasuring: "Measuring…",
-        networkApps: "Apps using network",
-        networkAppsIdle: "No apps using network now",
 
-        diskSection: "Disks",
-        diskUsed: "used",
         diskFree: "free",
-        diskMenuBarStyleLabel: "Disk display",
-        diskMenuBarUsedPercentage: "Used percentage",
-        diskMenuBarAvailableSpace: "Available space",
-        diskMenuBarUsedSpace: "Used space",
-        diskAvailable: "available",
-        diskPurgeable: "purgeable",
-        diskInternal: "Internal",
-        diskExternal: "External",
-        diskSelect: "Select disk",
-        diskRead: "Read",
-        diskWrite: "Write",
-        diskSMARTStatus: "Status",
-        diskSMARTUnavailable: "SMART unavailable for this disk",
-        diskTotalRead: "Total read",
-        diskTotalWritten: "Total written",
-        diskTemperature: "Temperature",
-        diskHealth: "Health",
-        diskPowerCycles: "Power cycles",
-        diskPowerOnHours: "Power on hours",
         diskUnsafeShutdowns: "Unsafe shutdowns",
         diskMediaErrors: "Media errors",
-        diskEject: "Eject",
-        diskEjectAll: "Eject all",
         diskEjecting: "Ejecting…",
-        diskReadyToRemove: "Ready to remove",
         diskEjectFailed: "Could not eject",
-        diskProtectionCaption: "Eject before unplugging.",
         diskNoExternal: "No external disk ready to eject.",
-        diskOpenInFinder: "Open",
-        diskStorageSettings: "Storage",
-        diskNoDisks: "No mounted disks found.",
 
         powerSection: "Power",
-        powerSystem: "System",
-        powerAdapter: "Adapter",
-        powerBattery: "Battery",
-        powerCharging: "Charging",
-        powerOnBattery: "On battery",
         powerPluggedIn: "Plugged in",
-        powerUnavailable: "Power metrics unavailable on this Mac",
-        powerAdapterMaxFormat: "%@ max",
-        monitorShowGPU: "GPU",
-        monitorShowCPUTemperature: "CPU temperature",
-        monitorShowGPUTemperature: "GPU temperature",
-        monitorShowBatteryTemperature: "Battery temperature",
-        monitorShowPeripheralBattery: "Peripheral battery",
-        peripheralBatteryNoDevices: "No devices found",
-        monitorGraphsSection: "Graphs",
 
         updateBannerTitle: "Update available",
         updateBannerAction: "Update",
@@ -3133,45 +2815,19 @@ extension Strings {
         monitorMenuBarPresetLabel: "Style",
         menuBarPresetReadable: "Readable",
         menuBarPresetDense: "Dense",
-        menuBarSpacingLabel: "Menu bar spacing",
-        menuBarSpacingStandard: "Standard",
-        menuBarSpacingCompact: "Compact",
-        menuBarHideIconToggle: "Hide the app icon while metrics are shown",
-        menuBarHideIconCaption: "The icon returns by itself when metrics leave the bar and when there is something to signal (an update ready, “Keep awake” running or the microphone muted).",
         monitorLabelStyleLabel: "Labels",
         menuBarLabelStyleCompact: "Compact",
         menuBarLabelStyleClassic: "Classic",
-        monitorMemoryStyleLabel: "Show memory as",
-        monitorMemoryPressureDot: "Pressure dot",
         memoryStyleDot: "Dot",
         memoryStylePercent: "%",
         memoryStyleBoth: "Both",
         systemUptime: "Up for",
-        batteryCharge: "Charge",
-        powerHealth: "Battery health",
-        powerCycles: "Cycles",
-        speedTestRun: "Speed test",
-        speedTestAgain: "Test again",
-        speedTestLatency: "Latency",
-        speedTestTesting: "Testing…",
-        speedTestFailed: "Test failed",
 
-        monitorShowInPanel: "Show in panel",
         disclosureExpanded: "Expanded",
         disclosureCollapsed: "Collapsed",
         panelHideItem: "Hide from panel",
         panelShowItem: "Show in panel",
         panelHiddenItem: "Hidden",
-        monitorItemUptime: "Uptime",
-        monitorItemNetSpeed: "Live speed",
-        monitorItemNetTotals: "Session totals",
-        monitorItemNetTest: "Speed test",
-        monitorItemDiskUsage: "Disk usage",
-        monitorItemDiskActivity: "Live activity",
-        monitorItemDiskSMART: "SMART",
-        monitorItemDiskProtection: "External protection",
-        monitorItemDiskTools: "Tools",
-        monitorPanelConfigHint: "Open a block to choose what it shows.",
         monitorOrderHint: "Drag to reorder the panel sections and use the eye to show or hide each one.",
         obStepPanelTitle: "What’s in the panel",
         obStepPanelBody: "Open each block and pick exactly what shows when you click the icon.",
@@ -3343,12 +2999,8 @@ extension Strings {
         previewSizeSmall: "Small",
         mixerSoundEffectsOutputTitle: "System sounds",
         mixerSoundEffectsOutputTooltip: "Choose where alerts and sound effects play",
-        monitorOpenActivityMonitor: "Open Activity Monitor",
         dockClickHide: "Click the Dock icon to hide the app",
         dockClickHideCaption: "The active app hides when you click its Dock icon. Click again to bring it back.",
-        monitorMemoryMetricLabel: "Measure memory as",
-        memoryMetricUsed: "Memory Used",
-        memoryMetricApp: "App Memory",
         keepAwakeRightClickToggle: "Right-click the menu bar icon to toggle Keep Awake",
         keepAwakeRightClickToggleCaption: "Replaces the right-click context menu.",
         urlCleanerRulesTitle: "Cleaning rules",

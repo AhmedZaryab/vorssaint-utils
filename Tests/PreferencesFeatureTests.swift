@@ -16,14 +16,6 @@ enum PreferencesFeatureTests {
         // MARK: Registered defaults
 
         let registeredDefaults = Defaults.registeredDefaults
-        suite.expect(registeredDefaults[DefaultsKey.monitorMemoryMetric] as? String == "used",
-               "monitor memory metric defaults to memory used")
-        suite.expect(Defaults.sanitizedMonitorMemoryMetric("app") == "app",
-               "app is an allowed memory metric")
-        suite.expect(Defaults.sanitizedMonitorMemoryMetric("bogus") == "used",
-               "unknown memory metric values fall back to used")
-        suite.expect(SettingsBackupSupport.exportKeys().contains(DefaultsKey.monitorMemoryMetric),
-               "monitor memory metric is included in settings backups")
         suite.expect(!SettingsBackupSupport.exportKeys().contains(DefaultsKey.recorderSaveFolder),
                "a chosen recording save folder is authority on one Mac and must not travel in a settings backup")
         suite.expect(!SettingsBackupSupport.exportKeys().contains(DefaultsKey.screenshotSaveFolder),

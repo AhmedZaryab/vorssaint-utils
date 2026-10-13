@@ -3218,26 +3218,15 @@ final class CommandBarService: ObservableObject {
         }
     }
 
-    /// The battery and the memory pressure both cross into the kernel, and
-    /// they are read together so one background pass answers both rows. Same
-    /// reason as the storage and Wi-Fi passes: none of it belongs on the
-    /// keystroke that opens the bar.
+    /// The battery crosses into the kernel. Same reason as the storage and
+    /// Wi-Fi passes: none of it belongs on the keystroke that opens the bar.
     private func refreshSystemAnswers(for id: UUID) {
         DispatchQueue.global(qos: .utility).async { [weak self] in
             let battery = SystemInfo.batterySnapshot()
-            let memory = AppFeature.monitorMemory.isAvailable ? SystemInfo.memoryUsage() : nil
             DispatchQueue.main.async {
                 guard let self else { return }
-                // Stored first, compared after, for the reason the storage
-                // pass above gives: the guard names the three fields the row
-                // shows, and the rest of the sample would otherwise be left
-                // behind at whatever it was when those three last moved.
                 let changed = CommandBarCatalog.cachedBattery != battery
-                    || CommandBarCatalog.cachedMemory?.used != memory?.used
-                    || CommandBarCatalog.cachedMemory?.appUsed != memory?.appUsed
-                    || CommandBarCatalog.cachedMemory?.total != memory?.total
                 CommandBarCatalog.cachedBattery = battery
-                CommandBarCatalog.cachedMemory = memory
                 guard changed else { return }
                 if self.presentationLifecycle.acceptsSharedCacheCompletion(
                     startedBy: id, currentID: self.presentationID,

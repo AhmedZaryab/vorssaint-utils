@@ -16,11 +16,7 @@ struct MetricsTests {
             }),
             ("metrics", {
                 MetricsFeatureTests.run(suite)
-                MenuBarBatteryWarningTests.run(suite)
                 ProcessNameContract.run(suite)
-                SystemMonitorCPUTests.run(suite)
-                SystemMonitorPlanTests.run(suite)
-                SystemSectionBreakdownTests.run(suite)
             }),
             ("clipboard", {
                 ClipboardFeatureTests.run(suite)
@@ -108,7 +104,6 @@ struct MetricsTests {
                 SettingsFeatureTests.run(suite)
                 SettingsWindowTests.run { suite.expect($0, $1) }
                 NotchSettingsChoiceTests.run(suite)
-                MonitorTokenTests.run(suite)
             }),
             ("display-restoration", {
                 DisplayRestorationTests.run(suite)
@@ -134,11 +129,6 @@ struct MetricsTests {
                 RecorderWriterTests.run(suite)
                 RecorderExportChipTests.run { suite.expect($0, $1) }
             }),
-            ("network", {
-                NetworkFeatureTests.run(suite)
-                SpeedTestTests.run(suite)
-                NetworkAddressTests.run { suite.expect($0, $1) }
-            }),
             ("app-updates", {
                 AppUpdatesContract.run(suite)
                 AppUpdateRulesContract.run(suite)
@@ -152,7 +142,6 @@ struct MetricsTests {
                 UninstallerCommandBarCleanupTests.run(suite)
                 SelfUninstallContract.run(suite)
             }),
-            ("force-quit", { ProcessForceQuitTests.run(suite) }),
             ("launcher", { QuickLauncherContract.run(suite) }),
             ("dock-autohide", {
                 DockPreviewPositionTests.run(suite)

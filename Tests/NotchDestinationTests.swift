@@ -73,7 +73,6 @@ enum NotchDestinationContract {
         var windowHost: Host? = Host()
         var modules: [NotchModule] = []
         var selected = NotchModule.controls
-        var selectedMetric: MetricDetailKind?
         var expanded = false
         var showingAppPanel = false
         var showingSections = false
@@ -95,7 +94,6 @@ enum NotchDestinationContract {
         var compactActivity: NotchCompactActivity?
         var hoverState = NotchHoverState()
         var hoverWork: DispatchWorkItem?
-        var requestedDetail: MetricDetailKind?
         var detailHasPage = false
         var pageLayers: [NotchModule: () -> Void] = [:]
         var captureControls: AnyObject?
@@ -106,7 +104,7 @@ enum NotchDestinationContract {
         var captureClose: (() -> Void)?
         func mutatePresentation(transitionContent: NotchContentTransition, _ change: () -> Void) { change() }
         func installEventMonitors() {}
-        func syncVisibleConsumers() { requestedDetail = selectedMetric }
+        func syncVisibleConsumers() {}
         func provideHapticFeedback() {}
         func endCaptureControls() {}
         func clearCapture() { captureControlsCancel = nil; captureClose = nil }
@@ -159,36 +157,7 @@ enum NotchDestinationContract {
         }
         defaults.set(NotchIdleContent.music.rawValue, forKey: DefaultsKey.notchIdleContent)
         defaults.set(true, forKey: DefaultsKey.notchShowPlayingMusic)
-        let families: [(MetricDetailKind, AppFeature)] = [
-            (.cpu, .monitorCPU), (.gpu, .monitorGPU), (.memory, .monitorMemory),
-            (.network, .monitorNetwork), (.disk, .monitorDisk),
-            (.battery, .monitorPower), (.power, .monitorPower), (.fan, .fanControl),
-        ]
-        for (metric, feature) in families {
-            let service = Service()
-            service.open(.system, pinned: true, metric: metric)
-            suite.expect(service.selectedMetric == metric, "an available metric opens its own detail")
-            defaults.set(false, forKey: feature.availabilityKey)
-            service.syncWithPreferences()
-            suite.expect(service.selectedMetric == nil && service.requestedDetail == nil,
-                   "removing the selected metric clears its detail even when other system families remain")
-            service.open(.system, metric: metric, sections: true)
-            service.open(.system, metric: metric)
-            suite.expect(service.selectedMetric == nil,
-                   "a retained gallery argument cannot restore a metric removed from the hub")
-            defaults.set(true, forKey: feature.availabilityKey)
-        }
         let service = Service()
-        service.open(.system, metric: .cpu)
-        for (_, feature) in families { defaults.set(false, forKey: feature.availabilityKey) }
-        service.syncWithPreferences()
-        suite.expect(!service.modules.contains(.system) && service.selected == .controls
-               && service.selectedMetric == nil && service.requestedDetail == nil,
-               "removing the last system family selects an available module without keeping its old detail")
-        defaults.set(true, forKey: AppFeature.fanControl.availabilityKey)
-        service.open(.system, metric: .fan)
-        suite.expect(service.modules.contains(.system) && service.selectedMetric == .fan,
-               "a separately installed fan feature exposes System and retains its direct detail")
 
         QuickLauncherService.shared = QuickLauncherContract.Launcher()
         let launcher = QuickLauncherService.shared
@@ -225,76 +194,30 @@ enum NotchDestinationContract {
 
     /// Escape steps back through what the island shows, then closes it.
     private static func stepBackContracts(_ suite: TestSuite) {
-        let metric = Service()
-        metric.open(.system)
-        metric.open(.system, metric: .cpu)
-        metric.stepBack()
-        suite.expect(metric.expanded && metric.selected == .system && metric.selectedMetric == nil,
-                     "Escape steps back from a detail opened on its page, as the Back button does")
-        metric.stepBack()
-        suite.expect(!metric.expanded, "Escape closes the island once nothing lies behind the page")
-
         let panel = Service()
         panel.open(.music)
         panel.open(.controls, appPanel: true)
         panel.stepBack()
         suite.expect(panel.expanded && panel.selected == .controls && !panel.showingAppPanel,
                      "Escape steps back from the app panel opened inside the island")
+        panel.stepBack()
+        suite.expect(!panel.expanded, "Escape closes the island once nothing lies behind the page")
 
-        // Closing passes for any page, so these first check a detail is open.
-        for appPanel in [false, true] {
-            let direct = Service()
-            direct.open(appPanel ? .controls : .system, appPanel: appPanel, metric: appPanel ? nil : .cpu)
-            let detail = direct.showingAppPanel || direct.selectedMetric == .cpu
-            direct.stepBack()
-            suite.expect(detail && !direct.expanded,
-                         "a detail the island opened on closes on Escape like the menu panel (app panel: \(appPanel))")
-        }
+        // Closing passes for any page, so this first checks a detail is open.
+        let direct = Service()
+        direct.open(.controls, appPanel: true)
+        let detail = direct.showingAppPanel
+        direct.stepBack()
+        suite.expect(detail && !direct.expanded,
+                     "a detail the island opened on closes on Escape like the menu panel")
 
-        for route in ["a metric", "the app panel"] {
-            let menuBar = Service()
-            menuBar.open(.music)
-            if route == "a metric" { menuBar.showMetric(.cpu, toggle: true) } else { menuBar.openAppPanel(toggle: true) }
-            let detail = menuBar.selectedMetric == .cpu || menuBar.showingAppPanel
-            menuBar.stepBack()
-            suite.expect(detail && !menuBar.expanded,
-                         "\(route) opened from the menu bar over an open island closes on Escape like the menu panel")
-        }
-        let tile = Service()
-        tile.open(.system)
-        tile.showMetric(.cpu)
-        tile.stepBack()
-        suite.expect(tile.expanded && tile.selected == .system && tile.selectedMetric == nil,
-                     "a metric opened from its tile inside the island steps back to the page")
-
-        let switched = Service()
-        switched.open(.system, metric: .cpu)
-        switched.toggleSections()
-        switched.toggleSections()
-        switched.open(.system, metric: .memory)
-        let switchedDetail = switched.selectedMetric == .memory && !switched.showingSections
-        switched.stepBack()
-        suite.expect(switchedDetail && !switched.expanded,
-                     "passing through the gallery or switching details keeps a direct detail closing on Escape")
-
-        let gallery = Service()
-        gallery.open(.system)
-        gallery.open(.system, metric: .cpu)
-        gallery.toggleSections()
-        gallery.toggleSections()
-        gallery.stepBack()
-        suite.expect(gallery.expanded && gallery.selected == .system && gallery.selectedMetric == nil,
-                     "the gallery opened over a detail keeps its way back to the page")
-
-        let reopened = Service()
-        reopened.open(.system)
-        reopened.open(.system, metric: .cpu)
-        // Capture controls close the island without clearing its detail.
-        reopened.expanded = false
-        reopened.open(.system, metric: .cpu)
-        let reopenedDetail = reopened.expanded && reopened.selectedMetric == .cpu
-        reopened.stepBack()
-        suite.expect(reopenedDetail && !reopened.expanded, "a detail the island reopens on has nothing behind it")
+        let menuBar = Service()
+        menuBar.open(.music)
+        menuBar.openAppPanel(toggle: true)
+        let menuBarDetail = menuBar.showingAppPanel
+        menuBar.stepBack()
+        suite.expect(menuBarDetail && !menuBar.expanded,
+                     "the app panel opened from the menu bar over an open island closes on Escape like the menu panel")
 
         var closes: [NotchModule] = []
         let layered = Service()
@@ -307,20 +230,20 @@ enum NotchDestinationContract {
         suite.expect(!layered.expanded && closes == [.music], "only the visible page's layer answers Escape")
 
         let covered = Service()
-        covered.open(.system)
-        covered.setPageLayer(.system) { closes.append(.system) }
-        covered.open(.system, metric: .cpu)
+        covered.open(.music)
+        covered.setPageLayer(.music) { closes.append(.music) }
+        covered.open(.music, appPanel: true)
         covered.stepBack()
-        suite.expect(covered.selectedMetric == nil && closes == [.music],
+        suite.expect(!covered.showingAppPanel && closes == [.music],
                      "a detail steps back before a layer of the page it covers")
 
         for blocker in ["drag", "capture"] {
             let held = Service()
-            held.open(.system)
-            held.open(.system, metric: .cpu)
+            held.open(.music)
+            held.open(.music, appPanel: true)
             if blocker == "drag" { held.heldDrag = true } else { held.captureControls = NSObject() }
             held.stepBack()
-            suite.expect(held.expanded && held.selectedMetric == .cpu,
+            suite.expect(held.expanded && held.showingAppPanel,
                          "Escape leaves the island as it is during a \(blocker), like closing does")
         }
     }

@@ -386,13 +386,6 @@ struct FeatureHubSettings: View {
                             }
                         }
                     }
-                    if group == .monitor,
-                       !FeatureVisibilitySupport.monitorFeatures.contains(where: \.isAvailable) {
-                        Text(hub.monitorAllOffNote)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
                 }
             } label: {
                 groupHeader(group, installed: installed, total: members.count)
@@ -878,9 +871,7 @@ private struct PermissionPortalRow: View {
     }
 
     private var activeFeatures: [AppFeature] {
-        AppFeature.activeFeatures(using: permission).filter {
-            permission != .notifications || $0 != .monitorPower || PowerSampler.hasInternalBattery
-        }
+        AppFeature.activeFeatures(using: permission)
     }
 
     private var usedByLine: String {
@@ -1053,13 +1044,7 @@ extension AppFeature {
         case .portManager: return FeatureStrings.portManager(L10n.shared.language).title
         case .homebrew: return s.homebrewName
         case .appUpdates: return FeatureStrings.appUpdates(L10n.shared.language).pageTitle
-        case .monitorCPU: return s.monitorShowCPU
-        case .monitorGPU: return s.monitorShowGPU
-        case .monitorMemory: return s.monitorShowMemory
-        case .monitorNetwork: return s.monitorShowNetwork
-        case .monitorDisk: return s.diskSection
         case .monitorPower: return s.powerSection
-        case .fanControl: return FeatureStrings.fanControl(L10n.shared.language).title
         }
     }
 
@@ -1123,13 +1108,7 @@ extension AppFeature {
         case .portManager: return FeatureStrings.portManager(L10n.shared.language).hubDescription
         case .homebrew: return hub.descHomebrew
         case .appUpdates: return FeatureStrings.appUpdates(L10n.shared.language).hubDescription
-        case .monitorCPU: return hub.descMonitorCPU
-        case .monitorGPU: return hub.descMonitorGPU
-        case .monitorMemory: return hub.descMonitorMemory
-        case .monitorNetwork: return hub.descMonitorNetwork
-        case .monitorDisk: return hub.descMonitorDisk
         case .monitorPower: return hub.descMonitorPower
-        case .fanControl: return FeatureStrings.fanControl(L10n.shared.language).hubDescription
         }
     }
 }

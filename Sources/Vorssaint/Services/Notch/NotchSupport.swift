@@ -7,7 +7,7 @@ import Foundation
 import CoreGraphics
 
 enum NotchModule: String, CaseIterable, Identifiable {
-    case controls, mixer, music, clipboard, captures, files, system, tools, calendar, notifications, timer, camera, downloads, scratchpad, agents, watch
+    case controls, mixer, music, clipboard, captures, files, tools, calendar, notifications, timer, camera, downloads, scratchpad, agents, watch
     var id: String { rawValue }
 
     var symbol: String {
@@ -25,7 +25,6 @@ enum NotchModule: String, CaseIterable, Identifiable {
         case .clipboard: return "doc.on.clipboard"
         case .captures: return "camera.viewfinder"
         case .files: return "tray.full"
-        case .system: return "gauge.with.dots.needle.50percent"
         // The quick panel's own mark; the grid belongs to the sections button.
         case .tools: return AppFeature.quickLauncher.symbolName
         case .scratchpad: return "note.text"
@@ -43,7 +42,6 @@ enum NotchModule: String, CaseIterable, Identifiable {
         case .clipboard: return "b"
         case .captures: return "s"
         case .files: return "f"
-        case .system: return "i"
         case .tools: return "t"
         case .calendar: return "a"
         case .notifications: return "n"
@@ -76,11 +74,6 @@ enum NotchModule: String, CaseIterable, Identifiable {
         case .scratchpad: return AppFeature.scratchpad.isAvailable(in: defaults)
         case .agents: return AppFeature.notchAgents.isAvailable(in: defaults)
         case .watch: return AppFeature.notchWatch.isAvailable(in: defaults)
-        case .system:
-            return [.monitorCPU, .monitorGPU, .monitorMemory, .monitorNetwork,
-                    .monitorDisk, .monitorPower, .fanControl].contains { (feature: AppFeature) in
-                feature.isAvailable(in: defaults)
-            }
         }
     }
 }
@@ -225,10 +218,6 @@ enum NotchLayout {
     static let shortcutHeight: CGFloat = 74
     static let shortcutWidth: CGFloat = 76
     static let shortcutSpacing: CGFloat = 8
-    static let systemCardHeight: CGFloat = 72
-    static let systemCardWidth: CGFloat = 128
-    /// Leave room for the card's hover scale, including a single full-width card.
-    static func systemHoverInset(width: CGFloat) -> CGFloat { ceil(max(0, width) * 0.015) + 1 }
     static let toolHeight: CGFloat = 72
     static let toolWidth: CGFloat = 76
     static let toolSpacing: CGFloat = 6
@@ -374,20 +363,6 @@ enum NotchLayout {
         case .compact: return nominalContentTop + chromeHeight + compactContentHeight
         case .spacious: return nominalContentTop + chromeHeight + spaciousContentHeight
         case .custom: return custom
-        }
-    }
-
-    /// Balance complete rows across the available width, keeping reading order
-    /// left to right and allowing each row to fill its width without empty cells.
-    static func systemRowRanges(count: Int, width: CGFloat) -> [Range<Int>] {
-        guard count > 0 else { return [] }
-        let columns = railCapacity(width: width, itemWidth: systemCardWidth, spacing: rowSpacing)
-        let rows = (count + columns - 1) / columns
-        let base = count / rows
-        let remainder = count % rows
-        return (0..<rows).map { row in
-            let start = row * base + min(row, remainder)
-            return start..<(start + base + (row < remainder ? 1 : 0))
         }
     }
 
@@ -1087,8 +1062,8 @@ enum NotchControlSetupRequirement: Equatable {
 }
 
 enum NotchControlItem: String, CaseIterable, Identifiable {
-    case volume, brightness, keyboardLight, music, mixer, keepAwake, timer, calendar, microphone, screenshot, recording, speedTest, panel, commandBar, scratchpad
-    static let defaultHidden = "keyboardLight,microphone,screenshot,recording,speedTest,panel,commandBar,scratchpad"
+    case volume, brightness, keyboardLight, music, mixer, keepAwake, timer, calendar, microphone, screenshot, recording, panel, commandBar, scratchpad
+    static let defaultHidden = "keyboardLight,microphone,screenshot,recording,panel,commandBar,scratchpad"
     var id: String { rawValue }
 
     /// A level draws as a slider in the card row; everything else is a tile.
@@ -1109,7 +1084,6 @@ enum NotchControlItem: String, CaseIterable, Identifiable {
         case .microphone: return "mic.fill"
         case .screenshot: return "camera.viewfinder"
         case .recording: return "record.circle"
-        case .speedTest: return "speedometer"
         // The app panel opens as a bubble under the menu bar icon.
         case .panel: return "bubble.middle.top"
         case .mixer: return NotchModule.mixer.symbol
@@ -1133,7 +1107,6 @@ enum NotchControlItem: String, CaseIterable, Identifiable {
         case .scratchpad: return .feature(.scratchpad)
         case .panel: return .none
         case .mixer: return .page(.mixer, feature: .mixer)
-        case .speedTest: return .page(.system, feature: .monitorNetwork)
         case .music: return .page(.music, feature: nil)
         case .timer: return .page(.timer, feature: .notchTimer)
         case .calendar: return .page(.calendar, feature: .notchCalendar)
@@ -1150,7 +1123,6 @@ enum NotchControlItem: String, CaseIterable, Identifiable {
         case .microphone: return AppFeature.micMute.isAvailable(in: defaults)
         case .screenshot: return AppFeature.screenshot.isAvailable(in: defaults)
         case .recording: return AppFeature.screenRecorder.isAvailable(in: defaults)
-        case .speedTest: return AppFeature.monitorNetwork.isAvailable(in: defaults) && NotchSupport.modules(in: defaults).contains(.system)
         case .commandBar: return AppFeature.commandBar.isAvailable(in: defaults)
         case .scratchpad: return AppFeature.scratchpad.isAvailable(in: defaults)
         case .panel: return true
@@ -1668,14 +1640,6 @@ enum NotchSupport {
                            ?? defaultEarlyBatteryThreshold)
     }
 
-    /// The menu bar's battery reading follows the same warning unless the
-    /// person keeps it to the island.
-    static func menuBarBatteryWarning(percent: Int?, externalConnected: Bool,
-                                      in defaults: UserDefaults = .standard) -> BatteryWarning {
-        guard defaults.object(forKey: DefaultsKey.notchLowBatteryMenuBar) as? Bool ?? true else { return .none }
-        return batteryWarning(percent: percent, externalConnected: externalConnected, in: defaults)
-    }
-
     /// The closed island stays out of sight until the pointer reaches it, and
     /// shows no notices while it waits.
     static func hidesUntilHover(in defaults: UserDefaults = .standard) -> Bool {
@@ -1713,17 +1677,6 @@ enum NotchSupport {
         return (stored + NotchControlItem.allCases).filter {
             seen.insert($0).inserted && !hidden.contains($0.rawValue) && $0.isAvailable(in: defaults)
         }
-    }
-
-    /// Power draw has a card of its own beside the battery; fans join once
-    /// the monitor reports one.
-    static func systemCardCount(hasBattery: Bool, fans: Int = 0, in defaults: UserDefaults = .standard) -> Int {
-        [.monitorCPU, .monitorGPU, .monitorMemory, .monitorDisk].filter {
-            (feature: AppFeature) in feature.isAvailable(in: defaults)
-        }.count + (AppFeature.monitorNetwork.isAvailable(in: defaults) ? 1 : 0)
-            + (hasBattery && AppFeature.monitorPower.isAvailable(in: defaults) ? 1 : 0)
-            + (AppFeature.monitorPower.isAvailable(in: defaults) ? 1 : 0)
-            + (fans > 0 && AppFeature.fanControl.isAvailable(in: defaults) ? 1 : 0)
     }
 
     /// Direct openings are dismissed explicitly, never by the pointer's
@@ -2338,10 +2291,6 @@ struct NotchGeometry: Equatable {
     /// the page holds it there while lyrics or the queue grow the island.
     var musicPlayerHeight: CGFloat { NotchLayout.musicPlayerHeight(layout: layout, height: contentBudget) }
 
-    func systemRows(cards: Int) -> Int {
-        NotchLayout.systemRowRanges(count: cards, width: contentWidth - NotchLayout.systemHoverInset(width: contentWidth) * 2).count
-    }
-
     func toolRows(count: Int) -> Int {
         NotchLayout.railRows(count: count,
                              perRow: NotchLayout.railCapacity(width: contentWidth, itemWidth: NotchLayout.toolWidth, spacing: NotchLayout.toolSpacing),
@@ -2365,7 +2314,7 @@ struct NotchGeometry: Equatable {
                       detailHeight: CGFloat? = nil, shortcutCount: Int = 4,
                       sliderCount: Int = 2, controlsHaveMusic: Bool = false, musicHasContent: Bool = true,
                       musicHasControlsRow: Bool = true, musicExtraHeight: CGFloat = 0,
-                      fileMediaHeight: CGFloat? = nil, systemCards: Int = 6, toolCount: Int? = 8,
+                      fileMediaHeight: CGFloat? = nil, toolCount: Int? = 8,
                       capturePreviewHeight: CGFloat? = nil,
                       timerHasSession: Bool = false, timerMode: NotchTimerMode = .timer,
                       agentsHeight: CGFloat? = nil) -> CGSize {
@@ -2394,11 +2343,6 @@ struct NotchGeometry: Equatable {
                 let controlsRow = musicHasControlsRow ? NotchLayout.musicControlsRowHeight + NotchLayout.rowSpacing : 0
                 let player = musicHasContent ? musicPlayerHeight : NotchLayout.musicIdleHeight
                 contentHeight = min(budget, player + controlsRow) + max(0, musicExtraHeight)
-            case .system:
-                let cards = max(0, systemCards)
-                contentHeight = min(budget, cards == 0 ? NotchLayout.emptyHeight
-                    : NotchLayout.railHeight(rows: systemRows(cards: cards), rowHeight: NotchLayout.systemCardHeight, spacing: NotchLayout.rowSpacing)
-                        + NotchLayout.systemHoverInset(width: contentWidth) * 2)
             case .tools:
                 guard let toolCount else { contentHeight = pageBudget; break }
                 contentHeight = min(budget, toolCount == 0 ? NotchLayout.emptyHeight

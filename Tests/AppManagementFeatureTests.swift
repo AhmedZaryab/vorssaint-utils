@@ -875,22 +875,6 @@ enum AppManagementFeatureTests {
                "larger clipboard history limits are preserved")
         suite.expect(Defaults.sanitizedClipboardHistoryLimit(999) == 50,
                "unsupported clipboard history limits fall back to default")
-        suite.expect(Defaults.sanitizedMonitorInterval(5) == 5, "valid monitor interval is preserved")
-        suite.expect(Defaults.sanitizedMonitorInterval(7) == 2, "invalid monitor interval falls back to default")
-        suite.expect(Defaults.sanitizedMenuBarLabelStyle("classic") == "classic", "valid label style is preserved")
-        suite.expect(Defaults.sanitizedMenuBarLabelStyle("bad") == "compact", "invalid label style falls back to compact")
-        suite.expect(Defaults.sanitizedMenuBarMemoryStyle("percent") == "percent", "percent memory style is preserved")
-        suite.expect(Defaults.sanitizedMenuBarMemoryStyle("dot") == "dot", "valid memory style is preserved")
-        suite.expect(Defaults.sanitizedMenuBarMemoryStyle("both") == "both", "combined memory style is preserved")
-        suite.expect(Defaults.sanitizedMenuBarMemoryStyle("bad") == "percent", "invalid memory style falls back to percent")
-        suite.expect(Defaults.sanitizedMenuBarMetricOrder("cpu,gpu,memory,network,battery,power")
-               == ["cpu", "gpu", "memory", "network", "battery", "power",
-                   "cpuTemperature", "gpuTemperature", "batteryTime", "batteryTemperature", "peripheralBattery", "diskUsage", "diskActivity", "fanSpeed"],
-               "menu bar metric order appends temperature sensors without rewriting existing saved order")
-        suite.expect(Defaults.sanitizedMenuBarMetricOrder("temperature,cpu,cpu,bad")
-               == ["cpuTemperature", "gpuTemperature", "batteryTemperature",
-                   "cpu", "gpu", "memory", "battery", "batteryTime", "peripheralBattery", "network", "diskUsage", "diskActivity", "power", "fanSpeed"],
-               "menu bar metric order migrates the old generic temperature value")
         suite.expect(Defaults.sanitizedBundleIdentifierList([" com.example.One ", "", "com.example.One", "com.example.Two"])
                == ["com.example.One", "com.example.Two"],
                "bundle id lists are trimmed and deduplicated")
