@@ -51,6 +51,36 @@ enum NotchMusicAutomation {
         }
     }
 
+    /// The clock reads once a second; the permission probe behind it is a
+    /// round trip to the TCC daemon. Remember the answer per player for a
+    /// minute, and forget it whenever that player comes to the front (where
+    /// the person may have just changed its Automation consent).
+    private final class AccessCache {
+        static let shared = AccessCache()
+        private let lock = NSLock()
+        private var entries: [Int32: (target: Target, access: Access, at: Date)] = [:]
+        private var observer: NSObjectProtocol?
+
+        func access(to target: Target) -> Access {
+            lock.lock()
+            if observer == nil {
+                observer = NSWorkspace.shared.notificationCenter.addObserver(
+                    forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: nil) { [weak self] note in
+                    guard let self, let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication else { return }
+                    self.lock.lock(); self.entries[app.processIdentifier] = nil; self.lock.unlock()
+                }
+            }
+            if let entry = entries[target.pid], entry.target == target, Date().timeIntervalSince(entry.at) < 60 {
+                lock.unlock()
+                return entry.access
+            }
+            lock.unlock()
+            let access = NotchMusicAutomation.access(to: target)
+            lock.lock(); entries[target.pid] = (target, access, Date()); lock.unlock()
+            return access
+        }
+    }
+
     static func event(_ command: NotchPlaybackCommand, playback: NotchPlayback,
                       capabilities: NotchMusicAutomationCapabilities, pid: Int32) -> NSAppleEventDescriptor? {
         guard pid > 0 else { return nil }
@@ -125,7 +155,7 @@ enum NotchMusicAutomation {
     /// without consent already given, for whole-second clocks, or a slow reply.
     static func clock(of availability: Availability) -> (seconds: Double, at: Date)? {
         guard let position = availability.capabilities.position, !position.integer,
-              availability.target.isCurrent, access(to: availability.target) == .granted,
+              availability.target.isCurrent, AccessCache.shared.access(to: availability.target) == .granted,
               let event = propertyEvent(kAEGetData, code: position.code,
                                         address: NSAppleEventDescriptor(processIdentifier: availability.target.pid))
         else { return nil }

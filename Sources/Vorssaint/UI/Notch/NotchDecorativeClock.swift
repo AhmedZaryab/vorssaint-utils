@@ -14,12 +14,16 @@ final class NotchDecorativeClock {
     /// The most steps a second. A display that cannot divide its refresh rate
     /// down to it steps a little less often.
     static let rate: Float = 30
+    /// The agent pulse and breath are slow enough to read the same at ten.
+    static let agentRate: Float = 10
 
     private let step: (CFTimeInterval) -> Void
+    private let rate: Float
     private var link: CADisplayLink?
 
     /// `step` receives the time the frame being prepared will show at.
-    init(step: @escaping (CFTimeInterval) -> Void) {
+    init(rate: Float = NotchDecorativeClock.rate, step: @escaping (CFTimeInterval) -> Void) {
+        self.rate = min(rate, Self.rate)
         self.step = step
     }
 
@@ -33,8 +37,7 @@ final class NotchDecorativeClock {
     func start(in view: NSView) {
         guard link == nil else { return }
         let link = view.displayLink(target: Target(clock: self), selector: #selector(Target.fire(_:)))
-        link.preferredFrameRateRange = CAFrameRateRange(minimum: Self.rate / 2, maximum: Self.rate,
-                                                        preferred: Self.rate)
+        link.preferredFrameRateRange = CAFrameRateRange(minimum: rate / 2, maximum: rate, preferred: rate)
         link.add(to: .main, forMode: .common)
         self.link = link
     }

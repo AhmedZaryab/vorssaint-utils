@@ -72,6 +72,8 @@ final class ClipboardHistoryService: ObservableObject {
 
     private var timer: Timer?
     private var lastChangeCount = 0
+    private var screenAway = false
+    private var screenAwayObservers: [NSObjectProtocol] = []
     /// The poll reads the pasteboard off the main thread: while a password
     /// prompt is up the pasteboard server can take seconds to answer, and a
     /// blocked main thread stalls every event tap with it, so typing freezes
@@ -640,20 +642,52 @@ final class ClipboardHistoryService: ObservableObject {
     }
 
     private func start() {
-        guard timer == nil else {
-            isRunning = true
-            return
-        }
-        let timer = Timer(timeInterval: 0.8, repeats: true) { [weak self] _ in
+        guard !isRunning else { return }
+        isRunning = true
+        observeScreenAway()
+        schedulePoll()
+        ClipboardIgnoredApps.shared.setHistoryRunning(true)
+        captureState.restart()
+        captureIfChanged()
+    }
+
+    /// One read of the change count a second. The content itself is read only
+    /// when that count moved (see captureIfChanged).
+    private func schedulePoll() {
+        guard isRunning, !screenAway, timer == nil else { return }
+        let timer = Timer(timeInterval: 1, repeats: true) { [weak self] _ in
             self?.captureIfChanged()
         }
         timer.tolerance = 0.25
         RunLoop.main.add(timer, forMode: .common)
         self.timer = timer
-        isRunning = true
-        ClipboardIgnoredApps.shared.setHistoryRunning(true)
-        captureState.restart()
-        captureIfChanged()
+    }
+
+    /// Nobody copies while the screen is locked or asleep: stop polling, then
+    /// catch up once on return.
+    private func observeScreenAway() {
+        guard screenAwayObservers.isEmpty else { return }
+        let away: (Bool) -> (Notification) -> Void = { away in
+            { [weak self] _ in
+                guard let self else { return }
+                self.screenAway = away
+                if away {
+                    self.timer?.invalidate()
+                    self.timer = nil
+                } else if self.isRunning {
+                    self.schedulePoll()
+                    self.captureIfChanged()
+                }
+            }
+        }
+        let distributed = DistributedNotificationCenter.default()
+        let workspace = NSWorkspace.shared.notificationCenter
+        screenAwayObservers = [
+            distributed.addObserver(forName: Notification.Name("com.apple.screenIsLocked"), object: nil, queue: .main, using: away(true)),
+            distributed.addObserver(forName: Notification.Name("com.apple.screenIsUnlocked"), object: nil, queue: .main, using: away(false)),
+            workspace.addObserver(forName: NSWorkspace.screensDidSleepNotification, object: nil, queue: .main, using: away(true)),
+            workspace.addObserver(forName: NSWorkspace.screensDidWakeNotification, object: nil, queue: .main, using: away(false)),
+        ]
     }
 
     private func stop() {

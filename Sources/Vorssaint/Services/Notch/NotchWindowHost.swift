@@ -516,15 +516,42 @@ final class NotchWindowHost: NSObject, CAAnimationDelegate {
     }
 
     private var missionControlCheckInterval: TimeInterval {
-        overviewWasVisible || concealedForMissionControl ? 0.08 : 0.25
+        overviewWasVisible || concealedForMissionControl ? 0.08 : 1
+    }
+
+    /// Space changes, display changes and app switches are when an overview
+    /// usually comes or goes, so they check at once; the slow poll above only
+    /// covers an overview opened with nothing else happening.
+    private var missionControlObservers: [NSObjectProtocol] = []
+
+    private func observeMissionControlHints() {
+        guard missionControlObservers.isEmpty else { return }
+        let check: (Notification) -> Void = { [weak self] _ in
+            guard let self, self.panel.isVisible || self.concealedForMissionControl else { return }
+            self.refreshMissionControlState(now: true)
+        }
+        let workspace = NSWorkspace.shared.notificationCenter
+        missionControlObservers = [
+            workspace.addObserver(forName: NSWorkspace.activeSpaceDidChangeNotification, object: nil, queue: .main, using: check),
+            workspace.addObserver(forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main, using: check),
+            NotificationCenter.default.addObserver(forName: NSApplication.didChangeScreenParametersNotification,
+                                                   object: nil, queue: .main, using: check),
+        ]
+    }
+
+    private func removeMissionControlHints() {
+        missionControlObservers.forEach { NSWorkspace.shared.notificationCenter.removeObserver($0); NotificationCenter.default.removeObserver($0) }
+        missionControlObservers = []
     }
 
     private func updateMissionControlTimer() {
         guard panel.isVisible || concealedForMissionControl else {
             missionControlTimer?.invalidate()
             missionControlTimer = nil
+            removeMissionControlHints()
             return
         }
+        observeMissionControlHints()
         let interval = missionControlCheckInterval
         if missionControlTimer?.timeInterval != interval {
             missionControlTimer?.invalidate()
@@ -721,6 +748,7 @@ final class NotchWindowHost: NSObject, CAAnimationDelegate {
     func close() {
         missionControlTimer?.invalidate()
         missionControlTimer = nil
+        removeMissionControlHints()
         panel.visibilityDidChange = nil
         animationGeneration += 1
         isAnimating = false

@@ -443,16 +443,54 @@ final class NotchService: ObservableObject {
     /// The companion needs the menu bar measured to know where its wings fit.
     private var mascotWantsRoom: Bool { NotchMascotSupport.isEnabled() }
 
+    /// The settings behind the compact activities. Each one walks feature
+    /// flags and the module list in UserDefaults, and the activities are read
+    /// on every layout pass, so they are read once per defaults change.
+    private struct ActivityFlags {
+        let timer, hideTimerCountdown, watch, downloads, music, agents, calendar, calendarCountdown,
+            calendarTimeLeft, keepAwake: Bool
+
+        init(_ defaults: UserDefaults = .standard) {
+            timer = NotchTimerSupport.isEnabled(in: defaults)
+            hideTimerCountdown = defaults.bool(forKey: DefaultsKey.notchHideTimerCountdown)
+            watch = NotchWatchSupport.isEnabled(in: defaults)
+            downloads = NotchSupport.routes(.download, in: defaults)
+            music = NotchSupport.watchesMusicActivity(in: defaults)
+            agents = NotchAgentSupport.showsLiveActivity(in: defaults)
+            calendar = NotchCalendarSupport.isEnabled(in: defaults)
+            calendarCountdown = defaults.bool(forKey: DefaultsKey.notchCalendarCountdown)
+            calendarTimeLeft = defaults.bool(forKey: DefaultsKey.notchCalendarTimeLeft)
+            keepAwake = NotchKeepAwakeSupport.showsActivity(in: defaults)
+        }
+    }
+    private var cachedActivityFlags: ActivityFlags?
+    private var activityFlagsObserver: NSObjectProtocol?
+    private var activityFlags: ActivityFlags {
+        if let cachedActivityFlags { return cachedActivityFlags }
+        if activityFlagsObserver == nil {
+            activityFlagsObserver = NotificationCenter.default.addObserver(
+                forName: UserDefaults.didChangeNotification, object: nil, queue: nil) { [weak self] _ in
+                if Thread.isMainThread { self?.cachedActivityFlags = nil }
+                else { DispatchQueue.main.async { self?.cachedActivityFlags = nil } }
+            }
+        }
+        let flags = ActivityFlags()
+        cachedActivityFlags = flags
+        return flags
+    }
+
     var hasTimerActivity: Bool {
-        NotchTimerSupport.showsActivity(NotchTimerService.shared.session)
+        let session = NotchTimerService.shared.session
+        let flags = activityFlags
+        return session.hasSession && flags.timer && (session.completed || !flags.hideTimerCountdown)
     }
 
     var hasWatchActivity: Bool {
-        NotchWatchSupport.isEnabled() && NotchWatchService.shared.isActive
+        activityFlags.watch && NotchWatchService.shared.isActive
     }
 
     var hasDownloadActivity: Bool {
-        NotchSupport.routes(.download)
+        activityFlags.downloads
             && NotchDownloadService.shared.items.contains { $0.active && !$0.completed }
     }
 
@@ -460,24 +498,25 @@ final class NotchService: ObservableObject {
         let playback = NotchMusicService.shared.playback
         // A song paused from the strip's button counts as playing while the pointer stays.
         let held = playback.map { musicStripHolds(context: $0.commandContext, player: $0.track.appPID) } ?? false
-        return NotchSupport.showsMusicActivity(isPlaying: held || playback?.isPlaying == true)
+        return (held || playback?.isPlaying == true) && activityFlags.music
     }
 
     var hasAgentActivity: Bool {
-        NotchAgentSupport.showsLiveActivity() && !AgentUsageService.shared.snapshot.live.isEmpty
+        activityFlags.agents && !AgentUsageService.shared.snapshot.live.isEmpty
     }
 
     var hasCalendarActivity: Bool {
         let calendar = NotchCalendarService.shared
-        guard let countdown = calendar.countdown,
-              countdown.ongoing ? NotchCalendarSupport.showsTimeLeft()
-                : NotchCalendarSupport.showsCountdown(chosen: calendar.isChosen(countdown.event))
+        let flags = activityFlags
+        guard flags.calendar, let countdown = calendar.countdown,
+              countdown.ongoing ? flags.calendarTimeLeft
+                : (flags.calendarCountdown || calendar.isChosen(countdown.event))
         else { return false }
         return countdown.isShown(at: Date())
     }
 
     var hasKeepAwakeActivity: Bool {
-        NotchKeepAwakeSupport.showsActivity() && KeepAwakeManager.shared.isActive
+        activityFlags.keepAwake && KeepAwakeManager.shared.isActive
     }
 
     var compactActivity: NotchCompactActivity? {
@@ -3151,8 +3190,11 @@ final class NotchService: ObservableObject {
             && (idleContent != .none || compactActivity != nil || !geometry.isNotched || mascotWantsRoom)
         guard wanted else { stopMenuSpaceMonitoring(); return }
         guard menuSpaceTimer == nil else { return }
-        let timer = Timer(timeInterval: 1, repeats: true) { [weak self] _ in self?.readMenuSpace() }
-        timer.tolerance = 0.2
+        // App activation, Space and display changes re-read at once (see
+        // applicationDidActivate, activeSpaceDidChange, screenParametersDidChange);
+        // this slow pass only catches an app changing its own menus.
+        let timer = Timer(timeInterval: 2, repeats: true) { [weak self] _ in self?.readMenuSpace() }
+        timer.tolerance = 0.5
         menuSpaceTimer = timer
         RunLoop.main.add(timer, forMode: .common)
         readMenuSpace()
@@ -3402,6 +3444,7 @@ final class NotchService: ObservableObject {
         }
         observe(workspace, NSWorkspace.activeSpaceDidChangeNotification) { [weak self] in
             self?.fullscreenEnvironmentDidChange()
+            if self?.suspended == false { self?.invalidateMenuSpace() }
         }
         observe(workspace, NSWorkspace.didActivateApplicationNotification) { [weak self] in self?.applicationDidActivate() }
         observe(workspace, NSWorkspace.willSleepNotification) { [weak self] in
