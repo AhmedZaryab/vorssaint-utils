@@ -1,0 +1,6 @@
+# Restore quitWindowProtection (parked, not deleted)
+1. git mv Legacy/quitWindowProtection/Services Sources/Vorssaint/Services/QuitProtection; git mv .../UI Sources/Vorssaint/UI/QuitProtection; move QuitProtectionSettings.swift to UI/Settings/ and QuitProtectionHUDChecks.swift to Tests/Fixtures/.
+2. Catalog: re-add `quitWindowProtection` to AppFeature (FeatureCatalog: case, category, icon "shield.lefthalf.filled", defaults keys quitProtectionQuitEnabled/CloseEnabled, runtime/preset lists) and the 16 quitProtection* DefaultsKey constants + registered defaults in Defaults.swift.
+3. Runtime: FeatureRuntime `.quitWindowProtection: { QuitProtectionService.shared.syncWithPreferences() }`, AppDelegate accessibility list, SelfUninstall `QuitProtectionService.shared.suspend()`.
+4. Settings row: the `quitProtection` page case (FeatureVisibilitySupport + destination/feature mapping + FeatureHubSettings name/description), SettingsView `case .quitProtection: QuitProtectionSettings()`, SettingsDirectory item.
+5. AppSwitcher.runProtectedLetterAction: restore the selectionConfirmation/HUD logic; restore the removed Tests/ blocks (git show ours:Tests/...). QuitProtectionSupport/Strings stayed in Core (shared modifier names with MouseSettings).

@@ -25,7 +25,6 @@ enum OverlayPanelTests {
         let surfaces = [
             "Sources/Vorssaint/App/AppDelegate.swift",
             "Sources/Vorssaint/UI/PermissionGuideOverlay.swift",
-            "Sources/Vorssaint/UI/QuitProtection/QuitProtectionHUD.swift",
             "Sources/Vorssaint/Services/QuickTools/QuickToolHUD.swift",
             "Sources/Vorssaint/Services/QuickTools/QuickLauncherService.swift",
             "Sources/Vorssaint/Services/QuickTools/CameraPreviewService.swift",

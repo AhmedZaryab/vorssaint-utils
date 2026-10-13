@@ -1312,38 +1312,6 @@ enum UtilitiesFeatureTests {
                    "\(shareService) recomputes share link expiry on wake, which its sleeping clock missed")
         }
 
-        // The confirmation HUD is a hand-laid AppKit panel, so its width is
-        // pinned as source shape. It used to be a fixed 300pt, which clipped
-        // the longer translations. Sizing it from a separate
-        // NSString measurement of the same text would leave whatever inset
-        // the label's cell adds unaccounted for -- the labels have to be the
-        // ones asked.
-        let quitHUDSource = (try? String(
-            contentsOfFile: "Sources/Vorssaint/UI/QuitProtection/QuitProtectionHUD.swift",
-            encoding: .utf8)) ?? ""
-        suite.expect(quitHUDSource.count > 1_000,
-               "the quit protection HUD source is readable (\(quitHUDSource.count) bytes)")
-        let quitHUDCode = quitHUDSource
-            .split(separator: "\n", omittingEmptySubsequences: false)
-            .filter { !$0.trimmingCharacters(in: .whitespaces).hasPrefix("//") }
-            .joined(separator: "\n")
-        suite.expect(quitHUDCode.contains("title.fittingSize.width")
-                && quitHUDCode.contains("detail.fittingSize.width"),
-               "the confirmation HUD takes its width from the labels that draw the text")
-        suite.expect(!quitHUDCode.contains("size(withAttributes:"),
-               "the confirmation HUD does not size itself from a separate text measurement")
-        let quitHUDShow = quitHUDCode
-            .components(separatedBy: "func show(title: String, detail: String").last ?? ""
-        let quitHUDShowBody = quitHUDShow.components(separatedBy: "\n    func ").first ?? ""
-        if let filled = quitHUDShowBody.range(of: "content.update("),
-           let sized = quitHUDShowBody.range(of: "fittingSize(content)"),
-           let applied = quitHUDShowBody.range(of: "setContentSize(size)") {
-            suite.expect(filled.lowerBound < sized.lowerBound && sized.lowerBound < applied.lowerBound,
-                   "the confirmation HUD fills its labels, then measures them, then resizes")
-        } else {
-            suite.expect(false,
-                   "the confirmation HUD's show() fills the labels, measures them and resizes")
-        }
         // MARK: A dropped identifier
         suite.expect(QuickTogglesSupport.isExcluded(volumeName: "SD Card",
                                               volumeUUID: "1234-5678-ABCD",

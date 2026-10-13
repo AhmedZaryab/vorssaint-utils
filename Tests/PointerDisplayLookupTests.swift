@@ -183,8 +183,6 @@ enum PointerDisplayLookupContract {
         await capturer.directCaptureTask?.value
         let layout = Layout()
         layout.showDirectionalIndicator(at: pointer, action: nil)
-        let hud = HUD()
-        hud.positionPanel(on: nil)
         let chooser = Chooser()
         chooser.currentPointerLocation = pointer
         Dock.WindowActivator.origins = []
@@ -194,7 +192,6 @@ enum PointerDisplayLookupContract {
             ("a full-display capture", Capturer.ScreenshotCaptureEngine.displays.first),
             ("the Space a dropped window joins", Bridge.visibleSpace(near: pointer).map { CGDirectDisplayID($0 / 10) }),
             ("the directional layout indicator", layout.directionalIndicatorPanel.flatMap { display(holding: $0.frame) }),
-            ("the quit confirmation", hud.panel?.origin.flatMap { display(holding: CGRect(origin: $0, size: hud.size)) }),
             ("a full-display capture from the capture overlay", chooser.panelUnderMouse().flatMap { panel in
                 Screen.screens.first { $0.frame == panel.screenFrame }?.displayID
             }),
