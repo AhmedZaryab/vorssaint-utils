@@ -86,6 +86,10 @@ final class NotchLyricsService: ObservableObject {
     }
 
     private func load(_ track: NotchMusicIdentity) {
+        if let saved = NotchLyricsFallback.cached(for: track), memory.replace(saved, for: track) {
+            state = .ready
+            return
+        }
         guard let url = NotchLyricsSupport.lookupURL(for: track) else { state = .unavailable; return }
         state = .loading
         let requested = generation
@@ -95,10 +99,32 @@ final class NotchLyricsService: ObservableObject {
                 guard let self, self.visible, self.generation == requested, self.track == track,
                       NotchLyricsSupport.onlineEnabled() else { return }
                 self.session = nil
-                guard self.memory.replace(lyrics, for: track) else { return }
-                self.state = lyrics != nil ? .ready : failed ? .failed : .unavailable
+                if lyrics == nil, !failed || data != nil, let search = NotchLyricsFallback.searchURL(for: track) {
+                    self.search(search, track: track, requested: requested)
+                    return
+                }
+                self.finish(lyrics, failed: failed, track: track)
             }
         }
+    }
+
+    /// The exact lookup missed: look for the same song under looser tags.
+    private func search(_ url: URL, track: NotchMusicIdentity, requested: UUID) {
+        session = NotchLyricsDownload.load(url) { [weak self] data, failed in
+            let lyrics = data.flatMap { NotchLyricsFallback.decodeBest($0, for: track) }
+            DispatchQueue.main.async {
+                guard let self, self.visible, self.generation == requested, self.track == track,
+                      NotchLyricsSupport.onlineEnabled() else { return }
+                self.session = nil
+                self.finish(lyrics, failed: failed, track: track)
+            }
+        }
+    }
+
+    private func finish(_ lyrics: NotchLyrics?, failed: Bool, track: NotchMusicIdentity) {
+        guard memory.replace(lyrics, for: track) else { return }
+        if let lyrics { NotchLyricsFallback.store(lyrics, for: track) }
+        state = lyrics != nil ? .ready : failed ? .failed : .unavailable
     }
 
     func importLyrics() {
@@ -190,6 +216,7 @@ private final class NotchLyricsDownload: NSObject, URLSessionDataDelegate {
         configuration.urlCredentialStorage = nil
         configuration.httpCookieStorage = nil
         configuration.httpShouldSetCookies = false
+        configuration.httpMaximumConnectionsPerHost = 1
         configuration.httpAdditionalHeaders = ["User-Agent": "Vorssaint", "Accept": "application/json"]
         let delegate = NotchLyricsDownload(completion: completion)
         let session = URLSession(configuration: configuration, delegate: delegate, delegateQueue: nil)
@@ -202,12 +229,12 @@ private final class NotchLyricsDownload: NSObject, URLSessionDataDelegate {
                     completionHandler: @escaping (URLSession.ResponseDisposition) -> Void) {
         let status = (response as? HTTPURLResponse)?.statusCode
         missing = status == 404
-        accepted = status == 200 && response.expectedContentLength <= NotchLyricsSupport.maximumBytes
+        accepted = status == 200 && response.expectedContentLength <= 2 * NotchLyricsSupport.maximumBytes
         completionHandler(accepted ? .allow : .cancel)
     }
 
     func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive chunk: Data) {
-        guard accepted, chunk.count <= NotchLyricsSupport.maximumBytes - data.count else {
+        guard accepted, chunk.count <= 2 * NotchLyricsSupport.maximumBytes - data.count else {
             accepted = false
             dataTask.cancel()
             return

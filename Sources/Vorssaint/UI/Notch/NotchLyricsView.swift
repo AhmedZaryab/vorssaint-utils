@@ -6,6 +6,7 @@ import SwiftUI
 struct NotchLyricsView: View {
     let playback: NotchPlayback
     @ObservedObject private var service = NotchLyricsService.shared
+    @ObservedObject private var music = NotchMusicService.shared
     @ObservedObject private var l10n = L10n.shared
     @AppStorage(DefaultsKey.notchLyricsOnline) private var online = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -132,6 +133,13 @@ struct NotchLyricsView: View {
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .fixedSize(horizontal: false, vertical: true)
                                 .id(index)
+                                .contentShape(Rectangle())
+                                .onTapGesture {
+                                    // Tap a verse to jump the player there, when it can seek.
+                                    guard music.canSeek else { return }
+                                    music.seek(to: line.time + service.offset, in: playback.track,
+                                               context: playback.commandContext)
+                                }
                         }
                     }.padding(.vertical, 6)
                 }
