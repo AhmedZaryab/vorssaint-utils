@@ -157,8 +157,12 @@ enum NotchLockScreenTests {
 
     static func contentContracts(_ suite: TestSuite) {
         suite.expect(NotchLockScreenSupport.activities(timer: true, calendar: true, agents: true, downloads: true)
-                        == NotchLockScreenActivity.allCases,
+                        == [.timer, .calendar, .agents, .downloads],
                      "the line reads the timer, the next event, agents and downloads, in that order")
+        suite.expect(NotchLockScreenSupport.activities(timer: true, calendar: true, agents: true, downloads: true,
+                                                       battery: true, keepAwake: true)
+                        == NotchLockScreenActivity.allCases,
+                     "with battery and keep-awake on, they follow downloads in that order")
         suite.expect(NotchLockScreenSupport.activities(timer: false, calendar: false, agents: true, downloads: true)
                         == [.agents, .downloads],
                      "only live activities are read out")
