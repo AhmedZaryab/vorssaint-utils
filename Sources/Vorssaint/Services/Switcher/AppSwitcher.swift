@@ -240,17 +240,11 @@ final class AppSwitcher: ObservableObject {
             // the first ⌘Tab.
             let panel = ensurePanel()
             panel.contentViewController?.view.layoutSubtreeIfNeeded()
-            if !capturesPreviews {
-                WindowPreviewProvider.shared.stopWarming()
-            } else {
-                WindowPreviewProvider.shared.startWarming()
-            }
         } else {
             restoreNativeHotkeys()
             stopObservingKeyboardLayout()
             stopObservingWake()
             removeTap()
-            WindowPreviewProvider.shared.stopWarming()
         }
     }
 
