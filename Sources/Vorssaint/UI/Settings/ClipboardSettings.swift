@@ -21,7 +21,6 @@ struct ClipboardSettings: View {
     @AppStorage(DefaultsKey.clipboardHistoryMenuBarPreviewLength)
     private var menuBarPreviewLength = Defaults.defaultClipboardMenuBarPreviewLength
     @AppStorage(DefaultsKey.panelUtilityClipboard) private var showInPanel = true
-    @AppStorage(DefaultsKey.finderPasteImageAsFile) private var pasteImageAsFile = false
     @AppStorage(DefaultsKey.clipboardAutoClearOnDelay) private var autoClearOnDelay = false
     @AppStorage(DefaultsKey.clipboardAutoClearDelay)
     private var autoClearDelay = Defaults.defaultClipboardAutoClearDelay
@@ -88,21 +87,6 @@ struct ClipboardSettings: View {
                 }
 
                 clipboardAutoClearSection
-            }
-
-            if AppFeature.finderCutPaste.isAvailable {
-                Section {
-                    Toggle(text.pasteImageAsFile, isOn: $pasteImageAsFile)
-                        .onChange(of: pasteImageAsFile) { _, _ in
-                            FinderCutPaste.shared.syncWithPreferences()
-                        }
-                    Text(text.pasteImageAsFileCaption)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    if pasteImageAsFile, !permissions.accessibility {
-                        PermissionRow(kind: .accessibility)
-                    }
-                }
             }
 
             if AppFeature.pastePlain.isAvailable {

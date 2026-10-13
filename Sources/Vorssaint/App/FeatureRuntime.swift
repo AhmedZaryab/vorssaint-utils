@@ -278,8 +278,6 @@ final class FeatureRuntime: ObservableObject {
             ScreenRecorderService.shared.closeEditors(ownedBy: .mediaTools)
         },
         .pastePlain: { PastePlainService.shared.syncWithPreferences() },
-        .finderCutPaste: { FinderCutPaste.shared.syncWithPreferences() },
-        .finderRename: { FinderRenameService.shared.syncWithPreferences() },
         .shelf: {
             ShelfService.shared.syncWithPreferences()
             NotchFileToolsService.shared.syncWithPreferences()

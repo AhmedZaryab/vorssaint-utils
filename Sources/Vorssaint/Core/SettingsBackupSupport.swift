@@ -48,7 +48,6 @@ enum SettingsBackupSupport {
     static let unregisteredPreferenceKeys: Set<String> = [
         DefaultsKey.autoQuitEnabled,
         DefaultsKey.shelfEnabled,
-        DefaultsKey.finderCutPasteEnabled,
         DefaultsKey.textSnippets,
         DefaultsKey.radialMenuItems,
         DefaultsKey.radialMenuProfiles,

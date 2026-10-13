@@ -909,7 +909,7 @@ struct UtilitiesSection: View {
 }
 
 private enum ControlPanelItem: String, PanelOrderItem, Identifiable {
-    case mouseScroll, linearScroll, focusFollowsMouse, mouseAcceleration, mouseNavigation, switcher, cutPaste, autoQuit, shelf, windowMaximize, dockPreview,
+    case mouseScroll, linearScroll, focusFollowsMouse, mouseAcceleration, mouseNavigation, switcher, autoQuit, shelf, windowMaximize, dockPreview,
          dockClick, dockClickHide, dockClickCycle, middleClick, textSnippets, radialMenu, mouseButtonShortcuts,
          mouseClickDebounce, notch
 
@@ -925,7 +925,6 @@ private enum ControlPanelItem: String, PanelOrderItem, Identifiable {
         case .mouseAcceleration: return .mouseAcceleration
         case .mouseNavigation: return .mouseNavigation
         case .switcher: return .switcher
-        case .cutPaste: return .finderCutPaste
         case .autoQuit: return .autoQuit
         case .shelf: return .shelf
         case .windowMaximize: return .windowMaximizer
@@ -955,7 +954,7 @@ private enum ControlCategory: String, CaseIterable, Identifiable {
         case .mouseScroll, .linearScroll, .focusFollowsMouse, .mouseAcceleration, .mouseNavigation, .mouseButtonShortcuts, .middleClick,
              .textSnippets, .radialMenu, .mouseClickDebounce:
             return .inputDevices
-        case .cutPaste, .shelf:
+        case .shelf:
             return .files
         }
     }
@@ -968,7 +967,6 @@ struct QuickControlsSection: View {
     @ObservedObject private var inverter = ScrollInverter.shared
     @ObservedObject private var switcher = AppSwitcher.shared
     @ObservedObject private var dockPreview = DockPreviewService.shared
-    @ObservedObject private var cutPaste = FinderCutPaste.shared
     @ObservedObject private var autoQuit = AutoQuitService.shared
     @ObservedObject private var windowMaximizer = WindowMaximizer.shared
     @ObservedObject private var middleClick = MiddleClickService.shared
@@ -982,7 +980,6 @@ struct QuickControlsSection: View {
     @AppStorage(DefaultsKey.switcherIconRowMode) private var switcherIconRowMode = false
     @AppStorage(DefaultsKey.switcherSimpleMode) private var switcherSimpleMode = false
     @AppStorage(DefaultsKey.dockPreviewEnabled) private var dockPreviewEnabled = false
-    @AppStorage(DefaultsKey.finderCutPasteEnabled) private var cutPasteEnabled = false
     @AppStorage(DefaultsKey.autoQuitEnabled) private var autoQuitEnabled = false
     @AppStorage(DefaultsKey.shelfEnabled) private var shelfEnabled = false
     @AppStorage(DefaultsKey.windowMaximizeEnabled) private var windowMaximizeEnabled = false
@@ -1005,7 +1002,6 @@ struct QuickControlsSection: View {
     @AppStorage(DefaultsKey.panelControlMouseNavigation) private var showMouseNavigation = true
     @AppStorage(DefaultsKey.panelControlSwitcher) private var showSwitcher = true
     @AppStorage(DefaultsKey.panelControlDockPreview) private var showDockPreview = true
-    @AppStorage(DefaultsKey.panelControlCutPaste) private var showCutPaste = true
     @AppStorage(DefaultsKey.panelControlAutoQuit) private var showAutoQuit = true
     @AppStorage(DefaultsKey.panelControlShelf) private var showShelf = true
     @AppStorage(DefaultsKey.panelControlWindowMaximize) private var showWindowMaximize = true
@@ -1124,7 +1120,6 @@ struct QuickControlsSection: View {
         case .mouseAcceleration: return mouseAccelerationDisabled
         case .mouseNavigation: return mouseNavigationEnabled
         case .switcher: return switcherEnabled
-        case .cutPaste: return cutPasteEnabled
         case .autoQuit: return autoQuitEnabled
         case .shelf: return shelfEnabled
         case .windowMaximize: return windowMaximizeEnabled
@@ -1201,7 +1196,6 @@ struct QuickControlsSection: View {
         case .mouseAcceleration: return showMouseAcceleration
         case .mouseNavigation: return showMouseNavigation
         case .switcher: return showSwitcher
-        case .cutPaste: return showCutPaste
         case .autoQuit: return showAutoQuit
         case .shelf: return showShelf
         case .windowMaximize: return showWindowMaximize
@@ -1311,21 +1305,6 @@ struct QuickControlsSection: View {
                     switcherIconRowOption
                 }
             }
-        case .cutPaste:
-            PanelToggleRow(title: l10n.s.cutPasteName,
-                           caption: caption(l10n.s.cutPasteEnableCaption, needsAccessibility: cutPasteEnabled),
-                           systemImage: "scissors",
-                           isOn: $cutPasteEnabled,
-                           isEditing: editing,
-                           showsDragHandle: true,
-                           visibility: $showCutPaste,
-                           needsAttention: cutPasteEnabled && !permissions.accessibility,
-                           permissionButtonTitle: l10n.s.permissionRequest,
-                           permissionAction: accessibilityPermissionAction(cutPasteEnabled))
-                .onChange(of: cutPasteEnabled) { _, enabled in
-                    FinderCutPaste.shared.syncWithPreferences()
-                    requestAccessibilityIfNeeded(enabled)
-                }
         case .autoQuit:
             PanelToggleRow(title: l10n.s.autoQuitName,
                            caption: caption(l10n.s.autoQuitEnableCaption, needsAccessibility: autoQuitEnabled),
@@ -1600,7 +1579,6 @@ struct QuickControlsSection: View {
         showFocusFollowsMouse = true
         showMouseNavigation = true
         showSwitcher = true
-        showCutPaste = true
         showAutoQuit = true
         showShelf = true
         showWindowMaximize = true

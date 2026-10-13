@@ -69,7 +69,7 @@ enum PanelSectionID: String, CaseIterable, Identifiable, Hashable {
                                  .colorPicker, .screenshot, .screenRecorder,
                                  .cameraPreview, .scratchpad, .commandBar, .portManager]
         case .controls: return [.scrollInverter, .linearScroll, .focusFollowsMouse, .mouseAcceleration, .mouseNavigation, .mouseButtonShortcuts, .switcher,
-                                .finderCutPaste, .autoQuit,
+                                .autoQuit,
                                 .shelf, .windowMaximizer, .dockPreview, .dockClick,
                                 .middleClick, .textSnippets, .radialMenu, .mouseClickDebounce, .notch]
         case .toggles: return [.quickToggles, .micMute]

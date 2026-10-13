@@ -182,7 +182,6 @@ struct GlobalShortcut: Equatable, Hashable {
     // combination; the others use the free ⌃⌥⌘ letters.
     static let pastePlainDefault = GlobalShortcut(keyCode: Int64(kVK_ANSI_V),
                                                   modifiers: [.shift, .option, .command])
-    static let finderRenameDefault = GlobalShortcut(keyCode: Int64(kVK_F2), modifiers: [])
     static let colorPickerDefault = GlobalShortcut(keyCode: Int64(kVK_ANSI_C),
                                                    modifiers: [.control, .option, .command])
     static let screenOCRDefault = GlobalShortcut(keyCode: Int64(kVK_ANSI_T),
@@ -687,7 +686,6 @@ enum GlobalShortcutRole: CaseIterable, Identifiable {
     case switcherWindow
     case clipboard
     case pastePlain
-    case finderRename
     case colorPicker
     case screenOCR
     case micMute
@@ -720,7 +718,6 @@ enum GlobalShortcutRole: CaseIterable, Identifiable {
         case .switcherWindow: return DefaultsKey.switcherWindowShortcut
         case .clipboard: return DefaultsKey.clipboardHistoryShortcut
         case .pastePlain: return DefaultsKey.pastePlainShortcut
-        case .finderRename: return DefaultsKey.finderRenameShortcut
         case .colorPicker: return DefaultsKey.colorPickerShortcut
         case .screenOCR: return DefaultsKey.screenOCRShortcut
         case .micMute: return DefaultsKey.micMuteShortcut
@@ -753,7 +750,6 @@ enum GlobalShortcutRole: CaseIterable, Identifiable {
         case .switcherWindow: return .switcherWindowDefault
         case .clipboard: return .clipboardDefault
         case .pastePlain: return .pastePlainDefault
-        case .finderRename: return .finderRenameDefault
         case .colorPicker: return .colorPickerDefault
         case .screenOCR: return .screenOCRDefault
         case .micMute: return .micMuteDefault
@@ -805,7 +801,6 @@ enum GlobalShortcutRole: CaseIterable, Identifiable {
         case .switcherWindow: return strings.switcherShortcutHintWindows
         case .clipboard: return FeatureStrings.clipboard(L10n.shared.language).title
         case .pastePlain: return strings.pastePlainName
-        case .finderRename: return FeatureStrings.finderRename(L10n.shared.language).hubTitle
         case .colorPicker: return strings.colorPickerName
         case .screenOCR: return strings.ocrName
         case .micMute: return strings.micMuteName
@@ -871,7 +866,6 @@ enum GlobalShortcutRole: CaseIterable, Identifiable {
         case .clipboard: return [DefaultsKey.clipboardHistoryEnabled,
                                  DefaultsKey.clipboardHistoryShortcutEnabled]
         case .pastePlain: return [DefaultsKey.pastePlainEnabled]
-        case .finderRename: return [DefaultsKey.finderRenameEnabled]
         case .colorPicker: return [DefaultsKey.colorPickerShortcutEnabled]
         case .screenOCR: return [DefaultsKey.screenOCRShortcutEnabled]
         case .micMute: return [DefaultsKey.micMuteShortcutEnabled]
@@ -906,7 +900,6 @@ enum GlobalShortcutRole: CaseIterable, Identifiable {
         case .switcher, .switcherWindow: return .switcher
         case .clipboard: return .clipboardHistory
         case .pastePlain: return .pastePlain
-        case .finderRename: return .finderRename
         case .colorPicker: return .colorPicker
         case .screenOCR: return .screenOCR
         case .micMute: return .micMute

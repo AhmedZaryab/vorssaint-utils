@@ -150,9 +150,6 @@ enum SettingsFeatureTests {
         suite.expect(backupKeys.contains(DefaultsKey.dockClickHide)
                 && backupKeys.contains(DefaultsKey.panelControlDockClickHide),
                "Dock hiding and its panel visibility travel with the settings backup")
-        suite.expect(backupKeys.contains(DefaultsKey.finderRenameEnabled)
-                && backupKeys.contains(DefaultsKey.finderRenameShortcut),
-               "the Finder rename choice and shortcut travel with the settings backup")
         suite.expect(backupKeys.contains(DefaultsKey.textSnippets)
                 && backupKeys.contains(DefaultsKey.textSnippetsEnabled),
                "snippets travel with the settings backup")
@@ -261,12 +258,6 @@ enum SettingsFeatureTests {
                "the apps that pause window layout travel with the settings backup")
         suite.expect(backupKeys.contains(DefaultsKey.switcherAppRules),
                "per-app switcher rules travel with the settings backup")
-        suite.expect(Defaults.registeredDefaults[DefaultsKey.finderPasteImageAsFile] as? Bool == false
-                && backupKeys.contains(DefaultsKey.finderPasteImageAsFile),
-               "pasting copied images as files is opt-in and travels with settings backup")
-        suite.expect(Defaults.registeredDefaults[DefaultsKey.finderCutPasteShowHUD] as? Bool == true
-                && backupKeys.contains(DefaultsKey.finderCutPasteShowHUD),
-               "the Finder cut and paste floating panel default is on and travels with settings backup")
         suite.expect(backupKeys.contains(DefaultsKey.windowPreviewExcludedApps)
                 && (Defaults.registeredDefaults[DefaultsKey.windowPreviewExcludedApps] as? [String]) == [],
                "the window preview exclusion list starts empty and travels with the settings backup")

@@ -199,17 +199,17 @@ enum KeyboardFeatureTests {
                "delete with a real modifier records instead of clearing")
         suite.expect(!GlobalShortcut.clearsShortcut(keyCode: Int64(kVK_ANSI_D), modifiers: []),
                "an ordinary key never clears the shortcut")
-        suite.expect(GlobalShortcut.finderRenameDefault.isValid
-                && GlobalShortcut.finderRenameDefault.displayString == "F2"
-                && GlobalShortcut(storageValue: GlobalShortcut.finderRenameDefault.storageValue)
-                    == .finderRenameDefault,
+        let bareF2 = GlobalShortcut(keyCode: Int64(kVK_F2), modifiers: [])
+        suite.expect(bareF2.isValid
+                && bareF2.displayString == "F2"
+                && GlobalShortcut(storageValue: bareF2.storageValue) == bareF2,
                "a standalone function key records, displays and survives storage")
         suite.expect(!GlobalShortcut(keyCode: Int64(kVK_ANSI_F), modifiers: []).isValid,
                "a bare letter still cannot become a shortcut")
-        suite.expect(GlobalShortcut.finderRenameDefault.matches(keyCode: Int64(kVK_F2), modifiers: [])
-                && !GlobalShortcut.finderRenameDefault.matches(
+        suite.expect(bareF2.matches(keyCode: Int64(kVK_F2), modifiers: [])
+                && !bareF2.matches(
                     keyCode: Int64(kVK_F2), modifiers: [.command]),
-               "Finder rename matches the chosen key and no extra modifiers")
+               "a bare function key matches the chosen key and no extra modifiers")
 
         // MARK: Shortcuts the app silences while a field is listening (#308)
 
@@ -220,8 +220,6 @@ enum KeyboardFeatureTests {
                "every configurable shortcut's feature is silenced while recording")
         suite.expect(silenced.contains(.windowLayout),
                "the window layout keys are silenced too, though they have no role")
-        suite.expect(silenced.contains(.finderRename),
-               "the scoped Finder key steps aside while its recorder is listening")
         suite.expect(silenced.contains(.switcher) && silenced.contains(.radialMenu)
                && silenced.contains(.keepAwake) && silenced.contains(.clipboardHistory),
                "the features that hold a global key are all in the silenced list")
