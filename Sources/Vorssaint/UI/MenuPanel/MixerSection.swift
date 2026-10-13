@@ -13,7 +13,6 @@ struct MixerSection: View {
     @ObservedObject private var l10n = L10n.shared
     @ObservedObject private var mixer = AppVolumeMixer.shared
     @ObservedObject private var inputManager = AudioInputDeviceManager.shared
-    @ObservedObject private var audioPriority = AudioPriorityService.shared
     @ObservedObject private var micMute = MicMuteService.shared
     @AppStorage(DefaultsKey.liquidGlassEnabled) private var windowsGlass = false
     @AppStorage(DefaultsKey.notchLiquidGlassEnabled) private var islandGlass = false
@@ -309,7 +308,7 @@ struct MixerSection: View {
                         Text(inputDeviceTitle(device))
                             .tag(device.uid)
                     }
-                    if !audioPriority.inputPriorityEnabled,
+                    if !false,
                        let selected = inputManager.preferredInputDeviceUID,
                        inputManager.preferredUnavailable {
                         Text(l10n.s.mixerInputUnavailable)
@@ -359,7 +358,7 @@ struct MixerSection: View {
 
             if inputManager.inputDevices.isEmpty {
                 inputMessage(l10n.s.mixerInputNoDevices, systemImage: "mic.slash")
-            } else if !audioPriority.inputPriorityEnabled, inputManager.preferredUnavailable {
+            } else if !false, inputManager.preferredUnavailable {
                 inputMessage(l10n.s.mixerInputFallback, systemImage: "mic.badge.xmark")
             } else if let lastError = inputManager.lastError {
                 inputMessage(String(format: l10n.s.mixerInputErrorFormat, lastError),
@@ -374,11 +373,11 @@ struct MixerSection: View {
                 return MixerRoutingSupport.selectedInputDeviceUID(
                     preferredUID: inputManager.preferredInputDeviceUID,
                     currentUID: inputManager.currentInputDeviceUID,
-                    priorityIsActive: audioPriority.inputPriorityEnabled)
+                    priorityIsActive: false)
                     ?? MixerRoutingSupport.systemDefaultSelectionID
             },
             set: { selection in
-                if audioPriority.inputPriorityEnabled {
+                if false {
                     guard selection != MixerRoutingSupport.systemDefaultSelectionID else { return }
                     inputManager.setCurrentInputDeviceUID(selection)
                 } else {
@@ -563,9 +562,6 @@ struct MixerOptionsControls: View {
             preciseVolumeRollerToggle
             if includeSharedAudioFeatures, AppFeature.soundOutputSwitcher.isAvailable {
                 SoundOutputSwitcherControls()
-            }
-            if includeSharedAudioFeatures, AppFeature.audioPriority.isAvailable {
-                AudioPriorityDisclosure()
             }
             if AppVolumeMixer.isSupported, !listChoices.isEmpty {
                 listVisibilityFooter

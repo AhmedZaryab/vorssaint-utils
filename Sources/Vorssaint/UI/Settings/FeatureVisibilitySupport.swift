@@ -18,7 +18,6 @@ enum SettingsPage: Hashable {
 enum SettingsSectionAnchor: String, CaseIterable, Hashable {
     case panelConfiguration
     case mixer
-    case audioPriority
     case keepAwake
     case brightness
     case scrollDirection
@@ -55,7 +54,7 @@ enum SettingsSectionAnchor: String, CaseIterable, Hashable {
 
     var page: SettingsPage {
         switch self {
-        case .panelConfiguration, .mixer, .audioPriority,
+        case .panelConfiguration, .mixer,
              .soundOutputSwitcher:
             return .general
         case .keepAwake, .brightness: return .energy
@@ -321,8 +320,6 @@ extension AppFeature {
             return FeatureSettingsDestination(.general, sectionAnchor: .mixer)
         case .soundOutputSwitcher:
             return FeatureSettingsDestination(.general, sectionAnchor: .soundOutputSwitcher)
-        case .audioPriority:
-            return FeatureSettingsDestination(.general, sectionAnchor: .audioPriority)
         case .micMute:
             return FeatureSettingsDestination(.quickTools, sectionAnchor: .micMute)
         case .menuBarTidy:

@@ -348,7 +348,6 @@ private struct NotchMixerOptions: View {
     @Binding var editingVolumeID: String?
     @ObservedObject private var mixer = AppVolumeMixer.shared
     @ObservedObject private var input = AudioInputDeviceManager.shared
-    @ObservedObject private var audioPriority = AudioPriorityService.shared
     @ObservedObject private var micMute = MicMuteService.shared
     @ObservedObject private var l10n = L10n.shared
     private var outputDevices: [MixerOutputDevice] { mixer.outputDevices.filter(\.canBeDefaultOutput) }
@@ -364,7 +363,7 @@ private struct NotchMixerOptions: View {
         MixerRoutingSupport.selectedInputDeviceUID(
             preferredUID: input.preferredInputDeviceUID,
             currentUID: input.currentInputDeviceUID,
-            priorityIsActive: audioPriority.inputPriorityEnabled)
+            priorityIsActive: false)
     }
 
     var body: some View {
@@ -408,17 +407,17 @@ private struct NotchMixerOptions: View {
         row(l10n.s.mixerInputTitle, symbol: micMute.isMuted ? "mic.slash" : "mic") {
             NotchDeviceMenu(title: l10n.s.mixerInputTooltip, current: microphoneName, width: 200, lines: 1, alignment: .trailing,
                             items: [NotchMenuItem(title: l10n.s.mixerOutputDefault, checked: selectedMicrophoneUID == nil) {
-                                guard !audioPriority.inputPriorityEnabled else { return }
+                                guard !false else { return }
                                 input.setPreferredInputDeviceUID(nil)
                             }] + input.inputDevices.map { device in
                                 NotchMenuItem(title: device.name, checked: device.uid == selectedMicrophoneUID) {
-                                    if audioPriority.inputPriorityEnabled {
+                                    if false {
                                         input.setCurrentInputDeviceUID(device.uid)
                                     } else {
                                         input.setPreferredInputDeviceUID(device.uid)
                                     }
                                 }
-                            } + (!audioPriority.inputPriorityEnabled
+                            } + (!false
                                  && input.preferredUnavailable && input.preferredInputDeviceUID != nil
                                  ? [NotchMenuItem(title: l10n.s.mixerInputUnavailable, checked: true)] : []))
         }
@@ -458,7 +457,7 @@ private struct NotchMixerOptions: View {
         }
         if input.inputDevices.isEmpty {
             message(l10n.s.mixerInputNoDevices, systemImage: "mic.slash")
-        } else if !audioPriority.inputPriorityEnabled, input.preferredUnavailable {
+        } else if !false, input.preferredUnavailable {
             message(l10n.s.mixerInputFallback, systemImage: "mic.badge.xmark")
         } else if let lastError = input.lastError {
             message(String(format: l10n.s.mixerInputErrorFormat, lastError), systemImage: "exclamationmark.triangle")

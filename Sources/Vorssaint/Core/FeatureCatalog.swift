@@ -22,7 +22,7 @@ enum AppFeature: String, CaseIterable {
     case clipboardHistory, pastePlain, finderCutPaste, finderRename, shelf, urlCleaner,
          diskImageInstaller
     // Sound
-    case mixer, soundOutputSwitcher, audioPriority, micMute
+    case mixer, soundOutputSwitcher, micMute
     // Energy and display
     case keepAwake, brightness
     // Tools
@@ -109,7 +109,7 @@ extension AppFeature {
         case .clipboardHistory, .pastePlain, .finderCutPaste, .finderRename, .shelf, .urlCleaner,
              .diskImageInstaller:
             return .clipboardFiles
-        case .mixer, .soundOutputSwitcher, .audioPriority, .micMute:
+        case .mixer, .soundOutputSwitcher, .micMute:
             return .sound
         case .keepAwake, .brightness:
             return .energyDisplay
@@ -158,7 +158,6 @@ extension AppFeature {
         case .diskImageInstaller: return "externaldrive.badge.plus"
         case .mixer: return "speaker.wave.2"
         case .soundOutputSwitcher: return "hifispeaker"
-        case .audioPriority: return "list.number"
         case .micMute: return "mic.slash"
         case .keepAwake: return "moon.zzz.fill"
         case .brightness: return "display.2"
@@ -271,8 +270,6 @@ extension AppFeature {
         case .shelf: return [DefaultsKey.shelfEnabled]
         case .urlCleaner: return [DefaultsKey.urlCleanerEnabled]
         case .soundOutputSwitcher: return [DefaultsKey.soundOutputSwitcherEnabled]
-        case .audioPriority: return [DefaultsKey.audioPriorityOutputEnabled,
-                                     DefaultsKey.audioPriorityInputEnabled]
         case .brightness: return [DefaultsKey.brightnessControlEnabled]
         case .windowLayout, .diskImageInstaller, .mixer, .micMute, .keepAwake,
              .quickLauncher, .quickToggles, .colorPicker, .screenOCR, .cleaningMode, .mediaTools,
@@ -292,7 +289,6 @@ extension AppFeature {
     private var initialEnableKeys: [String] {
         switch self {
         case .windowLayout: return [DefaultsKey.windowLayoutShortcutsEnabled]
-        case .audioPriority: return enabledKeys
         case .notchLiveEqualizer: return []
         default: return enabledKeys.first.map { [$0] } ?? []
         }
@@ -371,7 +367,7 @@ extension AppFeature {
         case .mixer: return [.audioCapture, .accessibility]
         case .monitorCPU, .monitorMemory, .monitorDisk, .monitorPower: return [.notifications]
         case .clipboardHistory, .shelf, .urlCleaner,
-             .soundOutputSwitcher, .audioPriority,
+             .soundOutputSwitcher,
              .quickLauncher, .colorPicker, .micMute, .mediaTools,
              .scratchpad, .wallpaper, .monitorGPU, .monitorNetwork, .connectedDevices, .fanControl, .killProcess,
              .portManager:
@@ -471,7 +467,7 @@ extension AppFeature {
              .monitorCPU, .monitorGPU, .monitorMemory, .monitorNetwork, .monitorDisk, .monitorPower,
              .connectedDevices:
             return true
-        case .focusFollowsMouse, .scrollHorizontal, .linearScroll, .diskImageInstaller, .audioPriority,
+        case .focusFollowsMouse, .scrollHorizontal, .linearScroll, .diskImageInstaller,
              .wallpaper, .killProcess, .portManager, .fanControl, .notchMascot, .menuBarTidy:
             return false
         }
