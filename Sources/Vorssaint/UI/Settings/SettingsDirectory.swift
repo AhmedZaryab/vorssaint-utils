@@ -390,8 +390,6 @@ enum SettingsDirectory {
                                                             .keyboardLight]),
                                         (.cameraPreview,
                                          [FeatureStrings.cameraPreview(language).pageTitle]),
-                                        (.wallpaper,
-                                         [FeatureStrings.wallpaper(language).pageTitle]),
                                         (.scratchpad, [FeatureStrings.scratchpad(language).pageTitle]),
                                         (.cleaningMode, [s.cleaningMenuItem, s.cleaningKeepScreenVisibleToggle]),
                                         (.menuBarTidy, FeatureStrings.menuBarTidy(language).searchKeywords),

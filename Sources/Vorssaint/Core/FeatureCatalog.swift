@@ -28,7 +28,7 @@ enum AppFeature: String, CaseIterable {
     // Tools
     case quickLauncher, quickToggles, colorPicker, screenOCR, cleaningMode, mediaTools,
          cleaner, uninstaller, homebrew, appUpdates, screenshot, cameraPreview, radialMenu, scratchpad,
-         commandBar, screenRecorder, wallpaper, killProcess, portManager, menuBarTidy
+         commandBar, screenRecorder, killProcess, portManager, menuBarTidy
     // Dynamic Island, then its extensions
     case notch, notchCalendar, notchNotifications, notchGestures, notchTimer, notchAccessories, notchLyrics,
          notchQueue, spotifyQueue, notchLiveEqualizer, notchDownloads, notchAgents, notchWatch, notchMascot
@@ -82,7 +82,7 @@ extension AppFeature {
                     ).isEmpty)
         // Watch asks when an area is chosen and checks on every reading. The
         // companion uses no permission at all.
-        case .screenOCR, .cleaningMode, .screenshot, .commandBar, .screenRecorder, .wallpaper, .notchWatch,
+        case .screenOCR, .cleaningMode, .screenshot, .commandBar, .screenRecorder, .notchWatch,
              .notchMascot:
             return false
         default:
@@ -115,7 +115,7 @@ extension AppFeature {
             return .energyDisplay
         case .quickLauncher, .quickToggles, .colorPicker, .screenOCR, .cleaningMode, .mediaTools,
              .cleaner, .uninstaller, .homebrew, .appUpdates, .screenshot, .cameraPreview, .radialMenu,
-             .scratchpad, .commandBar, .screenRecorder, .wallpaper, .killProcess, .portManager, .menuBarTidy:
+             .scratchpad, .commandBar, .screenRecorder, .killProcess, .portManager, .menuBarTidy:
             return .tools
         case .notch, .notchCalendar, .notchNotifications, .notchGestures, .notchTimer, .notchAccessories,
              .notchLyrics, .notchQueue, .spotifyQueue, .notchLiveEqualizer, .notchDownloads, .notchAgents, .notchWatch,
@@ -178,7 +178,6 @@ extension AppFeature {
         case .screenshot: return "camera.viewfinder"
         case .screenRecorder: return "record.circle"
         case .cameraPreview: return "web.camera"
-        case .wallpaper: return "photo.on.rectangle"
         case .notchGestures: return "hand.draw"
         case .notchTimer: return "timer"
         case .notchAccessories: return "battery.25percent"
@@ -283,7 +282,7 @@ extension AppFeature {
         case .windowLayout, .diskImageInstaller, .mixer, .micMute, .keepAwake,
              .quickLauncher, .quickToggles, .colorPicker, .screenOCR, .cleaningMode, .mediaTools,
              .cleaner, .uninstaller, .homebrew, .appUpdates, .screenshot, .cameraPreview, .scratchpad,
-             .commandBar, .screenRecorder, .wallpaper, .killProcess, .portManager,
+             .commandBar, .screenRecorder, .killProcess, .portManager,
              .monitorCPU, .monitorGPU, .monitorMemory, .monitorNetwork, .monitorDisk, .monitorPower,
              .connectedDevices, .fanControl:
             return []
@@ -380,7 +379,7 @@ extension AppFeature {
         case .clipboardHistory, .shelf, .urlCleaner,
              .soundOutputSwitcher, .audioPriority,
              .quickLauncher, .colorPicker, .micMute, .mediaTools,
-             .scratchpad, .wallpaper, .monitorGPU, .monitorNetwork, .connectedDevices, .fanControl, .killProcess,
+             .scratchpad, .monitorGPU, .monitorNetwork, .connectedDevices, .fanControl, .killProcess,
              .portManager:
             return []
         }
@@ -479,7 +478,7 @@ extension AppFeature {
              .connectedDevices:
             return true
         case .focusFollowsMouse, .scrollHorizontal, .linearScroll, .diskImageInstaller, .audioPriority,
-             .wallpaper, .killProcess, .portManager, .fanControl, .notchMascot, .spacesOrder, .menuBarTidy:
+             .killProcess, .portManager, .fanControl, .notchMascot, .spacesOrder, .menuBarTidy:
             return false
         }
     }

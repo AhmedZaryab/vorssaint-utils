@@ -172,25 +172,6 @@ struct QuickToolsSettings: View {
                 .settingsFormSectionAnchor(.cameraPreview)
             }
 
-            if AppFeature.wallpaper.isAvailable {
-                Section {
-                    Toggle(FeatureStrings.wallpaper(l10n.language).applyAllDisplays,
-                           isOn: Binding(
-                            get: { WallpaperService.shared.applyAllDisplays },
-                            set: { WallpaperService.shared.applyAllDisplays = $0 }
-                           ))
-                    Button {
-                        WallpaperService.shared.openSystemWallpaperSettings()
-                    } label: {
-                        Label(FeatureStrings.wallpaper(l10n.language).openSystemSettings,
-                              systemImage: "gearshape")
-                    }
-                } header: {
-                    Text(FeatureStrings.wallpaper(l10n.language).pageTitle)
-                }
-                .settingsFormSectionAnchor(.wallpaper)
-            }
-
             if AppFeature.scratchpad.isAvailable {
                 Section {
                     Button {
