@@ -313,7 +313,6 @@ enum SettingsFeatureTests {
                 && !backupKeys.contains(DefaultsKey.micMuteSavedVolumes)
                 && !backupKeys.contains(DefaultsKey.micMuteSavedChannelVolumes)
                 && !backupKeys.contains(DefaultsKey.micMuteMutedDevices)
-                && !backupKeys.contains(DefaultsKey.cleanerLastAutoRun)
                 && !backupKeys.contains(DefaultsKey.statusItemPlacementGeneration)
                 && !backupKeys.contains(DefaultsKey.displaysSwitchedOff)
                 && !backupKeys.contains(DefaultsKey.displaysSwitchedOffFingerprints)

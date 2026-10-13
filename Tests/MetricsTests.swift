@@ -148,12 +148,6 @@ struct MetricsTests {
                 LocalizationTests.run(suite)
                 LocalizationFeatureContractTests.run(suite)
             }),
-            ("cleaner", {
-                CleanerEligibilityTests.run(suite)
-                CleanerLastRunContract.run(suite)
-                CleanerScanFlowTests.run(suite)
-                CleanerLayoutTests.run(suite)
-            }),
             ("uninstaller", {
                 UninstallerFlowTests.run(suite)
                 UninstallerCommandBarCleanupTests.run(suite)

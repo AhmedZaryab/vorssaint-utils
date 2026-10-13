@@ -1925,9 +1925,7 @@ enum FeatureCatalogTests {
         suite.expect(settingsRouter.pendingFeatureTarget == nil,
                "a later generic request clears any unconsumed feature target so it cannot leak into unrelated navigation")
 
-        settingsRouter.cleanerTool = "tool-id"
         settingsRouter.consumeDestinationRequest(id: settingsRouter.requestID)
-        settingsRouter.cleanerTool = nil
         settingsRouter.page = .general
         withExtendedLifetime(settingsRequestObservation) {}
 
@@ -2030,11 +2028,9 @@ enum FeatureCatalogTests {
         suite.expect(hiddenHistoryRouter.page == .about
                 && hiddenHistoryRouter.requestID == visibleHistoryRequestID,
                "Settings history stays put when no earlier page is visible")
-        hiddenHistoryRouter.cleanerTool = "stale-tool"
         hiddenHistoryRouter.goBack()
-        suite.expect(hiddenHistoryRouter.page == .mouse
-                && hiddenHistoryRouter.cleanerTool == nil,
-               "history can revisit re-enabled pages without replaying a stale Cleaner tool hint")
+        suite.expect(hiddenHistoryRouter.page == .mouse,
+               "history can revisit re-enabled pages")
 
         let toolHistoryRouter = SettingsRouter()
         let sharedMouseDestination = AppFeature.scrollHorizontal.settingsDestination
