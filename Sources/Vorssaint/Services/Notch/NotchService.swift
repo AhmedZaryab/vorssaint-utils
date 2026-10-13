@@ -919,15 +919,22 @@ final class NotchService: ObservableObject {
         mutatePresentation { songPeek = model }
     }
 
-    /// The closed notch keeps its width and grows down by the band
-    /// while the next song peek shows.
+    /// The closed notch grows down by the band while the next song peek
+    /// shows. The silhouette's shoulders flare wider as it grows taller, so
+    /// the surface widens by exactly that flare: the body under the strip,
+    /// and the band with it, stays the closed notch's width.
     var surfaceSize: CGSize {
         var size = baseSurfaceSize
-        if songPeekBandActive { size.height += NotchSongPeekBand.height }
+        if songPeekBandActive {
+            let closedShoulder = NotchLayout.shoulder(height: size.height)
+            size.height += NotchSongPeekBand.height
+            size.width += (NotchLayout.shoulder(height: size.height) - closedShoulder) * 2
+        }
         return size
     }
 
-    private var baseSurfaceSize: CGSize {
+    /// The closed notch's own size, under any band it grows.
+    var baseSurfaceSize: CGSize {
         if let capsule = capsuleSurfaceSize { return capsule }
         if fullscreenCompact { return geometry.bareCutout }
         if captureControls != nil {
