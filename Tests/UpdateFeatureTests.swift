@@ -373,7 +373,7 @@ enum UpdateFeatureTests {
                                 title: "\(page)", icon: "")
         }
         let groupedRows = SettingsSidebarSupport.featureGroupRows(
-            windowsControls: [pageRow(.windowLayout), pageRow(.autoQuit), pageRow(.quitProtection)]
+            windowsControls: [pageRow(.windowLayout), pageRow(.autoQuit)] 
                 + [SettingsSidebarItem(id: .feature(.scrollInverter),
                                        destination: AppFeature.scrollInverter.settingsDestination,
                                        title: "Scroll", icon: "")],
@@ -382,7 +382,7 @@ enum UpdateFeatureTests {
                                         pageRow(.radialMenu)])
         suite.expect(groupedRows.windowsDock.map(\.id) == [.page(.windowLayout), .page(.autoQuit)]
                 && groupedRows.mouseKeyboard.map(\.id) == [
-                    .page(.quitProtection), .feature(.scrollInverter), .page(.keyDebounce),
+                    .feature(.scrollInverter), .page(.keyDebounce),
                     .page(.superKey), .page(.textSnippets)]
                 && groupedRows.files.map(\.id) == [.page(.urlCleaner)]
                 && groupedRows.sound.map(\.id) == [.feature(.micMute)]

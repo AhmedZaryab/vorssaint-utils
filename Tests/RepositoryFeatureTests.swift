@@ -1904,7 +1904,6 @@ enum RepositoryFeatureTests {
             .filter { !$0.trimmingCharacters(in: .whitespaces).hasPrefix("//") }
             .joined(separator: "\n")
         suite.expect(selfUninstallSource.contains("TextSnippetService.shared.suspend()")
-                && selfUninstallSource.contains("QuitProtectionService.shared.suspend()")
                 && selfUninstallSource.contains("BrightnessService.shared.suspendInputTaps()")
                 && selfUninstallSource.contains("BrightnessService.shared.resumeInputTaps()")
                 && brightnessTapCode.contains("inputTapsSuspended = true")
@@ -1913,10 +1912,6 @@ enum RepositoryFeatureTests {
                 && !brightnessTapCode.contains("restoreManagedDisplays")
                 && !brightnessTapCode.contains("restoreAllGamma"),
                "the permission teardown stops every persistent keyboard tap")
-        let quitProtectionSource = repository.source(
-            at: "Sources/Vorssaint/Services/QuitProtection/QuitProtectionService.swift")
-        suite.expect(quitProtectionSource.contains("func suspend()"),
-               "quit protection exposes the teardown the permission reset calls")
 
         // MARK: Secure input
 

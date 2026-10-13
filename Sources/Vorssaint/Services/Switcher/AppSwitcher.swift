@@ -1314,32 +1314,7 @@ final class AppSwitcher: ObservableObject {
     /// where a single letter closes a window the user is not looking at.
     private func runProtectedLetterAction(_ action: SwitcherLetterAction) {
         guard windows.indices.contains(selectedIndex) else { return }
-        let item = windows[selectedIndex]
-        let shortcut: QuitProtectionShortcut = action == .quitApp ? .quit : .close
-        guard let confirmation = QuitProtectionService.shared.selectionConfirmation(
-            for: shortcut,
-            bundleIdentifier: NSRunningApplication(processIdentifier: item.pid)?.bundleIdentifier
-        ) else {
-            performLetterAction(action)
-            return
-        }
-
-        let pending = pendingLetterConfirmation
-        cancelLetterConfirmation()
-        if let pending, pending.action == action, pending.itemID == item.id {
-            performLetterAction(action)
-            return
-        }
-
-        let expiry = DispatchWorkItem { [weak self] in self?.cancelLetterConfirmation() }
-        pendingLetterConfirmation = PendingLetterConfirmation(action: action,
-                                                             itemID: item.id,
-                                                             expiry: expiry)
-        if confirmation.showsFeedback {
-            QuitProtectionService.shared.showSelectionHUD(for: shortcut, on: placementScreen)
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + confirmation.intervalMilliseconds / 1_000,
-                                      execute: expiry)
+        performLetterAction(action)
     }
 
     private func performLetterAction(_ action: SwitcherLetterAction) {
@@ -1354,7 +1329,6 @@ final class AppSwitcher: ObservableObject {
         guard let pending = pendingLetterConfirmation else { return }
         pending.expiry.cancel()
         pendingLetterConfirmation = nil
-        QuitProtectionService.shared.hideSelectionHUD()
     }
 
     /// Closes the highlighted window (⌘Tab → W) and keeps the session open, so

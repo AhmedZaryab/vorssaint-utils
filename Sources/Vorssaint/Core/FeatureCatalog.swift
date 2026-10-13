@@ -17,7 +17,7 @@ enum AppFeature: String, CaseIterable {
     case switcher, dockPreview, dockClick, windowMaximizer, windowLayout, autoQuit, spacesOrder
     // Mouse and keyboard
     case scrollInverter, scrollHorizontal, focusFollowsMouse, smoothScroll, linearScroll, mouseAcceleration, mouseNavigation, mouseButtonShortcuts, middleClick,
-         mouseClickDebounce, keyboardDebounce, textSnippets, superKey, quitWindowProtection
+         mouseClickDebounce, keyboardDebounce, textSnippets, superKey
     // Clipboard and files
     case clipboardHistory, pastePlain, finderCutPaste, finderRename, shelf, urlCleaner,
          diskImageInstaller
@@ -104,7 +104,7 @@ extension AppFeature {
         case .switcher, .dockPreview, .dockClick, .windowMaximizer, .windowLayout, .autoQuit, .spacesOrder:
             return .windowsDock
         case .scrollInverter, .scrollHorizontal, .focusFollowsMouse, .smoothScroll, .linearScroll, .mouseAcceleration, .mouseNavigation, .mouseButtonShortcuts, .middleClick,
-             .keyboardDebounce, .textSnippets, .superKey, .quitWindowProtection, .mouseClickDebounce:
+             .keyboardDebounce, .textSnippets, .superKey, .mouseClickDebounce:
             return .mouseKeyboard
         case .clipboardHistory, .pastePlain, .finderCutPaste, .finderRename, .shelf, .urlCleaner,
              .diskImageInstaller:
@@ -152,7 +152,6 @@ extension AppFeature {
                 UserDefaults.standard.string(forKey: DefaultsKey.superKeySource)
             ).systemImage
         case .mouseClickDebounce: return "cursorarrow.click"
-        case .quitWindowProtection: return "shield.lefthalf.filled"
         case .clipboardHistory: return "doc.on.clipboard"
         case .pastePlain: return "doc.plaintext"
         case .finderCutPaste: return "scissors"
@@ -255,8 +254,6 @@ extension AppFeature {
                                             DefaultsKey.mouseSpacesGestureEnabled]
         case .middleClick: return [DefaultsKey.middleClickEnabled]
         case .keyboardDebounce: return [DefaultsKey.keyboardDebounceEnabled]
-        case .quitWindowProtection:
-            return [DefaultsKey.quitProtectionQuitEnabled, DefaultsKey.quitProtectionCloseEnabled]
         case .textSnippets: return [DefaultsKey.textSnippetsEnabled, DefaultsKey.snippetLibraryEnabled]
         case .superKey: return [DefaultsKey.superKeyEnabled]
         case .mouseClickDebounce: return [DefaultsKey.mouseClickDebounceEnabled]
@@ -357,7 +354,7 @@ extension AppFeature {
         case .scrollInverter, .scrollHorizontal, .focusFollowsMouse, .smoothScroll, .linearScroll, .mouseNavigation, .mouseButtonShortcuts, .middleClick,
              .keyboardDebounce, .textSnippets, .superKey, .mouseClickDebounce,
              .dockClick, .windowMaximizer, .windowLayout,
-             .autoQuit, .quitWindowProtection, .cleaningMode, .pastePlain, .radialMenu,
+             .autoQuit, .cleaningMode, .pastePlain, .radialMenu,
              // The bar reads other apps' menus and windows and types at the
              // caret, all of it through Accessibility.
              .commandBar:
@@ -476,7 +473,6 @@ extension AppFeature {
         case .switcher, .dockPreview, .dockClick, .windowMaximizer, .windowLayout, .autoQuit,
              .scrollInverter, .smoothScroll, .mouseAcceleration, .mouseNavigation, .mouseButtonShortcuts,
              .middleClick, .mouseClickDebounce, .keyboardDebounce, .textSnippets, .superKey,
-             .quitWindowProtection,
              .clipboardHistory, .pastePlain, .finderCutPaste, .finderRename, .shelf, .urlCleaner,
              .mixer, .soundOutputSwitcher, .micMute, .musicBlock,
              .keepAwake, .brightness, .extraBrightness, .bluetoothSleep,

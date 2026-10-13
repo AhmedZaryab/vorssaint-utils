@@ -1742,9 +1742,6 @@ def main():
           + "}\nextension PointerDisplayLookupContract.Layout {\n"
           + declaration("Sources/Vorssaint/Services/WindowLayout/WindowLayoutService.swift",
                         "    private func showDirectionalIndicator(").replace("private func", "func", 1)
-          + "}\nextension PointerDisplayLookupContract.HUD {\n"
-          + declaration("Sources/Vorssaint/UI/QuitProtection/QuitProtectionHUD.swift",
-                        "    private func positionPanel(").replace("private func", "func", 1)
           + "}\nextension PointerDisplayLookupContract.Chooser {\n"
           + "".join(declaration(selection, prefix).replace("private func", "func", 1)
                     for prefix in ["    private func nudgePointer(", "    private func panelUnderMouse()"])
@@ -1789,16 +1786,6 @@ def main():
           + declaration("Sources/Vorssaint/Services/AgentUsage/AgentUsageService.swift",
                         "    private func syncPolling(").replace("private func", "func", 1)
           + "}\n}\n")
-
-    # Same-file extensions can exercise the private AppKit content view without
-    # widening the production interface or presenting an application window.
-    hud = "Sources/Vorssaint/UI/QuitProtection/QuitProtectionHUD.swift"
-    checks = "Tests/Fixtures/QuitProtectionHUDChecks.swift"
-    write("QuitProtectionHUDBodies.swift",
-          f'#sourceLocation(file: {json.dumps(hud)}, line: 1)\n'
-          + (ROOT / hud).read_text() + "\n"
-          + f'#sourceLocation(file: {json.dumps(checks)}, line: 1)\n'
-          + (ROOT / checks).read_text() + "\n#sourceLocation()\n")
 
 
 if __name__ == "__main__":
