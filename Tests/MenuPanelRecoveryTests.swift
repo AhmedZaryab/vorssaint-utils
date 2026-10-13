@@ -140,42 +140,23 @@ enum MenuPanelRecoveryTests {
         let button: NSStatusBarButton? = NSStatusBarButton()
         func setMicBadgeHeld(_ value: Bool) { held = value }
     }
-    typealias MetricDetailKind = String
-    struct MenuBarMetric { let detailKind: String }
-    enum Module { case system }
-    enum NotchSupport {
-        static func routesAppPanel() -> Bool { false }
-        static func modules() -> [Module] { [] }
-    }
-    final class NotchService {
-        static let shared = NotchService()
-        var acceptsSystemFeedback = false
-        func showMetric(_ metric: String, toggle: Bool) {}
-    }
     final class MenuPanelFocus {
         static var shared = MenuPanelFocus()
-        var activeMetric: String? = "network"
-        var request: String?
-        func focus(_ metric: String) { activeMetric = metric; request = metric }
         var switching = false
         var popoverIsVisible = false
         func setSwitchingMetricAnchor(_ value: Bool) { switching = value }
         func setPopoverVisible(_ value: Bool) { popoverIsVisible = value }
-        func clearMetricFocus() { activeMetric = nil }
     }
-    enum Needs { case none, network }
-    final class SystemMonitor {
-        static var shared = SystemMonitor()
-        var needs: Needs = .network
-        func setMenuPanelNeeds(_ value: Needs) { needs = value }
-    }
-    final class ProcessUsageService {
-        static var shared = ProcessUsageService()
+    /// What the panel holds while it is open. Since the system monitor was
+    /// parked in Legacy/systemMonitor, the icon cache is the one release step.
+    final class PanelResources {
+        static var shared = PanelResources()
+        var held = true
         var releases = 0
-        func stopNetworkMonitoring() { releases += 1 }
-        func clearCachedRows() {}
     }
-    enum ResponsibleProcess { static func clearIconCache() {} }
+    enum ResponsibleProcess {
+        static func clearIconCache() { PanelResources.shared.held = false; PanelResources.shared.releases += 1 }
+    }
     final class PanelInteractionState {
         static var shared = PanelInteractionState()
         var viewKeepsPopoverOpen = false
@@ -219,11 +200,6 @@ enum MenuPanelRecoveryTests {
         var popoverIsFadingOut = false
         weak var fadingPopoverWindow: NSWindow?
         var popoverIsReopening = false
-        var metricAnchorSwitchSerial = 0
-        var scheduledReanchors = 0
-        func scheduleMetricAnchorSwitch(to metric: String, anchoredTo button: NSStatusBarButton) {
-            scheduledReanchors += 1
-        }
         var popoverCloseIsAppRequested = false
         var popoverIsSwitchingAnchor = false
         var settingsWindow: NSWindow?
@@ -270,8 +246,8 @@ enum MenuPanelRecoveryTests {
         func setup(corrected: Bool = false, present: Bool = true) -> Host {
             DispatchQueue.main = Queue(); NotificationCenter.default = Center(); NSAnimationContext.completions = []
             NSScreen.screens = [NSScreen()]; NSApp = Application(); NSWorkspace.shared = NSWorkspace()
-            MenuPanelFocus.shared = MenuPanelFocus(); SystemMonitor.shared = SystemMonitor()
-            ProcessUsageService.shared = ProcessUsageService(); PanelInteractionState.shared = PanelInteractionState()
+            MenuPanelFocus.shared = MenuPanelFocus(); PanelResources.shared = PanelResources()
+            PanelInteractionState.shared = PanelInteractionState()
             let host = Host()
             if corrected {
                 host.statusController.button!.window!.frame.origin.x = 1482
@@ -316,12 +292,12 @@ enum MenuPanelRecoveryTests {
                    "fresh panel click recovers at its existing anchor even after the opening click expires")
             expect(MenuPanelFocus.shared.popoverIsVisible,
                    "panel content stays active after a successful anchor recovery")
-            expect(MenuPanelFocus.shared.activeMetric == "network" && SystemMonitor.shared.needs == .network,
-                   "recovery preserves metric focus and sampling")
+            expect(PanelResources.shared.held,
+                   "recovery keeps the panel's resources")
             DispatchQueue.main.drain()
             expect(!host.popoverIsSwitchingAnchor && host.monitors, "recovery ends switching and keeps dismissal monitors")
             close(host); DispatchQueue.main.drain()
-            expect(!host.popover.isShown && SystemMonitor.shared.needs == .none && !host.statusController.held,
+            expect(!host.popover.isShown && !PanelResources.shared.held && !host.statusController.held,
                    "immediate second close stays closed and releases resources")
             expect(!MenuPanelFocus.shared.popoverIsVisible,
                    "closed panel content stops observing live section updates")
@@ -457,7 +433,7 @@ enum MenuPanelRecoveryTests {
         }
         do {
             let host = setup(); host.popover.fails = true; close(host); DispatchQueue.main.drain()
-            expect(!host.popover.isShown && !host.monitors && SystemMonitor.shared.needs == .none
+            expect(!host.popover.isShown && !host.monitors && !PanelResources.shared.held
                    && !host.statusController.held && host.popoverDriftObservers.isEmpty,
                    "failed presentation releases observers, sampling and held status badge")
             expect(!MenuPanelFocus.shared.popoverIsVisible,
@@ -465,7 +441,7 @@ enum MenuPanelRecoveryTests {
         }
         do {
             let host = setup(); close(host); close(host); DispatchQueue.main.drain()
-            expect(host.popover.attempts == 2 && !host.popover.isShown && SystemMonitor.shared.needs == .none,
+            expect(host.popover.attempts == 2 && !host.popover.isShown && !PanelResources.shared.held,
                    "a close before recovery completion releases resources without recursion")
         }
         do {
@@ -557,7 +533,7 @@ enum MenuPanelRecoveryTests {
             expect(host.popover.isShown && host.popoverIsClosing && window.alphaValue == 0 && window.ignoresMouseEvents,
                    "an animated close fades the panel out and stops it taking clicks")
             NSAnimationContext.finish()
-            expect(!host.popover.isShown && !host.popoverIsClosing && SystemMonitor.shared.needs == .none,
+            expect(!host.popover.isShown && !host.popoverIsClosing && !PanelResources.shared.held,
                    "the panel closes and releases sampling as soon as its fade ends")
             expect(window.alphaValue == 1 && !window.ignoresMouseEvents,
                    "the closed panel's window is ready to be shown again")
@@ -573,27 +549,11 @@ enum MenuPanelRecoveryTests {
             host.showPopover(animate: false, activate: false)
             expect(host.popover.isShown && host.popover.attempts == 2 && !host.popoverIsClosing,
                    "a click while the panel fades out opens it again")
-            expect(ProcessUsageService.shared.releases == 0 && window.alphaValue == 1 && !window.ignoresMouseEvents,
+            expect(PanelResources.shared.releases == 0 && window.alphaValue == 1 && !window.ignoresMouseEvents,
                    "an interrupted close restores its window without releasing the presentation's resources")
             NSAnimationContext.finish()
-            expect(host.popover.isShown && host.popover.attempts == 2 && ProcessUsageService.shared.releases == 0,
+            expect(host.popover.isShown && host.popover.attempts == 2 && PanelResources.shared.releases == 0,
                    "the interrupted fade never closes the reopened panel")
-        }
-        for interruptFade in [false, true] {
-            let host = setup(present: interruptFade)
-            notifyCloses(host)
-            if interruptFade {
-                host.closePopoverNow(animated: true, reason: .statusItem, completion: nil)
-            }
-            host.showMetricPanel(for: MenuBarMetric(detailKind: "cpu"), anchoredTo: host.statusController.button!)
-            expect(MenuPanelFocus.shared.request == "cpu" && MenuPanelFocus.shared.activeMetric == "cpu",
-                   "opening a metric keeps its view request and toggle identity with interrupted fade \(interruptFade)")
-            host.showMetricPanel(for: MenuBarMetric(detailKind: "cpu"), anchoredTo: host.statusController.button!)
-            expect(!host.popover.isShown && host.scheduledReanchors == 0,
-                   "the next click on the same metric closes it with interrupted fade \(interruptFade)")
-            NSAnimationContext.finish()
-            expect(!host.popover.isShown && MenuPanelFocus.shared.activeMetric == nil,
-                   "the metric stays closed when the old fade finishes")
         }
         for interruptFade in [false, true] {
             let (host, source) = trackingSetup()
@@ -658,8 +618,8 @@ enum MenuPanelRecoveryTests {
             DispatchQueue.main.drain()
             expect(!host.popover.isShown && !host.popoverIsReopening && !host.activationTracking
                        && !host.monitors && !host.statusController.held
-                       && MenuPanelFocus.shared.activeMetric == nil && ProcessUsageService.shared.releases == 1,
-                   "a failed fade reopen releases resources, metric focus, monitors and activation observers")
+                       && PanelResources.shared.releases == 1,
+                   "a failed fade reopen releases resources, monitors and activation observers")
             expect(source.activations == 1, "a failed fade reopen finishes the original dismissal's handback")
         }
         for blocked in ["terminated", "own window", "other app", "other desktop"] {
@@ -717,7 +677,7 @@ enum MenuPanelRecoveryTests {
             host.popoverIsSwitchingAnchor = true; requestClose(host, .statusItem)
             DispatchQueue.main.drain()
             expect(source.activations == 0 && host.activationTracking,
-                   "moving the panel between metric anchors keeps activation and its tracking")
+                   "moving the panel between anchors keeps activation and its tracking")
         }
     }
 }

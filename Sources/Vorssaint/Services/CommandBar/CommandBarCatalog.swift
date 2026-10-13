@@ -1213,26 +1213,6 @@ enum CommandBarCatalog {
                 run: { _ in copyAnswer(value) }))
         }
 
-        if AppFeature.monitorMemory.isAvailable,
-           let memory = cachedMemory, memory.total > 0 {
-            let metric = Defaults.sanitizedMonitorMemoryMetric(
-                UserDefaults.standard.string(forKey: DefaultsKey.monitorMemoryMetric) ?? "")
-            let selected = MetricFormat.selectedMemory(used: memory.used,
-                                                       app: memory.appUsed,
-                                                       metric: metric)
-            let used = MetricFormat.bytes(min(selected, memory.total))
-            let total = MetricFormat.bytes(memory.total)
-            let percent = Int((Double(selected) / Double(memory.total) * 100).rounded())
-            entries.append(CommandBarEntry(
-                id: "answer.memory",
-                title: metric == "app" ? s.memoryMetricApp : bar.answerMemoryLabel,
-                subtitle: String(format: bar.answerMemoryFormat, used, total),
-                icon: .symbol("memorychip"),
-                answerValue: "\(percent)%",
-                countsUsage: false,
-                run: { _ in copyAnswer("\(used) / \(total)") }))
-        }
-
         if let storage = cachedBootVolumeSpace {
             let free = MetricFormat.diskBytes(storage.free)
             let total = MetricFormat.diskBytes(storage.total)
@@ -1290,12 +1270,10 @@ enum CommandBarCatalog {
     /// one lands, which simply means the row is not offered yet.
     static var cachedBootVolumeSpace: (free: UInt64, total: UInt64)?
 
-    /// The battery and the memory pressure are read the same way and for the
-    /// same reason: both cross into the kernel (IOKit power sources, the mach
-    /// VM statistics), and the bar opens on a keystroke.
+    /// The battery crosses into the kernel (IOKit power sources), and the bar
+    /// opens on a keystroke. The memory row went with the memory monitor,
+    /// parked in Legacy/monitorMemory.
     static var cachedBattery: BatteryInfo?
-    static var cachedMemory: (used: UInt64, appUsed: UInt64, total: UInt64,
-                              compressed: UInt64, cached: UInt64, swapUsed: UInt64?)?
 
     static func readBootVolumeSpace() -> (free: UInt64, total: UInt64)? {
         let url = URL(fileURLWithPath: "/")

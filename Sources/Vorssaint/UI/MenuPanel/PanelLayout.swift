@@ -10,8 +10,7 @@ protocol PanelOrderItem: RawRepresentable, CaseIterable, Hashable where RawValue
 /// stable identifiers persisted in the saved order and the collapsed set, so
 /// renaming a case would orphan a user's stored layout — keep them stable.
 enum PanelSectionID: String, CaseIterable, Identifiable, Hashable {
-    case keepAwake, brightness, mixer, system, network, disk, power, fanControl, utilities, controls,
-         toggles, wallpaper
+    case keepAwake, brightness, mixer, utilities, controls, toggles, wallpaper
 
     var id: String { rawValue }
 
@@ -21,11 +20,6 @@ enum PanelSectionID: String, CaseIterable, Identifiable, Hashable {
         case .keepAwake: return s.keepAwakeTitle
         case .brightness: return FeatureStrings.brightness(L10n.shared.language).pageTitle
         case .mixer: return s.mixerSection
-        case .system: return s.systemSection
-        case .network: return s.networkSection
-        case .disk: return s.diskSection
-        case .power: return s.powerSection
-        case .fanControl: return FeatureStrings.fanControl(L10n.shared.language).title
         case .utilities: return s.utilitiesSection
         case .controls: return s.quickControlsSection
         case .toggles: return FeatureStrings.quickToggles(L10n.shared.language).pageTitle
@@ -38,11 +32,6 @@ enum PanelSectionID: String, CaseIterable, Identifiable, Hashable {
         case .keepAwake: return "moon.zzz.fill"
         case .brightness: return "display.2"
         case .mixer: return "speaker.wave.2"
-        case .system: return "cpu"
-        case .network: return "network"
-        case .disk: return "internaldrive"
-        case .power: return "bolt.fill"
-        case .fanControl: return "fanblades.fill"
         case .utilities: return "wrench.and.screwdriver.fill"
         case .controls: return "switch.2"
         case .toggles: return "togglepower"
@@ -51,18 +40,13 @@ enum PanelSectionID: String, CaseIterable, Identifiable, Hashable {
     }
 
     /// The UserDefaults key that controls whether this section shows in the panel.
-    /// The monitoring blocks reuse their existing `monitorShow*` keys; the rest
-    /// get a dedicated `panelShow*` key so every section is hideable.
+    /// The mixer reuses its existing `monitorShowMixer` key; the rest get a
+    /// dedicated `panelShow*` key so every section is hideable.
     var visibilityKey: String {
         switch self {
         case .keepAwake: return DefaultsKey.panelShowKeepAwake
         case .brightness: return DefaultsKey.panelShowBrightness
         case .mixer: return DefaultsKey.monitorShowMixer
-        case .system: return DefaultsKey.monitorShowSystem
-        case .network: return DefaultsKey.monitorShowNetwork
-        case .disk: return DefaultsKey.monitorShowDisk
-        case .power: return DefaultsKey.monitorShowPower
-        case .fanControl: return DefaultsKey.panelShowFanControl
         case .utilities: return DefaultsKey.panelShowUtilities
         case .controls: return DefaultsKey.panelShowControls
         case .toggles: return DefaultsKey.panelShowToggles
@@ -82,11 +66,6 @@ enum PanelSectionID: String, CaseIterable, Identifiable, Hashable {
         case .keepAwake: return [.keepAwake]
         case .brightness: return [.brightness]
         case .mixer: return [.mixer, .audioPriority]
-        case .system: return [.monitorCPU, .monitorGPU, .monitorMemory, .connectedDevices]
-        case .network: return [.monitorNetwork]
-        case .disk: return [.monitorDisk]
-        case .power: return [.monitorPower]
-        case .fanControl: return [.fanControl]
         case .utilities: return [.quickLauncher, .cleaner, .homebrew, .appUpdates, .mediaTools,
                                  .clipboardHistory,
                                  .windowLayout, .uninstaller, .urlCleaner, .cleaningMode, .screenOCR,
@@ -122,9 +101,7 @@ enum PanelLayout {
         var result: [PanelSectionID] = []
         for id in saved where seen.insert(id).inserted { result.append(id) }
         for id in PanelSectionID.allCases where seen.insert(id).inserted {
-            if id == .disk, let networkIndex = result.firstIndex(of: .network) {
-                result.insert(id, at: networkIndex + 1)
-            } else if id == .controls, let utilitiesIndex = result.firstIndex(of: .utilities) {
+            if id == .controls, let utilitiesIndex = result.firstIndex(of: .utilities) {
                 result.insert(id, at: utilitiesIndex + 1)
             } else if id == .brightness, let keepAwakeIndex = result.firstIndex(of: .keepAwake) {
                 // New in 3.1.13: saved orders predate it, so it slots in at

@@ -15,7 +15,6 @@ struct NotchIslandPreview: View {
     @AppStorage(DefaultsKey.notchLiquidGlassEnabled) private var glass = false
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var monitoring = false
     @State private var windowVisible = false
     private var editor: NotchEditorStrings { FeatureStrings.notchEditor(l10n.language) }
     private static let captionHeight: CGFloat = 28
@@ -42,10 +41,6 @@ struct NotchIslandPreview: View {
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(editor.preview)
             .accessibilityValue(module.title(l10n.language) + (hidden ? ", " + editor.hiddenInIsland : ""))
-            .onAppear { monitor(windowVisible && module == .system) }
-            .onChange(of: module) { _, value in monitor(windowVisible && value == .system) }
-            .onChange(of: windowVisible) { _, visible in monitor(visible && module == .system) }
-            .onDisappear { monitor(false) }
     }
 
     private var previewSurface: some View {
@@ -80,14 +75,6 @@ struct NotchIslandPreview: View {
             .foregroundStyle(.secondary)
             .padding(.horizontal, 12)
             .padding(.bottom, 8)
-    }
-
-    /// The system page reads live metrics, which sample only while a surface
-    /// shows them; the preview counts as one, like the menu panel.
-    private func monitor(_ wanted: Bool) {
-        guard wanted != monitoring else { return }
-        monitoring = wanted
-        if wanted { SystemMonitor.shared.panelDidAppear() } else { SystemMonitor.shared.panelDidDisappear() }
     }
 
     private var glassSurface: Bool {
@@ -176,7 +163,6 @@ struct NotchPagePreview: View {
         case .clipboard: NotchClipboardView(service: notch, size: size)
         case .captures: RecentCapturesView(onClose: nil, notchSize: size)
         case .files: NotchFilesView(service: notch)
-        case .system: NotchSystemView(size: size) { _ in }
         case .tools: QuickLauncherView(notchSize: size)
         case .scratchpad: NotchScratchpadStill()
         case .agents:
@@ -373,7 +359,6 @@ extension NotchModule {
         case .clipboard: return .brown
         case .captures: return .indigo
         case .files: return .cyan
-        case .system: return .green
         case .tools: return .gray
         case .calendar: return .red
         case .notifications: return .orange

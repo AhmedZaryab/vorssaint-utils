@@ -60,20 +60,10 @@ enum SettingsBackupSupport {
         DefaultsKey.mixerHiddenApps,
         DefaultsKey.preferredInputDevice,
         DefaultsKey.soundOutputSwitcherDeviceUIDs,
-        DefaultsKey.menuBarCPU,
-        DefaultsKey.menuBarGPU,
-        DefaultsKey.menuBarMemory,
-        DefaultsKey.menuBarNetwork,
-        DefaultsKey.menuBarBattery,
-        DefaultsKey.menuBarPower,
         DefaultsKey.panelSectionOrder,
         DefaultsKey.panelUtilityOrder,
         DefaultsKey.panelControlOrder,
         DefaultsKey.panelToggleOrder,
-        DefaultsKey.panelSystemOrder,
-        DefaultsKey.panelNetworkOrder,
-        DefaultsKey.panelDiskOrder,
-        DefaultsKey.panelPowerOrder,
         DefaultsKey.panelCollapsedSections,
         DefaultsKey.quickLauncherItemOrder,
         // Legacy island layouts stay restorable; absence selects the new layout.
@@ -170,10 +160,6 @@ enum SettingsBackupSupport {
         // Whether the audio system let a recording hear the Mac's sound is a
         // grant this Mac gave, not a setting.
         DefaultsKey.recorderSystemAudioTapVerified,
-        DefaultsKey.fanControlRecoveryNeeded,
-        DefaultsKey.fanControlHelperVersion,
-        // Control left running on one Mac must not start fans on another.
-        DefaultsKey.fanControlResumeConfiguration,
         DefaultsKey.switcherNativeHotkeysSuppressed,
         DefaultsKey.systemShortcutsSuppressed,
         // DDC capability belongs to one physical monitor on one Mac port.

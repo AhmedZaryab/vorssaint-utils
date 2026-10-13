@@ -5,10 +5,19 @@ import AppKit
 import Combine
 import IOBluetooth
 
-/// The system monitor remains the only battery sampler. Native connection
-/// notifications report an actual connection, independently of missing readings.
+/// Accessory batteries come from this service's own sampler, read on the
+/// slow background cadence the system monitor used for them before it was
+/// parked in Legacy/systemMonitor. Native connection notifications report an
+/// actual connection, independently of missing readings.
 final class NotchAccessoryService: NSObject {
     static let shared = NotchAccessoryService()
+    /// A background consumer: the readings change over minutes, and the
+    /// Bluetooth pass inside the sampler keeps its own five minute cache.
+    private static let batteryInterval: TimeInterval = 60
+    private let batterySampler = PeripheralBatterySampler()
+    private let batteryQueue = DispatchQueue(label: "com.vorssaint.utils.notch-accessory-battery", qos: .utility)
+    private let batterySamples = PassthroughSubject<PeripheralBatterySample, Never>()
+    private var batteryTimer: Timer?
     private var subscription: AnyCancellable?
     private var connectNotification: IOBluetoothUserNotification?
     private var disconnectNotifications: [String: IOBluetoothUserNotification] = [:]
@@ -37,7 +46,7 @@ final class NotchAccessoryService: NSObject {
         devices.forEach(observeDisconnect)
         connectNotification = IOBluetoothDevice.register(forConnectNotifications: self,
             selector: #selector(deviceConnected(_:device:)))
-        subscription = SystemMonitor.shared.$snapshot.map(\.peripheralBatterySample)
+        subscription = batterySamples
             .removeDuplicates().receive(on: DispatchQueue.main).sink { [weak self] sample in
                 guard let self, self.active, self.generation == currentGeneration,
                       NotchAccessorySupport.isEnabled() else { return }
@@ -56,7 +65,7 @@ final class NotchAccessoryService: NSObject {
                         level: Double(device.percent) / 100), device: device.name)
                 }
             }
-        SystemMonitor.shared.setNotchAccessoryMonitoring(true)
+        startBatterySampling()
     }
 
     func stop() {
@@ -75,7 +84,34 @@ final class NotchAccessoryService: NSObject {
         disconnectNotifications.removeAll()
         noticeWork?.cancel(); noticeWork = nil
         pending.removeAll()
-        SystemMonitor.shared.setNotchAccessoryMonitoring(false)
+        stopBatterySampling()
+    }
+
+    private func startBatterySampling() {
+        batterySampler.setEnabled(true)
+        sampleBatteries()
+        batteryTimer?.invalidate()
+        let timer = Timer(timeInterval: Self.batteryInterval, repeats: true) { [weak self] _ in
+            self?.sampleBatteries()
+        }
+        timer.tolerance = Self.batteryInterval * 0.15
+        RunLoop.main.add(timer, forMode: .common)
+        batteryTimer = timer
+    }
+
+    private func stopBatterySampling() {
+        batteryTimer?.invalidate()
+        batteryTimer = nil
+        batterySampler.setEnabled(false)
+    }
+
+    /// The fast read crosses into IOKit, so it stays off the main thread.
+    private func sampleBatteries() {
+        batteryQueue.async { [weak self] in
+            guard let self else { return }
+            let sample = self.batterySampler.sample(now: ProcessInfo.processInfo.systemUptime)
+            DispatchQueue.main.async { self.batterySamples.send(sample) }
+        }
     }
 
     private func observeDisconnect(_ device: IOBluetoothDevice) {

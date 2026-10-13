@@ -387,27 +387,7 @@ final class FeatureRuntime: ObservableObject {
             }
         },
         .appUpdates: { AppUpdatesService.shared.syncWithPreferences() },
-        .monitorCPU: { FeatureRuntime.syncMonitor() },
-        .monitorGPU: { FeatureRuntime.syncMonitor() },
-        .monitorMemory: { FeatureRuntime.syncMonitor() },
-        .monitorNetwork: { FeatureRuntime.syncMonitor() },
-        .monitorDisk: { FeatureRuntime.syncMonitor() },
-        .monitorPower: { FeatureRuntime.syncMonitor() },
-        .fanControl: {
-            SystemMonitor.shared.planDidChange()
-            let defaults = UserDefaults.standard
-            let needsRecovery = defaults.bool(forKey: DefaultsKey.fanControlRecoveryNeeded)
-            let hasRegisteredHelper = !(defaults.string(forKey: DefaultsKey.fanControlHelperVersion) ?? "").isEmpty
-            if needsRecovery || (!AppFeature.fanControl.isAvailable && hasRegisteredHelper) {
-                FanControlService.shared.syncWithPreferences()
-            }
-        },
     ]
-
-    private static func syncMonitor() {
-        SystemMonitor.shared.planDidChange()
-        MonitorAlertService.shared.syncWithPreferences()
-    }
 }
 
 /// Hardware a feature needs and this Mac may not have. One switch answers
@@ -417,15 +397,10 @@ final class FeatureRuntime: ObservableObject {
 /// comes from a service, and the catalog stays a pure description.
 extension AppFeature {
     /// Why this Mac cannot run the feature, ready to show. `nil` when it can,
-    /// or when the feature depends on no hardware at all.
+    /// or when the feature depends on no hardware at all. Fan control, the
+    /// one hardware-gated feature, is parked in Legacy/fanControl.
     var hardwareUnsupportedReason: String? {
-        switch self {
-        case .fanControl:
-            return FanControlHardware.hasControllableFan
-                ? nil : FeatureStrings.fanControl(L10n.shared.language).noFans
-        default:
-            return nil
-        }
+        nil
     }
 
     var isHardwareSupported: Bool { hardwareUnsupportedReason == nil }

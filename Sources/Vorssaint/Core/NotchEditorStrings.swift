@@ -18,7 +18,6 @@ struct NotchEditorStrings {
     let sectionActions: String
     let quickActions: String
     let findAction: String
-    let reorderHint: String
     let opening: String
     let clickOpen: String
     let hoverPreview: String
@@ -58,7 +57,6 @@ struct NotchEditorStrings {
     let clipboardSummary: String
     let capturesSummary: String
     let filesSummary: String
-    let systemSummary: String
     let toolsSummary: String
     let calendarSummary: String
     let notificationsSummary: String
@@ -82,7 +80,6 @@ struct NotchEditorStrings {
         case .clipboard: return clipboardSummary
         case .captures: return capturesSummary
         case .files: return filesSummary
-        case .system: return systemSummary
         case .tools: return toolsSummary
         case .calendar: return calendarSummary
         case .notifications: return notificationsSummary
@@ -114,7 +111,6 @@ extension FeatureStrings {
             sectionActions: "Open a section",
             quickActions: "Quick actions",
             findAction: "Find an action",
-            reorderHint: "Drag to reorder. Click the checkmark to show or hide.",
             opening: "Opening",
             clickOpen: "Click to open",
             hoverPreview: "Preview on hover",
@@ -154,7 +150,6 @@ extension FeatureStrings {
             clipboardSummary: "What you copied recently, ready to paste again.",
             capturesSummary: "Your latest screenshots and recordings.",
             filesSummary: "A shelf for the files you drop on the island.",
-            systemSummary: "CPU, memory, disk, network and battery at a glance.",
             toolsSummary: "Tools and utilities, one click away.",
             calendarSummary: "Today’s events and the month ahead.",
             notificationsSummary: "Your Mac’s notifications, kept in the island.",
@@ -180,7 +175,6 @@ extension FeatureStrings {
             sectionActions: "Abrir uma seção",
             quickActions: "Ações rápidas",
             findAction: "Encontrar uma ação",
-            reorderHint: "Arraste para reordenar. Clique na marca para mostrar ou ocultar.",
             opening: "Abertura",
             clickOpen: "Abrir por clique",
             hoverPreview: "Prévia ao aproximar",
@@ -220,7 +214,6 @@ extension FeatureStrings {
             clipboardSummary: "O que você copiou há pouco, pronto para colar de novo.",
             capturesSummary: "Suas capturas de tela e gravações mais recentes.",
             filesSummary: "Uma prateleira para os arquivos que você solta na ilha.",
-            systemSummary: "CPU, memória, disco, rede e bateria num relance.",
             toolsSummary: "Ferramentas e utilitários a um clique.",
             calendarSummary: "Os eventos de hoje e o mês inteiro.",
             notificationsSummary: "As notificações do Mac, guardadas na ilha.",
@@ -246,7 +239,6 @@ extension FeatureStrings {
             sectionActions: "Abrir una sección",
             quickActions: "Acciones rápidas",
             findAction: "Buscar una acción",
-            reorderHint: "Arrastra para ordenar. Pulsa la marca para mostrar u ocultar.",
             opening: "Apertura",
             clickOpen: "Abrir con un clic",
             hoverPreview: "Vista previa al acercarse",
@@ -286,7 +278,6 @@ extension FeatureStrings {
             clipboardSummary: "Lo que copiaste hace poco, listo para pegar otra vez.",
             capturesSummary: "Tus capturas y grabaciones más recientes.",
             filesSummary: "Un estante para los archivos que sueltas en la isla.",
-            systemSummary: "CPU, memoria, disco, red y batería de un vistazo.",
             toolsSummary: "Herramientas y utilidades a un clic.",
             calendarSummary: "Los eventos de hoy y el mes completo.",
             notificationsSummary: "Las notificaciones de tu Mac, reunidas en la isla.",
@@ -312,7 +303,6 @@ extension FeatureStrings {
             sectionActions: "Otvoriť sekciu",
             quickActions: "Rýchle akcie",
             findAction: "Nájsť akciu",
-            reorderHint: "Presunutím zmeníte poradie. Kliknutím na fajku zobrazíte alebo skryjete.",
             opening: "Otváranie",
             clickOpen: "Otvoriť kliknutím",
             hoverPreview: "Náhľad pri prejdení myšou",
@@ -352,7 +342,6 @@ extension FeatureStrings {
             clipboardSummary: "Čo ste nedávno skopírovali, pripravené na opätovné vloženie.",
             capturesSummary: "Vaše najnovšie snímky obrazovky a nahrávky.",
             filesSummary: "Polica na súbory, ktoré pustíte na Dynamic Island.",
-            systemSummary: "CPU, pamäť, disk, sieť a batéria na jeden pohľad.",
             toolsSummary: "Nástroje a pomôcky na jedno kliknutie.",
             calendarSummary: "Dnešné udalosti a nadchádzajúci mesiac.",
             notificationsSummary: "Hlásenia vášho Macu, zhromaždené v Dynamic Island.",
@@ -378,7 +367,6 @@ extension FeatureStrings {
             sectionActions: "Bereich öffnen",
             quickActions: "Schnellaktionen",
             findAction: "Aktion finden",
-            reorderHint: "Zum Sortieren ziehen. Mit dem Häkchen ein- oder ausblenden.",
             opening: "Öffnen",
             clickOpen: "Per Klick öffnen",
             hoverPreview: "Vorschau bei Annäherung",
@@ -418,7 +406,6 @@ extension FeatureStrings {
             clipboardSummary: "Was du zuletzt kopiert hast, bereit zum erneuten Einsetzen.",
             capturesSummary: "Deine neuesten Bildschirmfotos und Aufnahmen.",
             filesSummary: "Eine Ablage für Dateien, die du auf der Insel ablegst.",
-            systemSummary: "CPU, Speicher, Festplatte, Netzwerk und Batterie auf einen Blick.",
             toolsSummary: "Werkzeuge und Dienstprogramme, einen Klick entfernt.",
             calendarSummary: "Die Termine von heute und der ganze Monat.",
             notificationsSummary: "Die Mitteilungen deines Mac, gesammelt auf der Insel.",
@@ -444,7 +431,6 @@ extension FeatureStrings {
             sectionActions: "Ouvrir une section",
             quickActions: "Actions rapides",
             findAction: "Rechercher une action",
-            reorderHint: "Glissez pour réordonner. Cliquez sur la coche pour afficher ou masquer.",
             opening: "Ouverture",
             clickOpen: "Ouvrir au clic",
             hoverPreview: "Aperçu au survol",
@@ -484,7 +470,6 @@ extension FeatureStrings {
             clipboardSummary: "Ce que vous avez copié récemment, prêt à être recollé.",
             capturesSummary: "Vos dernières captures d’écran et vidéos.",
             filesSummary: "Une étagère pour les fichiers déposés sur l’îlot.",
-            systemSummary: "Processeur, mémoire, disque, réseau et batterie en un coup d’œil.",
             toolsSummary: "Outils et utilitaires à portée de clic.",
             calendarSummary: "Les événements du jour et le mois entier.",
             notificationsSummary: "Les notifications de votre Mac, réunies dans l’îlot.",
@@ -510,7 +495,6 @@ extension FeatureStrings {
             sectionActions: "Apri una sezione",
             quickActions: "Azioni rapide",
             findAction: "Trova un’azione",
-            reorderHint: "Trascina per riordinare. Fai clic sulla spunta per mostrare o nascondere.",
             opening: "Apertura",
             clickOpen: "Apri con un clic",
             hoverPreview: "Anteprima al passaggio",
@@ -550,7 +534,6 @@ extension FeatureStrings {
             clipboardSummary: "Ciò che hai copiato di recente, pronto da incollare di nuovo.",
             capturesSummary: "Le tue ultime istantanee e registrazioni.",
             filesSummary: "Uno scaffale per i file che trascini sull’isola.",
-            systemSummary: "CPU, memoria, disco, rete e batteria a colpo d’occhio.",
             toolsSummary: "Strumenti e utility a portata di clic.",
             calendarSummary: "Gli eventi di oggi e il mese intero.",
             notificationsSummary: "Le notifiche del Mac, raccolte nell’isola.",
@@ -576,7 +559,6 @@ extension FeatureStrings {
             sectionActions: "Открыть раздел",
             quickActions: "Быстрые действия",
             findAction: "Найти действие",
-            reorderHint: "Перетащите для сортировки. Нажмите галочку, чтобы показать или скрыть.",
             opening: "Открытие",
             clickOpen: "По щелчку",
             hoverPreview: "Просмотр при наведении",
@@ -616,7 +598,6 @@ extension FeatureStrings {
             clipboardSummary: "Недавно скопированное, готовое к повторной вставке.",
             capturesSummary: "Ваши последние снимки экрана и записи.",
             filesSummary: "Полка для файлов, которые вы бросаете на остров.",
-            systemSummary: "Процессор, память, диск, сеть и батарея одним взглядом.",
             toolsSummary: "Инструменты и утилиты в один клик.",
             calendarSummary: "События на сегодня и весь месяц.",
             notificationsSummary: "Уведомления Mac, собранные на острове.",
@@ -642,7 +623,6 @@ extension FeatureStrings {
             sectionActions: "Bölüm aç",
             quickActions: "Hızlı eylemler",
             findAction: "Eylem bul",
-            reorderHint: "Sıralamak için sürükleyin. Göstermek veya gizlemek için onay işaretine tıklayın.",
             opening: "Açılış",
             clickOpen: "Tıklayarak aç",
             hoverPreview: "Üzerine gelince önizle",
@@ -682,7 +662,6 @@ extension FeatureStrings {
             clipboardSummary: "Son kopyaladıklarınız, yeniden yapıştırmaya hazır.",
             capturesSummary: "En son ekran görüntüleriniz ve kayıtlarınız.",
             filesSummary: "Adaya bıraktığınız dosyalar için bir raf.",
-            systemSummary: "İşlemci, bellek, disk, ağ ve pil tek bakışta.",
             toolsSummary: "Araçlar ve yardımcılar bir tık uzakta.",
             calendarSummary: "Bugünün etkinlikleri ve ayın tamamı.",
             notificationsSummary: "Mac’inizin bildirimleri, adada bir arada.",
@@ -708,7 +687,6 @@ extension FeatureStrings {
             sectionActions: "セクションを開く",
             quickActions: "クイックアクション",
             findAction: "アクションを検索",
-            reorderHint: "ドラッグして並べ替え、チェックマークで表示を切り替えます。",
             opening: "開き方",
             clickOpen: "クリックで開く",
             hoverPreview: "ポイントでプレビュー",
@@ -748,7 +726,6 @@ extension FeatureStrings {
             clipboardSummary: "最近コピーした内容をもう一度ペースト。",
             capturesSummary: "最新のスクリーンショットと収録。",
             filesSummary: "島にドロップしたファイルを置いておく棚。",
-            systemSummary: "CPU、メモリ、ディスク、ネットワーク、バッテリーをひと目で。",
             toolsSummary: "ツールとユーティリティをワンクリックで。",
             calendarSummary: "今日の予定と1か月の予定。",
             notificationsSummary: "Macの通知を島にまとめて表示。",
@@ -774,7 +751,6 @@ extension FeatureStrings {
             sectionActions: "섹션 열기",
             quickActions: "빠른 동작",
             findAction: "동작 찾기",
-            reorderHint: "드래그하여 순서를 바꾸고 체크 표시로 표시 여부를 바꾸세요.",
             opening: "열기",
             clickOpen: "클릭하여 열기",
             hoverPreview: "포인터로 미리보기",
@@ -814,7 +790,6 @@ extension FeatureStrings {
             clipboardSummary: "최근에 복사한 항목을 다시 붙여넣기.",
             capturesSummary: "최근 스크린샷과 녹화.",
             filesSummary: "섬에 놓은 파일을 두는 선반.",
-            systemSummary: "CPU, 메모리, 디스크, 네트워크, 배터리를 한눈에.",
             toolsSummary: "도구와 유틸리티를 클릭 한 번으로.",
             calendarSummary: "오늘의 일정과 한 달 전체.",
             notificationsSummary: "Mac의 알림을 섬에 모아 보기.",
@@ -840,7 +815,6 @@ extension FeatureStrings {
             sectionActions: "打开分区",
             quickActions: "快捷操作",
             findAction: "查找操作",
-            reorderHint: "拖动以排序。点击勾选标记来显示或隐藏。",
             opening: "打开方式",
             clickOpen: "点击打开",
             hoverPreview: "悬停时预览",
@@ -880,7 +854,6 @@ extension FeatureStrings {
             clipboardSummary: "最近拷贝的内容，随时再次粘贴。",
             capturesSummary: "最近的截图和录屏。",
             filesSummary: "存放拖到岛上的文件的架子。",
-            systemSummary: "CPU、内存、磁盘、网络和电池一目了然。",
             toolsSummary: "工具和实用程序，一键即达。",
             calendarSummary: "今天的日程和整个月。",
             notificationsSummary: "Mac 的通知，汇集在岛上。",
@@ -906,7 +879,6 @@ extension FeatureStrings {
             sectionActions: "開啟區域",
             quickActions: "快速操作",
             findAction: "尋找操作",
-            reorderHint: "拖移以排序。按一下勾選標記來顯示或隱藏。",
             opening: "開啟方式",
             clickOpen: "按一下開啟",
             hoverPreview: "停留時預覽",
@@ -946,7 +918,6 @@ extension FeatureStrings {
             clipboardSummary: "最近拷貝的內容，隨時再次貼上。",
             capturesSummary: "最近的截圖和錄影。",
             filesSummary: "存放拖到島上檔案的架子。",
-            systemSummary: "CPU、記憶體、磁碟、網路和電池一目了然。",
             toolsSummary: "工具和工具程式，一按即達。",
             calendarSummary: "今天的行程和整個月份。",
             notificationsSummary: "Mac 的通知，集中在島上。",
@@ -972,7 +943,6 @@ extension FeatureStrings {
             sectionActions: "開啟區域",
             quickActions: "快速操作",
             findAction: "尋找操作",
-            reorderHint: "拖移以排序。按一下勾選標記來顯示或隱藏。",
             opening: "開啟方式",
             clickOpen: "按一下開啟",
             hoverPreview: "停留時預覽",
@@ -1012,7 +982,6 @@ extension FeatureStrings {
             clipboardSummary: "最近拷貝的內容，隨時再次貼上。",
             capturesSummary: "最近的截圖和錄影。",
             filesSummary: "存放拖到島上檔案的架子。",
-            systemSummary: "CPU、記憶體、磁碟、網路和電池一目了然。",
             toolsSummary: "工具和工具程式，一按即達。",
             calendarSummary: "今天的行程和整個月份。",
             notificationsSummary: "Mac 的通知，集中在島上。",
@@ -1038,7 +1007,6 @@ extension FeatureStrings {
             sectionActions: "Відкрити розділ",
             quickActions: "Швидкі дії",
             findAction: "Знайти дію",
-            reorderHint: "Перетягуйте, щоб змінити порядок. Натисніть галочку, щоб показати або сховати.",
             opening: "Відкриття",
             clickOpen: "Відкривати клацанням",
             hoverPreview: "Перегляд при наведенні",
@@ -1078,7 +1046,6 @@ extension FeatureStrings {
             clipboardSummary: "Нещодавно скопійоване, готове до повторного вставлення.",
             capturesSummary: "Останні знімки та записи екрана.",
             filesSummary: "Полиця для файлів, які ви перетягуєте на острівець.",
-            systemSummary: "CPU, пам’ять, диски, мережа й акумулятор з першого погляду.",
             toolsSummary: "Інструменти й утиліти в один клік.",
             calendarSummary: "Сьогоднішні події та майбутній місяць.",
             notificationsSummary: "Сповіщення Mac, зібрані в острівці.",

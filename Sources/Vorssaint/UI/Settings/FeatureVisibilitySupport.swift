@@ -7,7 +7,7 @@ import Foundation
 /// The Settings pages. Lives here (without SwiftUI) so the visibility rules
 /// below and the unit tests can reason about pages without pulling UI in.
 enum SettingsPage: Hashable {
-    case general, features, energy, monitor
+    case general, features, energy
     case mouse, switcher, dock, superKey, cutPaste, autoQuit, cleaner, uninstaller, urlCleaner, homebrew, appUpdates, media, clipboard, windowLayout, shelf, quickTools, textSnippets, screenshot, radialMenu, commandBar, killProcess, portManager, notch, notchMascot
     case shortcuts, advanced, about, releaseNotes, support
 }
@@ -52,7 +52,6 @@ enum SettingsSectionAnchor: String, CaseIterable, Hashable {
     case cleaningMode
     case soundOutputSwitcher
     case keyboardBrightnessShortcuts
-    case fanControl
     case windowMaximizer
     case menuBarTidy
 
@@ -75,7 +74,6 @@ enum SettingsSectionAnchor: String, CaseIterable, Hashable {
         case .screenshot, .screenRecorder, .colorPicker, .screenOCR:
             return .screenshot
         case .keyboardBrightnessShortcuts: return .shortcuts
-        case .fanControl: return .monitor
         case .windowMaximizer: return .windowLayout
         }
     }
@@ -373,10 +371,10 @@ extension AppFeature {
         case .screenRecorder:
             return FeatureSettingsDestination(.screenshot, sectionAnchor: .screenRecorder)
 
-        case .monitorCPU, .monitorGPU, .monitorMemory, .monitorNetwork, .monitorDisk, .monitorPower, .connectedDevices:
-            return FeatureSettingsDestination(.monitor)
-        case .fanControl:
-            return FeatureSettingsDestination(.monitor, sectionAnchor: .fanControl)
+        // Power's surviving controls are the island's battery rows; the
+        // Monitor page is parked in Legacy/systemMonitor.
+        case .monitorPower:
+            return FeatureSettingsDestination(.notch)
         }
     }
 }
@@ -384,17 +382,11 @@ extension AppFeature {
 /// Which hub features keep each Settings page alive. A page with several
 /// features only disappears when ALL of them are switched off in the hub.
 enum FeatureVisibilitySupport {
-    static let monitorFeatures: [AppFeature] = [
-        .monitorCPU, .monitorGPU, .monitorMemory, .monitorNetwork, .monitorDisk, .monitorPower,
-        .connectedDevices, .fanControl,
-    ]
-
     /// Features gating a page; empty means the page is part of the app and
     /// always shows (General, Shortcuts, About and friends).
     static func features(for page: SettingsPage) -> [AppFeature] {
         switch page {
         case .energy: return [.keepAwake, .brightness]
-        case .monitor: return monitorFeatures
         case .mouse: return [.scrollInverter, .scrollHorizontal, .focusFollowsMouse, .smoothScroll, .linearScroll, .mouseAcceleration, .mouseNavigation, .mouseButtonShortcuts,
                              .middleClick, .mouseClickDebounce]
         case .switcher: return [.switcher]

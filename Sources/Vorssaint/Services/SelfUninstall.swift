@@ -99,24 +99,8 @@ enum SelfUninstall {
                         stop(L10n.shared.s.advancedClearFailed, sleepRestored: true)
                         return
                     }
-                    // The helper must be safely removed before permissions go;
-                    // a failure here keeps the app's existing grants intact.
-                    let fanHelperWasRegistered = FanControlService.hasRegisteredHelperForRemoval
-                    guard detachFanControl() else {
-                        stop(L10n.shared.s.advancedUninstallFailedBody, sleepRestored: true)
-                        return
-                    }
                     guard resetTCC() else {
-                        // The app stays installed, so restore a helper that was
-                        // registered before the attempted uninstall.
-                        let fanReady = !fanHelperWasRegistered
-                            || FanControlService.restoreRegistrationAfterFailedRemoval()
-                        if fanReady {
-                            stop(L10n.shared.s.advancedClearFailed, sleepRestored: true)
-                        } else {
-                            let warning = FeatureStrings.fanControl(L10n.shared.language).helperUnavailable
-                            stop("\(L10n.shared.s.advancedClearFailed)\n\(warning)", sleepRestored: true)
-                        }
+                        stop(L10n.shared.s.advancedClearFailed, sleepRestored: true)
                         return
                     }
                     // Do not clear the launch choice while a failed reset
@@ -187,13 +171,8 @@ enum SelfUninstall {
 
     @discardableResult
     private static func detachFromSystem() -> Bool {
-        guard detachFanControl() else { return false }
         detachLoginItem()
         return true
-    }
-
-    private static func detachFanControl() -> Bool {
-        FanControlService.restoreAndUnregisterForRemoval()
     }
 
     private static func detachLoginItem() {

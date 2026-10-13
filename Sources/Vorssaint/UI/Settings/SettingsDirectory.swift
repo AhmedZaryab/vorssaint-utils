@@ -84,12 +84,11 @@ enum SettingsDirectory {
             }
         guard let essentials = grouped.first(where: { $0.id == 0 }) else { return grouped }
         let categories = FeatureStrings.settingsCategories(language)
-        // Monitor keeps its tool rows, such as Fan Control, beside it.
         let core = essentials.items.filter { item in
             switch item.id {
             case .page(.general), .page(.features),
                  .setting(.panelConfiguration): return true
-            default: return item.destination.page == .monitor
+            default: return false
             }
         }
         // The companion lives in the island, and its settings in a tab of the
@@ -207,13 +206,6 @@ enum SettingsDirectory {
                                                        FeatureStrings.brightness(language).keyStep,
                                                        FeatureStrings.brightness(language).keyStepHalf,
                                                        FeatureStrings.brightness(language).keyStepQuarter]),
-                                       ]),
-                SettingsDirectoryItem(page: .monitor, title: s.tabMonitor, icon: "chart.line.uptrend.xyaxis",
-                                       keywords: [s.menuBarSpacingLabel, s.menuBarHideIconToggle],
-                                       featureKeywords: [
-                                        (.monitorMemory, [s.monitorMemoryPressureDot]),
-                                        (.monitorNetwork, [FeatureStrings.monitorLayout(language).networkSpeedUnit]),
-                                        (.fanControl, [FeatureStrings.fanControl(language).menuBarTitle]),
                                        ]),
             ]),
             (categories.windowsControls, [

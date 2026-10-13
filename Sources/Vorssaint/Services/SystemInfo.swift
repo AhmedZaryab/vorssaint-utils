@@ -15,8 +15,9 @@ struct BatteryInfo: Equatable {
 }
 
 /// Point-in-time system facts that need no special permissions.
-/// The battery snapshot feeds the keep-awake battery protection; the memory
-/// reading feeds the system monitor.
+/// The battery snapshot feeds the keep-awake battery protection and the lock
+/// screen. The memory reading that fed the system monitor is parked in
+/// Legacy/systemMonitor/split/SystemInfo.swift.
 enum SystemInfo {
     static func wallClockUptimeSeconds(now: Date = Date()) -> Int? {
         var bootTime = timeval()
@@ -50,37 +51,5 @@ enum SystemInfo {
                            isCharging: charging,
                            isOnBattery: state == "Battery Power",
                            isOnExternalPower: state == "AC Power")
-    }
-
-    static func memoryUsage() -> (used: UInt64, appUsed: UInt64, total: UInt64, compressed: UInt64, cached: UInt64, swapUsed: UInt64?)? {
-        guard let stats = VMStatisticsDecoder.read() else { return nil }
-        let total = ProcessInfo.processInfo.physicalMemory
-        let pageSize = UInt64(vm_kernel_page_size)
-        let tagStoragePages = VMStatisticsDecoder.validatedTagStoragePages(
-            stats.tagStoragePages,
-            totalBytes: total,
-            pageSize: pageSize)
-        let appUsed = MetricFormat.appMemory(totalBytes: total,
-                                             pageSize: pageSize,
-                                             internalPages: stats.internalPages,
-                                             purgeablePages: stats.purgeablePages)
-        let used = MetricFormat.memoryUsed(totalBytes: total,
-                                           appBytes: appUsed,
-                                           pageSize: pageSize,
-                                           wiredPages: stats.wiredPages,
-                                           compressorPages: stats.compressorPages,
-                                           tagStoragePages: tagStoragePages)
-        let compressed = MetricFormat.compressedMemory(totalBytes: total,
-                                                       pageSize: pageSize,
-                                                       compressorPages: stats.compressorPages)
-        let cached = MetricFormat.cachedFiles(totalBytes: total,
-                                              pageSize: pageSize,
-                                              fileBackedPages: stats.externalPages)
-        var swap = xsw_usage()
-        var swapSize = MemoryLayout<xsw_usage>.stride
-        let swapUsed = sysctlbyname("vm.swapusage", &swap, &swapSize, nil, 0) == 0
-            ? swap.xsu_used
-            : nil
-        return (used, appUsed, total, compressed, cached, swapUsed)
     }
 }

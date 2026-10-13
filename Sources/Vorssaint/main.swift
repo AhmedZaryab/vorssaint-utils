@@ -18,9 +18,6 @@ if CommandLine.arguments.contains("--notch-presentation-test") {
 if CommandLine.arguments.contains("--selftest") {
     SelfTest.runAndExit()
 }
-if CommandLine.arguments.contains("--sensors") {
-    SensorDump.runAndExit()
-}
 if CommandLine.arguments.contains("--uninstall") {
     Uninstaller.runAndExit()
 }

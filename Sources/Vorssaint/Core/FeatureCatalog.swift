@@ -32,9 +32,10 @@ enum AppFeature: String, CaseIterable {
     // Dynamic Island, then its extensions
     case notch, notchCalendar, notchNotifications, notchGestures, notchTimer, notchAccessories, notchLyrics,
          notchQueue, spotifyQueue, notchLiveEqualizer, notchDownloads, notchAgents, notchWatch, notchMascot
-    // System monitor, one entry per metric family (temperatures live with
-    // their parent metric: CPU temp with CPU, battery temp with power).
-    case monitorCPU, monitorGPU, monitorMemory, monitorNetwork, monitorDisk, monitorPower, connectedDevices, fanControl
+    // System monitor. The metric families, connected devices and fan control
+    // are parked in Legacy/systemMonitor; power stays as the switch for the
+    // island's battery notices, battery resting view and accessory batteries.
+    case monitorPower
 }
 
 /// Hub sections, in display order.
@@ -121,8 +122,7 @@ extension AppFeature {
              .notchLyrics, .notchQueue, .spotifyQueue, .notchLiveEqualizer, .notchDownloads, .notchAgents, .notchWatch,
              .notchMascot:
             return .dynamicIsland
-        case .monitorCPU, .monitorGPU, .monitorMemory, .monitorNetwork, .monitorDisk, .monitorPower,
-             .connectedDevices, .fanControl:
+        case .monitorPower:
             return .monitor
         }
     }
@@ -199,20 +199,13 @@ extension AppFeature {
         case .killProcess: return "xmark.octagon"
         case .portManager: return "network"
         case .menuBarTidy: return "chevron.left.2"
-        case .monitorCPU: return "cpu"
-        case .monitorGPU: return "rectangle.connected.to.line.below"
-        case .monitorMemory: return "memorychip"
-        case .monitorNetwork: return "network"
-        case .monitorDisk: return "internaldrive"
         case .monitorPower: return "bolt.fill"
-        case .connectedDevices: return "cable.connector"
-        case .fanControl: return "fanblades.fill"
         }
     }
 
     var availabilityKey: String { DefaultsKey.featureAvailable(rawValue) }
 
-    var isBeta: Bool { self == .fanControl || self == .killProcess }
+    var isBeta: Bool { self == .killProcess }
 
     /// Availability read straight from defaults. Existing features stay
     /// available on update; explicit beta opt-ins may start unavailable.
@@ -284,8 +277,7 @@ extension AppFeature {
              .quickLauncher, .quickToggles, .colorPicker, .screenOCR, .cleaningMode, .mediaTools,
              .cleaner, .uninstaller, .homebrew, .appUpdates, .screenshot, .cameraPreview, .scratchpad,
              .commandBar, .screenRecorder, .wallpaper, .killProcess, .portManager,
-             .monitorCPU, .monitorGPU, .monitorMemory, .monitorNetwork, .monitorDisk, .monitorPower,
-             .connectedDevices, .fanControl:
+             .monitorPower:
             return []
         }
     }
@@ -376,11 +368,10 @@ extension AppFeature {
         case .diskImageInstaller: return [.appManagement]
         case .mixer: return [.audioCapture, .accessibility]
         case .musicBlock: return [.accessibility]
-        case .monitorCPU, .monitorMemory, .monitorDisk, .monitorPower: return [.notifications]
         case .clipboardHistory, .shelf, .urlCleaner,
              .soundOutputSwitcher, .audioPriority,
              .quickLauncher, .colorPicker, .micMute, .mediaTools,
-             .scratchpad, .wallpaper, .monitorGPU, .monitorNetwork, .connectedDevices, .fanControl, .killProcess,
+             .scratchpad, .wallpaper, .monitorPower, .killProcess,
              .portManager:
             return []
         }
@@ -475,11 +466,10 @@ extension AppFeature {
              .scratchpad, .commandBar, .screenRecorder,
              .notch, .notchCalendar, .notchNotifications, .notchGestures, .notchTimer, .notchAccessories,
              .notchLyrics, .notchQueue, .spotifyQueue, .notchLiveEqualizer, .notchDownloads, .notchAgents, .notchWatch,
-             .monitorCPU, .monitorGPU, .monitorMemory, .monitorNetwork, .monitorDisk, .monitorPower,
-             .connectedDevices:
+             .monitorPower:
             return true
         case .focusFollowsMouse, .scrollHorizontal, .linearScroll, .diskImageInstaller, .audioPriority,
-             .wallpaper, .killProcess, .portManager, .fanControl, .notchMascot, .spacesOrder, .menuBarTidy:
+             .wallpaper, .killProcess, .portManager, .notchMascot, .spacesOrder, .menuBarTidy:
             return false
         }
     }
@@ -542,15 +532,6 @@ extension AppFeature {
                 return boolFor(DefaultsKey.brightnessKeysEnabled)
                     || boolFor(DefaultsKey.brightnessOSDEnabled)
                     || BrightnessSupport.KeyStep.sanitized(stringFor(DefaultsKey.brightnessKeyStep)) != .standard
-            case (.monitorCPU, .notifications):
-                return boolFor(DefaultsKey.monitorAlertCPU) || boolFor(DefaultsKey.monitorAlertCPUTemperature)
-            case (.monitorMemory, .notifications):
-                return boolFor(DefaultsKey.monitorAlertMemory)
-            case (.monitorDisk, .notifications):
-                return boolFor(DefaultsKey.monitorAlertDisk)
-            case (.monitorPower, .notifications):
-                return boolFor(DefaultsKey.monitorAlertBattery)
-                    || boolFor(DefaultsKey.monitorAlertBatteryTemperature)
             case (.appUpdates, .notifications):
                 return AppUpdatesSupport.CheckFrequency
                     .sanitized(stringFor(DefaultsKey.appUpdatesCheckFrequency)) != .off
@@ -576,22 +557,6 @@ extension AppFeature {
                 return true
             }
         }
-    }
-
-    /// Monitor alert keys and the metric feature each one belongs to. An
-    /// alert only counts while its metric is available in the hub.
-    static let monitorAlertPairs: [(key: String, feature: AppFeature)] = [
-        (DefaultsKey.monitorAlertCPU, .monitorCPU),
-        (DefaultsKey.monitorAlertCPUTemperature, .monitorCPU),
-        (DefaultsKey.monitorAlertBatteryTemperature, .monitorPower),
-        (DefaultsKey.monitorAlertMemory, .monitorMemory),
-        (DefaultsKey.monitorAlertDisk, .monitorDisk),
-        (DefaultsKey.monitorAlertBattery, .monitorPower),
-    ]
-
-    static func anyMonitorAlertEnabled(isAvailable: (AppFeature) -> Bool,
-                                       boolFor: (String) -> Bool) -> Bool {
-        monitorAlertPairs.contains { boolFor($0.key) && isAvailable($0.feature) }
     }
 
     /// Runtime convenience over the injectable core.

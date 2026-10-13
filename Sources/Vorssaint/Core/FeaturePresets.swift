@@ -30,15 +30,13 @@ enum FeaturePreset: String, CaseIterable, Identifiable {
     var features: Set<AppFeature> {
         switch self {
         case .essential:
-            return [.mixer, .keepAwake,
-                    .monitorCPU, .monitorGPU, .monitorMemory,
-                    .monitorNetwork, .monitorDisk, .monitorPower]
+            return [.mixer, .keepAwake, .monitorPower]
         case .windows:
             return [.switcher, .windowLayout, .dockPreview, .dockClick, .windowMaximizer]
         case .battery:
-            // The lean monitor: battery, memory pressure and the processor,
-            // with nothing that listens to input events.
-            return [.monitorCPU, .monitorMemory, .monitorPower]
+            // The lean monitor: battery, with nothing that listens to input
+            // events. The processor and memory metrics are parked in Legacy.
+            return [.monitorPower]
         }
     }
 
@@ -131,8 +129,7 @@ extension AppFeature {
         // limits current while the section is on.
         case .notch, .notchCalendar, .notchLyrics, .notchLiveEqualizer, .notchAgents: return .periodic
         case .clipboardHistory, .urlCleaner,
-             .monitorCPU, .monitorGPU, .monitorMemory,
-             .monitorNetwork, .monitorDisk, .monitorPower, .connectedDevices:
+             .monitorPower:
             return .periodic
         case .mixer:
             return UserDefaults.standard.bool(forKey: DefaultsKey.preciseVolumeRollerEnabled)
@@ -150,7 +147,7 @@ extension AppFeature {
         case .mouseAcceleration, .spacesOrder, .pastePlain, .soundOutputSwitcher, .audioPriority, .micMute,
              .keepAwake, .quickLauncher, .quickToggles, .colorPicker,
              .screenOCR, .cleaningMode, .mediaTools, .cleaner, .uninstaller, .homebrew, .screenshot,
-             .cameraPreview, .scratchpad, .commandBar, .screenRecorder, .wallpaper, .fanControl,
+             .cameraPreview, .scratchpad, .commandBar, .screenRecorder, .wallpaper,
              .diskImageInstaller, .killProcess, .portManager:
             return .idle
         case .appUpdates:
