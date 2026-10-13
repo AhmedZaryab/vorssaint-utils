@@ -304,14 +304,14 @@ enum FeatureCatalogTests {
 
         // MARK: Features hub catalog
 
-        suite.expect(AppFeature.allCases.count == 58, "feature catalog has 58 features")
+        suite.expect(AppFeature.allCases.count == 56, "feature catalog has 56 features")
         suite.expect(Set(AppFeature.allCases.map(\.rawValue)).count == AppFeature.allCases.count,
                "feature ids are unique")
         suite.expect(AppFeature.allCases.map(\.rawValue) == [
             "switcher", "dockPreview", "dockClick", "windowMaximizer", "windowLayout", "autoQuit",
             "scrollInverter", "scrollHorizontal", "focusFollowsMouse", "linearScroll", "mouseAcceleration", "mouseNavigation", "mouseButtonShortcuts", "middleClick",
             "mouseClickDebounce", "textSnippets",
-            "clipboardHistory", "pastePlain", "finderCutPaste", "finderRename", "shelf",
+            "clipboardHistory", "pastePlain", "shelf",
             "mixer", "micMute",
             "keepAwake", "brightness",
             "quickLauncher", "quickToggles", "colorPicker", "screenOCR", "cleaningMode", "mediaTools",
@@ -481,7 +481,7 @@ enum FeatureCatalogTests {
             "switcher", "dockPreview", "dockClick", "windowMaximizer", "windowLayout", "autoQuit",
             "scrollInverter", "mouseAcceleration", "mouseNavigation", "mouseButtonShortcuts",
             "middleClick", "mouseClickDebounce", "textSnippets",
-            "clipboardHistory", "pastePlain", "finderCutPaste", "finderRename", "shelf",
+            "clipboardHistory", "pastePlain", "shelf",
             "mixer", "micMute",
             "keepAwake", "brightness",
             "quickLauncher", "quickToggles", "colorPicker", "screenOCR", "cleaningMode", "mediaTools",
@@ -775,8 +775,6 @@ enum FeatureCatalogTests {
                 && AppFeature.mouseClickDebounce.permissions == [.accessibility]
                 && AppFeature.mouseClickDebounce.group == .mouseKeyboard,
                "mouse click debounce reports its switch, permission and feature group")
-        suite.expect(activeSet(.accessibility, on: [DefaultsKey.finderRenameEnabled]).contains(.finderRename),
-               "the enabled Finder rename shortcut uses accessibility")
         suite.expect(!activeSet(.accessibility, available: [], on: [DefaultsKey.scrollInverterEnabled])
                 .contains(.scrollInverter),
                "an unavailable feature never uses a permission")
@@ -840,12 +838,6 @@ enum FeatureCatalogTests {
         suite.expect(activeSet(.filesAndFolders) == [],
                "WhatsApp Downloads folder access stays unused until that cleaner is turned on")
 
-        suite.expect(activeSet(.automationFinder, on: [DefaultsKey.finderCutPasteEnabled])
-                == [.finderCutPaste, .uninstaller, .quickToggles],
-               "finder automation is used by cut and paste, the uninstaller and the quick toggles")
-        suite.expect(activeSet(.automationFinder, on: [DefaultsKey.finderPasteImageAsFile])
-                == [.finderCutPaste, .uninstaller, .quickToggles],
-               "pasting copied images as files engages the shared Finder feature")
         suite.expect(AppFeature.quickToggles.permissions == [.automationFinder],
                "the quick toggles need no permission beyond the Trash's Finder ask")
         suite.expect(activeSet(.automationTerminal) == [.homebrew], "homebrew drives the Terminal")
@@ -1127,7 +1119,6 @@ enum FeatureCatalogTests {
                 && AppFeature.dockPreview.energyProfile == .mouse
                 && AppFeature.mouseClickDebounce.energyProfile == .mouse
                 && AppFeature.switcher.energyProfile == .inputs
-                && AppFeature.finderRename.energyProfile == .keyboard
                 && AppFeature.colorPicker.energyProfile == .idle
                 && AppFeature.keepAwake.energyProfile == .idle
                 && AppFeature.scratchpad.energyProfile == .idle,
@@ -1275,14 +1266,8 @@ enum FeatureCatalogTests {
                "app pages never hide")
         suite.expect(!pageVisible(.shelf, available: allFeatures.subtracting([.shelf])),
                "single-feature pages follow their feature")
-        suite.expect(pageVisible(.cutPaste, available: [.finderRename])
-                && pageVisible(.cutPaste, available: [.finderCutPaste])
-                && !pageVisible(.cutPaste, available: []),
-               "either Finder shortcut keeps their shared page visible")
         suite.expect(pageVisible(.quickTools, available: [.quickToggles]),
                "the quick toggles alone keep the quick tools page")
-        suite.expect(pageVisible(.clipboard, available: [.finderCutPaste]),
-               "the image paste option keeps the Clipboard page available")
         suite.expect(AppFeature.allCases.allSatisfy { feature in
             let destination = feature.settingsDestination
             let gate = FeatureVisibilitySupport.features(for: destination.page)

@@ -8,7 +8,7 @@ import Foundation
 /// below and the unit tests can reason about pages without pulling UI in.
 enum SettingsPage: Hashable {
     case general, features, energy
-    case mouse, switcher, dock, cutPaste, autoQuit, uninstaller, homebrew, appUpdates, media, clipboard, windowLayout, shelf, quickTools, textSnippets, screenshot, radialMenu, commandBar, killProcess, portManager, notch, notchMascot
+    case mouse, switcher, dock, autoQuit, uninstaller, homebrew, appUpdates, media, clipboard, windowLayout, shelf, quickTools, textSnippets, screenshot, radialMenu, commandBar, killProcess, portManager, notch, notchMascot
     case shortcuts, advanced, about, releaseNotes, support
 }
 
@@ -31,8 +31,6 @@ enum SettingsSectionAnchor: String, CaseIterable, Hashable {
     case switcher
     case dock
     case dockClick
-    case finderCutPaste
-    case finderRename
     case clipboardHistory
     case pastePlain
     case quickLauncher
@@ -59,7 +57,6 @@ enum SettingsSectionAnchor: String, CaseIterable, Hashable {
             return .mouse
         case .switcher: return .switcher
         case .dock, .dockClick: return .dock
-        case .finderCutPaste, .finderRename: return .cutPaste
         case .clipboardHistory, .pastePlain: return .clipboard
         case .quickLauncher, .quickToggles, .micMute, .cameraPreview, .scratchpad, .cleaningMode,
              .menuBarTidy:
@@ -300,10 +297,6 @@ extension AppFeature {
             return FeatureSettingsDestination(.clipboard, sectionAnchor: .clipboardHistory)
         case .pastePlain:
             return FeatureSettingsDestination(.clipboard, sectionAnchor: .pastePlain)
-        case .finderCutPaste:
-            return FeatureSettingsDestination(.cutPaste, sectionAnchor: .finderCutPaste)
-        case .finderRename:
-            return FeatureSettingsDestination(.cutPaste, sectionAnchor: .finderRename)
         case .shelf: return FeatureSettingsDestination(.shelf)
 
         case .mixer:
@@ -369,8 +362,7 @@ enum FeatureVisibilitySupport {
         case .dock: return [.dockPreview, .dockClick]
         case .windowLayout: return [.windowLayout, .windowMaximizer]
         case .autoQuit: return [.autoQuit]
-        case .clipboard: return [.clipboardHistory, .pastePlain, .finderCutPaste]
-        case .cutPaste: return [.finderCutPaste, .finderRename]
+        case .clipboard: return [.clipboardHistory, .pastePlain]
         case .shelf: return [.shelf]
         case .media: return [.mediaTools]
         case .quickTools: return [.quickLauncher, .quickToggles, .micMute,

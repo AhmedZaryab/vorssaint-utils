@@ -139,11 +139,6 @@ enum DefaultsKey {
     // Audio device priority: ordered output and microphone lists the feature
     // enforces automatically when its enable flags are on.
     static let preferredInputDevice = "preferredInputDevice" // audio input device UID
-    static let finderCutPasteEnabled = "finderCutPasteEnabled"
-    static let finderCutPasteShowHUD = "finderCutPasteShowHUD"
-    static let finderRenameEnabled = "finderRenameEnabled"
-    static let finderRenameShortcut = "finderRenameShortcut"
-    static let finderPasteImageAsFile = "finderPasteImageAsFile"
     static let autoQuitEnabled = "autoQuitEnabled"
     static let autoQuitExceptions = "autoQuitExceptions"  // [bundle id] kept running
     // Quit/close protection: each shortcut owns its full configuration and app list.
@@ -261,7 +256,6 @@ enum DefaultsKey {
     static let panelControlMouseNavigation = "panelControlMouseNavigation"
     static let panelControlSwitcher = "panelControlSwitcher"
     static let panelControlDockPreview = "panelControlDockPreview"
-    static let panelControlCutPaste = "panelControlCutPaste"
     static let panelControlAutoQuit = "panelControlAutoQuit"
     static let panelControlShelf = "panelControlShelf"
     static let panelControlWindowMaximize = "panelControlWindowMaximize"
@@ -1287,7 +1281,6 @@ enum Defaults {
         DefaultsKey.panelControlMouseNavigation: true,
         DefaultsKey.panelControlSwitcher: true,
         DefaultsKey.panelControlDockPreview: true,
-        DefaultsKey.panelControlCutPaste: true,
         DefaultsKey.panelControlAutoQuit: true,
         DefaultsKey.panelControlShelf: true,
         DefaultsKey.panelControlWindowMaximize: true,
@@ -1386,15 +1379,11 @@ enum Defaults {
         DefaultsKey.clipboardAutoClearOnSleep: false,
         DefaultsKey.clipboardAutoClearOnDisplaySleep: false,
         DefaultsKey.clipboardAutoClearOnScreenLock: false,
-        DefaultsKey.finderCutPasteShowHUD: true,
-        DefaultsKey.finderPasteImageAsFile: false,
         DefaultsKey.windowPreviewExcludedApps: [String](),
         DefaultsKey.switcherPreviewExcludedApps: [String](),
         DefaultsKey.diskEjectExcludedVolumes: [String](),
         DefaultsKey.pastePlainEnabled: false,
         DefaultsKey.pastePlainShortcut: GlobalShortcut.pastePlainDefault.storageValue,
-        DefaultsKey.finderRenameEnabled: false,
-        DefaultsKey.finderRenameShortcut: GlobalShortcut.finderRenameDefault.storageValue,
         DefaultsKey.colorPickerShortcutEnabled: false,
         DefaultsKey.colorPickerShortcut: GlobalShortcut.colorPickerDefault.storageValue,
         DefaultsKey.colorPickerFormat: "hex",

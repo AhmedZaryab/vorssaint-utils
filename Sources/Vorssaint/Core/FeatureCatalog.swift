@@ -19,7 +19,7 @@ enum AppFeature: String, CaseIterable {
     case scrollInverter, scrollHorizontal, focusFollowsMouse, linearScroll, mouseAcceleration, mouseNavigation, mouseButtonShortcuts, middleClick,
          mouseClickDebounce, textSnippets
     // Clipboard and files
-    case clipboardHistory, pastePlain, finderCutPaste, finderRename, shelf
+    case clipboardHistory, pastePlain, shelf
     // Sound
     case mixer, micMute
     // Energy and display
@@ -106,7 +106,7 @@ extension AppFeature {
         case .scrollInverter, .scrollHorizontal, .focusFollowsMouse, .linearScroll, .mouseAcceleration, .mouseNavigation, .mouseButtonShortcuts, .middleClick,
              .textSnippets, .mouseClickDebounce:
             return .mouseKeyboard
-        case .clipboardHistory, .pastePlain, .finderCutPaste, .finderRename, .shelf:
+        case .clipboardHistory, .pastePlain, .shelf:
             return .clipboardFiles
         case .mixer, .micMute:
             return .sound
@@ -145,8 +145,6 @@ extension AppFeature {
         case .mouseClickDebounce: return "cursorarrow.click"
         case .clipboardHistory: return "doc.on.clipboard"
         case .pastePlain: return "doc.plaintext"
-        case .finderCutPaste: return "scissors"
-        case .finderRename: return "pencil"
         case .shelf: return "tray.full"
         case .mixer: return "speaker.wave.2"
         case .micMute: return "mic.slash"
@@ -245,9 +243,6 @@ extension AppFeature {
         case .radialMenu: return [DefaultsKey.radialMenuEnabled]
         case .clipboardHistory: return [DefaultsKey.clipboardHistoryEnabled]
         case .pastePlain: return [DefaultsKey.pastePlainEnabled]
-        case .finderCutPaste: return [DefaultsKey.finderCutPasteEnabled,
-                                      DefaultsKey.finderPasteImageAsFile]
-        case .finderRename: return [DefaultsKey.finderRenameEnabled]
         case .shelf: return [DefaultsKey.shelfEnabled]
         case .brightness: return [DefaultsKey.brightnessControlEnabled]
         case .windowLayout, .mixer, .micMute, .keepAwake,
@@ -321,8 +316,6 @@ extension AppFeature {
              // caret, all of it through Accessibility.
              .commandBar:
             return [.accessibility]
-        case .finderCutPaste: return [.accessibility, .automationFinder]
-        case .finderRename: return [.accessibility]
         // Only emptying the Trash asks the Finder; every other quick toggle
         // (dark mode included) works without a permission.
         case .quickToggles: return [.automationFinder]
@@ -394,7 +387,6 @@ extension AppFeature {
         .dockPreview, .dockClick, .windowMaximizer, .autoQuit,
         .scrollInverter, .linearScroll, .focusFollowsMouse, .mouseAcceleration, .mouseNavigation,
         .mouseButtonShortcuts, .middleClick, .mouseClickDebounce,
-        .finderCutPaste,
     ]
 
     /// Installed features from that list whose switches are off and were never
@@ -430,7 +422,7 @@ extension AppFeature {
         case .switcher, .dockPreview, .dockClick, .windowMaximizer, .windowLayout, .autoQuit,
              .scrollInverter, .mouseAcceleration, .mouseNavigation, .mouseButtonShortcuts,
              .middleClick, .mouseClickDebounce, .textSnippets,
-             .clipboardHistory, .pastePlain, .finderCutPaste, .finderRename, .shelf,
+             .clipboardHistory, .pastePlain, .shelf,
              .mixer, .micMute,
              .keepAwake, .brightness,
              .quickLauncher, .quickToggles, .colorPicker, .screenOCR, .cleaningMode, .mediaTools,

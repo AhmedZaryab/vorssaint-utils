@@ -2032,12 +2032,6 @@ enum SwitcherModelFeatureTests {
         suite.expect(registeredDefaults[DefaultsKey.clipboardHistoryShortcut] as? String
                == GlobalShortcut.clipboardDefault.storageValue,
                "clipboard history shortcut defaults to Ctrl+Opt+Cmd+V")
-        suite.expect(registeredDefaults[DefaultsKey.finderCutPasteShowHUD] as? Bool == true,
-               "the Finder cut and paste floating panel starts enabled")
-        suite.expect(registeredDefaults[DefaultsKey.finderRenameEnabled] as? Bool == false,
-               "the Finder rename shortcut is opt-in")
-        suite.expect(registeredDefaults[DefaultsKey.finderRenameShortcut] as? String == ":120",
-               "the Finder rename shortcut starts on bare F2")
         suite.expect(GlobalShortcut(keyCode: Int64(kVK_ANSI_V), modifiers: [.command])
                    .isStandardPasteCommand,
                "Cmd+V is recognized when plain-text paste must release its own hotkey")
@@ -2089,8 +2083,6 @@ enum SwitcherModelFeatureTests {
                "panel Dock Preview control is visible by default")
         suite.expect(registeredDefaults[DefaultsKey.panelControlDockClickHide] as? Bool == true,
                "panel Dock hide control is visible by default")
-        suite.expect(registeredDefaults[DefaultsKey.panelControlCutPaste] as? Bool == true,
-               "panel cut and paste control is visible by default")
         suite.expect(registeredDefaults[DefaultsKey.colorPickerBareHex] as? Bool == false,
                "color picker keeps the # prefix by default")
         suite.expect(registeredDefaults[DefaultsKey.screenOCRRemoveLineBreaks] as? Bool == false,
@@ -5673,7 +5665,7 @@ enum SwitcherModelFeatureTests {
                                                                  takenOver: true, current: areaShot) == .save(clearTakeOver: true),
                "a taken-over row re-records its own key silently, is asked again for any other macOS key or when no key is recorded, and forgets the take-over when it leaves macOS keys")
         suite.expect(GlobalShortcutRole.allCases.filter { !$0.supportsTakeOver } == [.switcher, .switcherWindow, .radialMenu]
-               && GlobalShortcutRole.keepAwake.supportsTakeOver && GlobalShortcutRole.finderRename.supportsTakeOver,
+               && GlobalShortcutRole.keepAwake.supportsTakeOver && GlobalShortcutRole.pastePlain.supportsTakeOver,
                "only the rows whose key a feature claims may offer to take a macOS shortcut over")
         suite.expect(SettingsBackupSupport.exportKeys().contains(DefaultsKey.systemShortcutTakeOverKeys)
                && registeredDefaults[DefaultsKey.systemShortcutTakeOverKeys] == nil,
