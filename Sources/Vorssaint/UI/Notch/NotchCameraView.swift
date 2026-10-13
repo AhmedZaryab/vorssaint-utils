@@ -32,6 +32,11 @@ struct NotchCameraView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        // Fork change: opening the camera page starts the mirror at once, so
+        // there is no second "Open camera" click. The page's Open camera
+        // button stays as the way back in after Stop. macOS still shows its
+        // own one-time permission prompt through beginCapture().
+        .onAppear { service.showEmbedded() }
         .onDisappear { service.hideEmbedded() }
     }
 }
