@@ -1881,13 +1881,11 @@ enum RepositoryFeatureTests {
                 && selfUninstallSource.contains("adminPromptRecover")
                 && selfUninstallSource.contains("verification.status == 0"),
                "in-app uninstall aborts unless fans and normal sleep are restored before removal")
-        suite.expect(uninstallerSource.contains("SpacesOrderHold.restoreForRemoval()"),
-               "script uninstall puts back the Space rearranging setting before the preferences are deleted")
         suite.expect(uninstallScriptSource.contains("SleepDisabled"),
                "script uninstall reads the sleep setting back for itself")
         suite.expect(uninstallScriptSource.contains("spaces_read_domain \"$BUNDLE\"")
-                && uninstallScriptSource.contains("spaces_recovery_value \"$spaces_snapshot\" \(DefaultsKey.spacesOrderRestore)")
-                && uninstallScriptSource.contains("spaces_recovery_value \"$spaces_snapshot\" \(DefaultsKey.spacesOrderRestartPending)")
+                && uninstallScriptSource.contains("spaces_recovery_value \"$spaces_snapshot\" spacesOrderRestore")
+                && uninstallScriptSource.contains("spaces_recovery_value \"$spaces_snapshot\" spacesOrderRestartPending")
                 && uninstallScriptSource.contains("spaces_read_domain com.apple.dock")
                 && uninstallScriptSource.contains("spaces_stuck == 0")
                 && uninstallScriptSource.contains("spaces_unloaded == 0")
