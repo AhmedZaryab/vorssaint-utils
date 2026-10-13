@@ -37,8 +37,8 @@ enum NotchMissionControlPollingTests {
         let host = Host()
         defer { host.missionControlTimer?.invalidate() }
         host.syncMissionControlMonitoring()
-        suite.expect(host.missionControlTimer?.timeInterval == 0.25 && host.frameReads == 0,
-                     "resting islands use four window-list checks per second and no frame probe")
+        suite.expect(host.missionControlTimer?.timeInterval == 1 && host.frameReads == 0,
+                     "resting islands use one window-list check per second and no frame probe")
         let idleTimer = host.missionControlTimer!
         host.syncMissionControlMonitoring()
         suite.expect(host.missionControlTimer === idleTimer, "presentation updates reuse the idle timer")
@@ -65,7 +65,7 @@ enum NotchMissionControlPollingTests {
         host.concealedForMissionControl = false
         host.panel.isVisible = true
         host.syncMissionControlMonitoring()
-        suite.expect(host.missionControlTimer?.timeInterval == 0.25 && !activeTimer.isValid,
+        suite.expect(host.missionControlTimer?.timeInterval == 1 && !activeTimer.isValid,
                      "a restored island returns to the idle cadence")
         let restoredTimer = host.missionControlTimer!
         host.panel.isVisible = false

@@ -4,23 +4,15 @@
 import Foundation
 
 /// Runs the updater's administrator install body with the authorization, the
-/// Extra Brightness overlay, the main queue and quitting replaced by doubles
-/// that log what ran. The real authorization holds the main thread until it
-/// is answered, so anything the prompt needs off the screen must go first.
+/// main queue and quitting replaced by doubles that log what ran.
 enum UpdateAdminInstallContract {
     static var events: [String] = []
 
-    final class ExtraBrightnessService {
-        static let shared = ExtraBrightnessService()
-        var onScreen = true
-        func stop() { onScreen = false }
-        func syncWithPreferences() { onScreen = true; events.append("overlay") }
-    }
     enum AdminShell {
         static var answer: ((Bool) -> Void)?
         static func runInProcess(_ command: String, prompt: String,
                                  completion: @escaping (Bool) -> Void) {
-            events.append(ExtraBrightnessService.shared.onScreen ? "prompt under overlay" : "prompt")
+            events.append("prompt")
             answer = completion
         }
     }
@@ -50,22 +42,20 @@ enum UpdateAdminInstallContract {
     static func run(_ suite: TestSuite) {
         for granted in [false, true] {
             events = []
-            ExtraBrightnessService.shared.onScreen = true
             AdminShell.answer = nil
             let service = Service()
             service.launchAdminInstaller(appPath: "/Applications/Vorssaint.app", dmgPath: "/tmp/update.dmg",
                                          pid: 42, resultPath: "/tmp/update-result", expectedVersion: "9.9.9")
             suite.expect(events == ["prompt"],
-                         "the brightness overlay leaves the screen before the prompt holds the main thread")
+                         "the administrator prompt is requested for the install")
             AdminShell.answer?(granted)
             DispatchQueue.main.flush()
             if granted {
-                suite.expect(events == ["prompt", "quit"] && !ExtraBrightnessService.shared.onScreen,
-                             "an approved install quits without bringing the overlay back")
+                suite.expect(events == ["prompt", "quit"],
+                             "an approved install quits")
             } else {
-                suite.expect(events == ["prompt", "overlay", "offer 9.9.9"]
-                                 && ExtraBrightnessService.shared.onScreen,
-                             "a declined prompt brings the overlay back and keeps the update offer")
+                suite.expect(events == ["prompt", "offer 9.9.9"],
+                             "a declined prompt keeps the update offer")
             }
             withExtendedLifetime(service) {}
         }

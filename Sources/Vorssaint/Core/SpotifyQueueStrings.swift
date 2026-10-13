@@ -40,7 +40,7 @@ struct SpotifyQueueStrings {
 
     static let current = SpotifyQueueStrings(
         featureTitle: "Spotify up next",
-        featureDescription: "Show Spotify's real queue on the music page, play a queued song now, or add one.",
+        featureDescription: "Show Spotify’s real queue on the music page, play a queued song now, or add one.",
         connect: "Connect Spotify",
         connecting: "Waiting for Spotify in your browser…",
         disconnect: "Disconnect",
