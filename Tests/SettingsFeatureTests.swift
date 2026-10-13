@@ -279,18 +279,9 @@ enum SettingsFeatureTests {
         suite.expect(Defaults.registeredDefaults[DefaultsKey.finderPasteImageAsFile] as? Bool == false
                 && backupKeys.contains(DefaultsKey.finderPasteImageAsFile),
                "pasting copied images as files is opt-in and travels with settings backup")
-        suite.expect(Defaults.registeredDefaults[
-            DefaultsKey.diskImageInstallerUseUserApplications] as? Bool == false
-                && backupKeys.contains(DefaultsKey.diskImageInstallerUseUserApplications),
-               "installing disk-image apps for the current user is opt-in and travels with settings backup")
         suite.expect(Defaults.registeredDefaults[DefaultsKey.finderCutPasteShowHUD] as? Bool == true
                 && backupKeys.contains(DefaultsKey.finderCutPasteShowHUD),
                "the Finder cut and paste floating panel default is on and travels with settings backup")
-        suite.expect(Defaults.registeredDefaults[DefaultsKey.diskImageInstallerTrashesDownload] as? Bool == true
-                && Defaults.registeredDefaults[DefaultsKey.diskImageInstallerRevealsApp] as? Bool == false
-                && backupKeys.contains(DefaultsKey.diskImageInstallerTrashesDownload)
-                && backupKeys.contains(DefaultsKey.diskImageInstallerRevealsApp),
-               "the disk image installer keeps trashing downloads by default, reveals apps only on request and both choices travel with settings backup")
         suite.expect(backupKeys.contains(DefaultsKey.windowPreviewExcludedApps)
                 && (Defaults.registeredDefaults[DefaultsKey.windowPreviewExcludedApps] as? [String]) == [],
                "the window preview exclusion list starts empty and travels with the settings backup")
