@@ -63,7 +63,7 @@ enum PanelSectionID: String, CaseIterable, Identifiable, Hashable {
         case .keepAwake: return [.keepAwake]
         case .brightness: return [.brightness]
         case .mixer: return [.mixer]
-        case .utilities: return [.quickLauncher, .homebrew, .appUpdates, .mediaTools,
+        case .utilities: return [.quickLauncher, .appUpdates, .mediaTools,
                                  .clipboardHistory,
                                  .windowLayout, .uninstaller, .cleaningMode, .screenOCR,
                                  .colorPicker, .screenshot, .screenRecorder,

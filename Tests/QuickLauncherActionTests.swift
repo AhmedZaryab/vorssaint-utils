@@ -102,7 +102,6 @@ enum QuickLauncherContract {
             (.clipboard, .clipboardHistory, "clipboard.showHistoryWindow", 0.1),
             (.cleaning, .cleaningMode, "cleaning.activate", 0.1),
             (.windowLayout, .windowLayout, nil, nil),
-            (.homebrew, .homebrew, nil, nil),
             (.media, .mediaTools, nil, nil),
             (.uninstaller, .uninstaller, nil, nil),
             (.toggles, .quickToggles, nil, nil),
@@ -173,7 +172,7 @@ enum QuickLauncherContract {
         let enter = NSEvent(keyCode: UInt16(kVK_Return))
         suite.expect(launcher.handlePanelKey(enter) == nil && events == ["keepAwake.toggle"],
                      "Return activates the first item immediately after presentation")
-        for item in [QuickLauncherItem.homebrew, .uninstaller, .media] {
+        for item in [QuickLauncherItem.uninstaller, .media] {
             launcher.activeUtility = item
             launcher.prepareForPresentation()
             suite.expect(launcher.activeUtility == item,
@@ -208,7 +207,7 @@ enum QuickLauncherContract {
         window.firstResponder = field
         let escape = NSEvent(keyCode: UInt16(kVK_Escape), window: window)
         let steps: [(name: String, open: (Launcher) -> Void, closed: (Launcher) -> Bool)] = [
-            ("the hosted utility", { $0.activeUtility = .homebrew }, { $0.activeUtility == nil }),
+            ("the hosted utility", { $0.activeUtility = .media }, { $0.activeUtility == nil }),
             ("the options card", { $0.isEditing = true; $0.editingOptionsItem = .clipboard },
              { $0.editingOptionsItem == nil && $0.isEditing }),
             ("edit mode", { $0.isEditing = true }, { !$0.isEditing }),

@@ -315,7 +315,7 @@ enum FeatureCatalogTests {
             "mixer", "micMute",
             "keepAwake", "brightness",
             "quickLauncher", "quickToggles", "colorPicker", "screenOCR", "cleaningMode", "mediaTools",
-            "uninstaller", "homebrew", "appUpdates", "screenshot", "cameraPreview",
+            "uninstaller", "appUpdates", "screenshot", "cameraPreview",
             "radialMenu", "scratchpad", "commandBar", "screenRecorder", "killProcess", "portManager", "menuBarTidy", "notch", "notchCalendar", "notchNotifications", "notchGestures", "notchTimer", "notchAccessories", "notchLyrics", "notchQueue", "spotifyQueue", "notchLiveEqualizer", "notchDownloads", "notchAgents", "notchWatch", "notchMascot",
             "monitorPower",
         ], "feature ids are stable (they persist inside availability keys)")
@@ -485,7 +485,7 @@ enum FeatureCatalogTests {
             "mixer", "micMute",
             "keepAwake", "brightness",
             "quickLauncher", "quickToggles", "colorPicker", "screenOCR", "cleaningMode", "mediaTools",
-            "uninstaller", "homebrew", "appUpdates", "screenshot", "cameraPreview", "radialMenu",
+            "uninstaller", "appUpdates", "screenshot", "cameraPreview", "radialMenu",
             "scratchpad", "commandBar", "screenRecorder",
             "notch", "notchCalendar", "notchNotifications", "notchGestures", "notchTimer", "notchAccessories",
             "notchLyrics", "notchQueue", "spotifyQueue", "notchLiveEqualizer", "notchDownloads", "notchAgents", "notchWatch",
@@ -840,11 +840,8 @@ enum FeatureCatalogTests {
 
         suite.expect(AppFeature.quickToggles.permissions == [.automationFinder],
                "the quick toggles need no permission beyond the Trash's Finder ask")
-        suite.expect(activeSet(.automationTerminal) == [.homebrew], "homebrew drives the Terminal")
-        suite.expect(activeSet(.appManagement) == [.homebrew, .appUpdates],
+        suite.expect(activeSet(.appManagement) == [.appUpdates],
                "package and update installs declare App Management access")
-        suite.expect(AppFeature.homebrew.permissions == [.automationTerminal, .appManagement],
-               "the package manager declares both permissions used by its operations")
         suite.expect(activeSet(.audioCapture) == [.mixer], "the mixer is the only audio capture user")
         suite.expect(activeSet(.audioCapture, available: Set(AppFeature.allCases).subtracting([.mixer])) == [],
                "audio capture reads as unused once the mixer is off in the hub")
@@ -1358,12 +1355,12 @@ enum FeatureCatalogTests {
                "a handled Settings destination request is cleared")
 
         let featuresDestination = FeatureSettingsDestination(.features)
-        settingsRouter.request(featuresDestination, targetFeature: .homebrew)
+        settingsRouter.request(featuresDestination, targetFeature: .uninstaller)
         let firstFeatureTargetRequestID = settingsRouter.requestID
         suite.expect(settingsRouter.pendingFeatureTarget?.id == firstFeatureTargetRequestID
-                && settingsRouter.pendingFeatureTarget?.feature == .homebrew,
+                && settingsRouter.pendingFeatureTarget?.feature == .uninstaller,
                "requesting Features with a target feature publishes a matching feature-target request")
-        settingsRouter.request(featuresDestination, targetFeature: .homebrew)
+        settingsRouter.request(featuresDestination, targetFeature: .uninstaller)
         let secondFeatureTargetRequestID = settingsRouter.requestID
         suite.expect(secondFeatureTargetRequestID != firstFeatureTargetRequestID
                 && settingsRouter.pendingFeatureTarget?.id == secondFeatureTargetRequestID,
@@ -1435,7 +1432,7 @@ enum FeatureCatalogTests {
                 && historyRouter.requestID == branchedHistoryRequestID,
                "a new sidebar visit after Back discards forward history")
         historyRouter.goBack()
-        historyRouter.request(FeatureSettingsDestination(.features), targetFeature: .homebrew)
+        historyRouter.request(FeatureSettingsDestination(.features), targetFeature: .uninstaller)
         historyRouter.goForward()
         suite.expect(historyRouter.page == .features,
                "a destination request after Back also discards forward history")
