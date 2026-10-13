@@ -315,7 +315,6 @@ enum SettingsDirectory {
                                                  FeatureStrings.appUpdates(language).frequencyLabel,
                                                  FeatureStrings.appUpdates(language).appStoreBadge,
                                                  s.homebrewName]),
-                SettingsDirectoryItem(page: .homebrew, title: s.homebrewName, icon: "shippingbox"),
                 SettingsDirectoryItem(page: .uninstaller, title: s.uninstallerName, icon: "trash"),
                 SettingsDirectoryItem(page: .killProcess,
                                       title: FeatureStrings.killProcess(language).pageTitle,

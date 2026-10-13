@@ -436,7 +436,7 @@ enum UpdateFeatureTests {
         }, "search finds keyboard brightness shortcuts by their sidebar name in every language")
 
         let settingsFeatureTitles: [AppFeature: String] = [
-            .homebrew: "Homebrew",
+            .uninstaller: "Homebrew",
             .cameraPreview: "Camera Preview",
             .screenRecorder: "Screen Recorder",
             .micMute: "Mic Mute",
@@ -445,7 +445,7 @@ enum UpdateFeatureTests {
             settingsFeatureTitles[feature] ?? feature.rawValue
         }
         let expectedFeatureSearchDestinations: [(AppFeature, FeatureSettingsDestination)] = [
-            (.homebrew, FeatureSettingsDestination(.homebrew)),
+            (.uninstaller, FeatureSettingsDestination(.uninstaller)),
             (.cameraPreview, FeatureSettingsDestination(.quickTools, sectionAnchor: .cameraPreview)),
             (.screenRecorder, FeatureSettingsDestination(.screenshot, sectionAnchor: .screenRecorder)),
             (.micMute, FeatureSettingsDestination(.quickTools, sectionAnchor: .micMute)),
@@ -483,18 +483,18 @@ enum UpdateFeatureTests {
 
         // MARK: Settings search structural deduplication
         let structuralPage = SettingsSearchItem(
-            id: .page(.homebrew), destination: FeatureSettingsDestination(.homebrew),
+            id: .page(.uninstaller), destination: FeatureSettingsDestination(.uninstaller),
             title: "Dedicated Packages Page", icon: "shippingbox", keywords: ["Formulae"])
         let structuralFeature = SettingsSearchItem(
-            id: .feature(.homebrew), destination: FeatureSettingsDestination(.homebrew),
-            title: "Generated Homebrew Feature", icon: "externaldrive", feature: .homebrew)
+            id: .feature(.uninstaller), destination: FeatureSettingsDestination(.uninstaller),
+            title: "Generated Homebrew Feature", icon: "externaldrive", feature: .uninstaller)
         let structurallyMerged = SettingsSearchSupport.combinedItems(
             pageItems: [structuralPage], featureItems: [structuralFeature])
-        suite.expect(structurallyMerged.map(\.id) == [.page(.homebrew)]
+        suite.expect(structurallyMerged.map(\.id) == [.page(.uninstaller)]
                 && structurallyMerged.first?.title == "Dedicated Packages Page"
                 && structurallyMerged.first?.icon == "shippingbox"
                 && structurallyMerged.first?.keywords == ["Formulae"]
-                && structurallyMerged.first?.feature == .homebrew,
+                && structurallyMerged.first?.feature == .uninstaller,
                "differently titled Homebrew rows merge into the stable page row")
 
         let islandPage = SettingsSearchItem(id: .page(.notch),
@@ -537,7 +537,7 @@ enum UpdateFeatureTests {
                                 destination: FeatureSettingsDestination(.features),
                                 title: "Features", icon: "square.grid.2x2",
                                 keywords: ["Homebrew", "Camera Preview"],
-                                keywordFeatures: [.homebrew, .cameraPreview]),
+                                keywordFeatures: [.uninstaller, .cameraPreview]),
             SettingsSearchItem(id: .page(.appUpdates),
                                 destination: FeatureSettingsDestination(.appUpdates),
                                 title: "App Updates", icon: "arrow.down.app",
@@ -546,36 +546,36 @@ enum UpdateFeatureTests {
                                 destination: FeatureSettingsDestination(.quickTools),
                                 title: "Quick Tools", icon: "wand.and.rays",
                                 keywords: ["Camera Preview"]),
-            SettingsSearchItem(id: .page(.homebrew),
-                                destination: FeatureSettingsDestination(.homebrew),
+            SettingsSearchItem(id: .page(.uninstaller),
+                                destination: FeatureSettingsDestination(.uninstaller),
                                 title: "Homebrew", icon: "shippingbox"),
         ]
         let combinedSettingsItems = SettingsSearchSupport.combinedItems(
             pageItems: dedicatedSettingsItems,
             featureItems: featureSearchItems)
         suite.expect(combinedSettingsItems.filter {
-            $0.title == "Homebrew" && $0.destination == FeatureSettingsDestination(.homebrew)
+            $0.title == "Homebrew" && $0.destination == FeatureSettingsDestination(.uninstaller)
         }.count == 1
-                && combinedSettingsItems.contains { $0.id == .page(.homebrew) },
+                && combinedSettingsItems.contains { $0.id == .page(.uninstaller) },
                "the explicit Homebrew page result replaces its equivalent generated result")
         suite.expect(combinedSettingsItems.filter {
             $0.destination == FeatureSettingsDestination(.appUpdates)
         }.count == 1
                 && combinedSettingsItems.contains { $0.id == .page(.appUpdates) },
                "a structurally one-to-one App Updates result is deduplicated to the page")
-        suite.expect(combinedSettingsItems.first { $0.id == .page(.homebrew) }?.feature == .homebrew,
+        suite.expect(combinedSettingsItems.first { $0.id == .page(.uninstaller) }?.feature == .uninstaller,
                "a deduplicated Homebrew page result keeps its feature identity")
         suite.expect(combinedSettingsItems.first { $0.id == .page(.features) }?.feature == nil,
                "a generic page result that does not merge with a feature carries no feature identity")
         // MARK: Settings search routing
 
-        let homebrewPageItem = combinedSettingsItems.first { $0.id == .page(.homebrew) }!
+        let homebrewPageItem = combinedSettingsItems.first { $0.id == .page(.uninstaller) }!
         let unavailableHomebrewRoute = SettingsSearchSupport.route(for: homebrewPageItem) { _ in false }
         suite.expect(unavailableHomebrewRoute.destination == FeatureSettingsDestination(.features)
-                && unavailableHomebrewRoute.targetFeature == .homebrew,
+                && unavailableHomebrewRoute.targetFeature == .uninstaller,
                "an unavailable Homebrew result preserves its identity and targets its Feature Hub row")
         let availableHomebrewRoute = SettingsSearchSupport.route(for: homebrewPageItem) { _ in true }
-        suite.expect(availableHomebrewRoute.destination == FeatureSettingsDestination(.homebrew)
+        suite.expect(availableHomebrewRoute.destination == FeatureSettingsDestination(.uninstaller)
                 && availableHomebrewRoute.targetFeature == nil,
                "an available Homebrew result still opens its own dedicated page with no row to reveal")
 
@@ -642,9 +642,9 @@ enum UpdateFeatureTests {
 
         let homebrewMatches = SettingsSearchSupport.matchingItems(
             query: "  HOMEBREW ", items: combinedSettingsItems)
-        suite.expect(homebrewMatches.first?.destination == FeatureSettingsDestination(.homebrew)
+        suite.expect(homebrewMatches.first?.destination == FeatureSettingsDestination(.uninstaller)
                 && homebrewMatches.map(\.id)
-                    == [.page(.homebrew), .page(.features), .page(.appUpdates)],
+                    == [.page(.uninstaller), .page(.features), .page(.appUpdates)],
                "an exact Homebrew title ranks before earlier generic keyword matches")
         let cameraPreviewMatches = SettingsSearchSupport.matchingItems(
             query: "Camera Preview", items: combinedSettingsItems)
@@ -705,7 +705,7 @@ enum UpdateFeatureTests {
         let homebrewGroups = SettingsSearchSupport.groupedMatchingItems(
             query: "Homebrew", items: combinedSettingsItems,
             isAvailable: { _ in true })
-        suite.expect(homebrewGroups.map(\.id) == [.homebrew, .features, .appUpdates]
+        suite.expect(homebrewGroups.map(\.id) == [.uninstaller, .features, .appUpdates]
                 && homebrewGroups.first?.parentMatches == true
                 && homebrewGroups.first?.suggestions.isEmpty == true,
                "a matching main page is shown once before grouped keyword matches")

@@ -146,7 +146,7 @@ extension AppFeature {
                 ? .keyboard : .idle
         case .mouseAcceleration, .pastePlain, .micMute,
              .keepAwake, .quickLauncher, .quickToggles, .colorPicker,
-             .screenOCR, .cleaningMode, .mediaTools, .uninstaller, .homebrew, .screenshot,
+             .screenOCR, .cleaningMode, .mediaTools, .uninstaller, .screenshot,
              .cameraPreview, .scratchpad, .commandBar, .screenRecorder,
              .killProcess, .portManager:
             return .idle

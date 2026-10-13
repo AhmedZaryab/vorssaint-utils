@@ -2075,8 +2075,6 @@ enum SwitcherModelFeatureTests {
                "cleaning mode keep screen visible is disabled by default")
         suite.expect(registeredDefaults[DefaultsKey.panelUtilityUninstaller] as? Bool == true,
                "panel uninstaller utility is visible by default")
-        suite.expect(registeredDefaults[DefaultsKey.panelUtilityHomebrew] as? Bool == true,
-               "panel Homebrew utility is visible by default")
         suite.expect(registeredDefaults[DefaultsKey.panelUtilityMedia] as? Bool == true,
                "panel Media utility is visible by default")
         suite.expect(registeredDefaults[DefaultsKey.panelControlMouseScroll] as? Bool == true,
