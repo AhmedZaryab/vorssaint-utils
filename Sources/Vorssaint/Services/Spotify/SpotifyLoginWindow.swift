@@ -105,7 +105,8 @@ final class SpotifyLoginWindow: NSObject, NSWindowDelegate, WKNavigationDelegate
             guard let self, !self.isCompleting else { return }
             let spotify = cookies.filter {
                 let domain = $0.domain.lowercased()
-                return domain.contains("spotify.com") || domain.contains("spotify.net")
+                return ["sp_dc", "sp_key", "sp_t"].contains($0.name)
+                    && (domain == "spotify.com" || domain.hasSuffix(".spotify.com"))
             }
             let hasDC = spotify.contains { $0.name == "sp_dc" }
             let hasKey = spotify.contains { $0.name == "sp_key" }
