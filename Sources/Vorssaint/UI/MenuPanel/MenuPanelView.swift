@@ -312,7 +312,7 @@ struct MenuPanelView: View {
         case .network: return 330
         case .disk: return 360
         case .battery, .power: return 360
-        case .fan, .connectedDevices: return 240
+        case .fan: return 240
         }
     }
 
@@ -327,10 +327,7 @@ struct MenuPanelView: View {
         case .mixer: if showMixer { mixerOrPrioritySection(collapsible: collapsible) }
         case .system:
             if showSystem {
-                SystemSection(collapsible: collapsible) {
-                    focusedSection = nil
-                    selectedMetric = .connectedDevices
-                }
+                SystemSection(collapsible: collapsible)
             }
         case .network: if showNetwork { NetworkSection(collapsible: collapsible) }
         case .disk: if showDisk { DiskSection(collapsible: collapsible) }

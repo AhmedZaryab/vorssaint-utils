@@ -78,7 +78,7 @@ enum NotchModule: String, CaseIterable, Identifiable {
         case .watch: return AppFeature.notchWatch.isAvailable(in: defaults)
         case .system:
             return [.monitorCPU, .monitorGPU, .monitorMemory, .monitorNetwork,
-                    .monitorDisk, .monitorPower, .fanControl, .connectedDevices].contains { (feature: AppFeature) in
+                    .monitorDisk, .monitorPower, .fanControl].contains { (feature: AppFeature) in
                 feature.isAvailable(in: defaults)
             }
         }
@@ -1724,7 +1724,6 @@ enum NotchSupport {
             + (hasBattery && AppFeature.monitorPower.isAvailable(in: defaults) ? 1 : 0)
             + (AppFeature.monitorPower.isAvailable(in: defaults) ? 1 : 0)
             + (fans > 0 && AppFeature.fanControl.isAvailable(in: defaults) ? 1 : 0)
-            + (AppFeature.connectedDevices.isAvailable(in: defaults) ? 1 : 0)
     }
 
     /// Direct openings are dismissed explicitly, never by the pointer's

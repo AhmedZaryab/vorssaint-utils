@@ -17,6 +17,5 @@ enum MenuPanelSectionGateContract {
         expectGate(.controls, keeps: ControlPanelItem.allCases.map(\.feature), "control")
         expectGate(.utilities, keeps: UtilityPanelItem.allCases.map(\.feature), "utility")
         expectGate(.toggles, keeps: QuickToggleAction.allCases.map(\.feature), "quick toggle")
-        expectGate(.system, keeps: [.connectedDevices], "connected devices")
     }
 }

@@ -5,13 +5,13 @@ import AppKit
 import SwiftUI
 
 enum MetricDetailKind: String, Equatable, Identifiable {
-    case cpu, gpu, memory, network, disk, battery, power, fan, connectedDevices
+    case cpu, gpu, memory, network, disk, battery, power, fan
 
     var id: String { rawValue }
 
     var panelSection: PanelSectionID {
         switch self {
-        case .cpu, .gpu, .memory, .connectedDevices:
+        case .cpu, .gpu, .memory:
             return .system
         case .network:
             return .network
@@ -34,7 +34,6 @@ enum MetricDetailKind: String, Equatable, Identifiable {
         case .battery: return "battery.100"
         case .power: return "powerplug.fill"
         case .fan: return "fanblades"
-        case .connectedDevices: return "cable.connector"
         }
     }
 
@@ -62,8 +61,6 @@ enum MetricDetailKind: String, Equatable, Identifiable {
             return SystemMonitorPanelNeeds(power: true)
         case .fan:
             return SystemMonitorPanelNeeds(fanSpeed: true)
-        case .connectedDevices:
-            return SystemMonitorPanelNeeds(connectedDevices: true)
         }
     }
 
@@ -77,7 +74,6 @@ enum MetricDetailKind: String, Equatable, Identifiable {
         case .battery: return s.batteryLabel
         case .power: return s.powerSection
         case .fan: return FeatureStrings.fanControl(L10n.shared.language).menuBarTitle
-        case .connectedDevices: return FeatureStrings.connectedDevices(L10n.shared.language).title
         }
     }
 
@@ -88,7 +84,7 @@ enum MetricDetailKind: String, Equatable, Identifiable {
         case .memory: return .memory
         case .power: return .energy
         case .network: return .network
-        case .disk, .battery, .fan, .connectedDevices: return nil
+        case .disk, .battery, .fan: return nil
         }
     }
 }
@@ -112,8 +108,6 @@ extension MenuBarMetric {
             return .power
         case .fanSpeed:
             return .fan
-        case .connectedDevices:
-            return .connectedDevices
         }
     }
 }
@@ -239,7 +233,7 @@ struct MetricDetailView: View {
             let peak = MetricFormat.graphCeiling(monitor.snapshot.systemPowerHistory.max() ?? 0, unitStep: 1000)
             historyGraph(monitor.snapshot.systemPowerHistory, color: summaryColor, maxValue: peak,
                          ceilingLabel: MetricFormat.watts(peak))
-        case .fan, .connectedDevices:
+        case .fan:
             EmptyView()
         }
     }
@@ -471,17 +465,6 @@ struct MetricDetailView: View {
                 row(String(format: strings.fanNameFormat, index + 1),
                     String(format: strings.rpmFormat, Int(rpm.rounded())))
             }
-        case .connectedDevices:
-            let strings = FeatureStrings.connectedDevices(l10n.language)
-            guard !snapshot.connectedDevices.isEmpty else {
-                return [row(strings.noDevices, "")]
-            }
-            return snapshot.connectedDevices.map { device in
-                row(id: device.id,
-                    device.name.isEmpty ? strings.unnamedDevice : device.name,
-                    device.vendorName ?? "",
-                    symbolName: "cable.connector")
-            }
         }
     }
 
@@ -512,8 +495,6 @@ struct MetricDetailView: View {
             let strings = FeatureStrings.fanControl(l10n.language)
             guard let rpm = snapshot.fanSpeeds.first else { return "-" }
             return String(format: strings.rpmFormat, Int(rpm.rounded()))
-        case .connectedDevices:
-            return "\(snapshot.connectedDevices.count)"
         }
     }
 
@@ -549,10 +530,6 @@ struct MetricDetailView: View {
             return snapshot.fanSpeeds.isEmpty
                 ? strings.menuBarTitle
                 : String(format: strings.fanNameFormat, 1)
-        case .connectedDevices:
-            let count = snapshot.connectedDevices.count
-            let strings = FeatureStrings.connectedDevices(l10n.language)
-            return strings.formattedCount(count)
         }
     }
 
@@ -570,7 +547,7 @@ struct MetricDetailView: View {
             return PanelMetricColor.green(for: colorScheme)
         case .power:
             return PanelMetricColor.orange(for: colorScheme)
-        case .fan, .connectedDevices:
+        case .fan:
             return PanelMetricColor.cyan(for: colorScheme)
         }
     }
