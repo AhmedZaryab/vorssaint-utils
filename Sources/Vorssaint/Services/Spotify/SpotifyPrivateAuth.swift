@@ -286,39 +286,22 @@ final class SpotifyPrivateAuth: ObservableObject {
     }
 }
 
-/// One Keychain item holding the Spotify session cookies as JSON.
+/// One 0600 file holding the Spotify session cookies as JSON.
 enum SpotifyCookieKeychain {
-    private static let service = "com.vorssaint.spotify"
     private static let account = "web-player-session"
-
-    private static var query: [String: Any] {
-        [kSecClass as String: kSecClassGenericPassword,
-         kSecAttrService as String: service,
-         kSecAttrAccount as String: account]
-    }
+    private static let file = "spotify.session"
 
     static func load() -> [SpotifyPrivateAuth.StoredCookie]? {
-        var lookup = query
-        lookup[kSecReturnData as String] = true
-        lookup[kSecMatchLimit as String] = kSecMatchLimitOne
-        var result: AnyObject?
-        guard SecItemCopyMatching(lookup as CFDictionary, &result) == errSecSuccess,
-              let data = result as? Data else { return nil }
+        guard let data = SpotifySecretFile.load(file, legacyAccount: account) else { return nil }
         return try? JSONDecoder().decode([SpotifyPrivateAuth.StoredCookie].self, from: data)
     }
 
-    static func save(_ cookies: [SpotifyPrivateAuth.StoredCookie]) {
-        guard let data = try? JSONEncoder().encode(cookies) else { return }
-        let update: [String: Any] = [kSecValueData as String: data]
-        if SecItemUpdate(query as CFDictionary, update as CFDictionary) == errSecItemNotFound {
-            var add = query
-            add[kSecValueData as String] = data
-            add[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlock
-            SecItemAdd(add as CFDictionary, nil)
-        }
+    static func save(_ value: [SpotifyPrivateAuth.StoredCookie]) {
+        guard let data = try? JSONEncoder().encode(value) else { return }
+        SpotifySecretFile.save(data, file)
     }
 
     static func delete() {
-        SecItemDelete(query as CFDictionary)
+        SpotifySecretFile.delete(file, legacyAccount: account)
     }
 }

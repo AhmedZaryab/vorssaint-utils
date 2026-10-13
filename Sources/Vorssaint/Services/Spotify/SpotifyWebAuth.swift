@@ -250,39 +250,22 @@ final class SpotifyWebAuth: ObservableObject {
     }
 }
 
-/// One Keychain item holding the Spotify tokens as JSON.
+/// One 0600 file holding the Spotify tokens as JSON.
 enum SpotifyKeychain {
-    private static let service = "com.vorssaint.spotify"
     private static let account = "web-api-tokens"
-
-    private static var query: [String: Any] {
-        [kSecClass as String: kSecClassGenericPassword,
-         kSecAttrService as String: service,
-         kSecAttrAccount as String: account]
-    }
+    private static let file = "spotify.tokens"
 
     static func load() -> SpotifyWebAuth.Tokens? {
-        var lookup = query
-        lookup[kSecReturnData as String] = true
-        lookup[kSecMatchLimit as String] = kSecMatchLimitOne
-        var result: AnyObject?
-        guard SecItemCopyMatching(lookup as CFDictionary, &result) == errSecSuccess,
-              let data = result as? Data else { return nil }
+        guard let data = SpotifySecretFile.load(file, legacyAccount: account) else { return nil }
         return try? JSONDecoder().decode(SpotifyWebAuth.Tokens.self, from: data)
     }
 
-    static func save(_ tokens: SpotifyWebAuth.Tokens) {
-        guard let data = try? JSONEncoder().encode(tokens) else { return }
-        let update: [String: Any] = [kSecValueData as String: data]
-        if SecItemUpdate(query as CFDictionary, update as CFDictionary) == errSecItemNotFound {
-            var add = query
-            add[kSecValueData as String] = data
-            add[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlock
-            SecItemAdd(add as CFDictionary, nil)
-        }
+    static func save(_ value: SpotifyWebAuth.Tokens) {
+        guard let data = try? JSONEncoder().encode(value) else { return }
+        SpotifySecretFile.save(data, file)
     }
 
     static func delete() {
-        SecItemDelete(query as CFDictionary)
+        SpotifySecretFile.delete(file, legacyAccount: account)
     }
 }
