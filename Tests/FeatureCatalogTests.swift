@@ -2087,11 +2087,11 @@ enum FeatureCatalogTests {
         toolHistoryRouter.request(sharedMouseDestination, sidebarFeature: .scrollInverter)
         suite.expect(toolHistoryRouter.sidebarFeature == .scrollInverter,
                "switching between tools on one section updates the selected tool")
-        let mixerDestination = AppFeature.mixer.settingsDestination
-        toolHistoryRouter.request(mixerDestination, sidebarFeature: .mixer)
+        let mixerToolDestination = AppFeature.mixer.settingsDestination
+        toolHistoryRouter.request(mixerToolDestination, sidebarFeature: .mixer)
         toolHistoryRouter.page = .about
         toolHistoryRouter.goBack()
-        suite.expect(toolHistoryRouter.destination == mixerDestination
+        suite.expect(toolHistoryRouter.destination == mixerToolDestination
                 && toolHistoryRouter.sidebarFeature == .mixer,
                "Settings Back restores the selected tool alongside its destination")
         toolHistoryRouter.goForward()

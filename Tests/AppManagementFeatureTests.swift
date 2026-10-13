@@ -14,8 +14,6 @@ import VMStatisticsCompat
 enum AppManagementFeatureTests {
     static func run(_ suite: TestSuite) {
         let registeredDefaults = Defaults.registeredDefaults
-               "blocking the music app from launching is opt-in")
-               "the music replacement app starts unset")
         suite.expect(registeredDefaults[DefaultsKey.panelUtilityCleaner] as? Bool == true,
                "the cleaner row is visible in the panel utilities like its siblings")
         suite.expect(registeredDefaults[DefaultsKey.cleanerScheduleFrequency] as? String == "off",
