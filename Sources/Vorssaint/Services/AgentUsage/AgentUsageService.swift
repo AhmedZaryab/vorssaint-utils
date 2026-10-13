@@ -377,9 +377,8 @@ final class AgentUsageService: ObservableObject {
     /// every open log is gone. Runs on `queue`.
     private func syncFileWatchers(now: Date) {
         var wanted = Set(store.turns.keys).union(store.waiting.keys)
-        for path in cursors.keys where wanted.contains(path) == false {
-            if let cursor = cursors[path], now.timeIntervalSince(cursor.modified) < Self.pollWindow { wanted.insert(path) }
-        }
+        // Time first: hashing every old path each tick was the idle cost.
+        for (path, cursor) in cursors where now.timeIntervalSince(cursor.modified) < Self.pollWindow { wanted.insert(path) }
         for path in fileWatchers.keys where !wanted.contains(path) || cursors[path] == nil {
             fileWatchers.removeValue(forKey: path)?.cancel()
         }
@@ -433,8 +432,11 @@ final class AgentUsageService: ObservableObject {
             if let mark = key.firstIndex(of: "#") { working.insert(String(key[..<mark])) }
         }
         var changed = false
-        for (path, cursor) in cursors
-        where working.contains(path) || now.timeIntervalSince(cursor.modified) < window {
+        // Time first, then only the few working paths: hashing every old
+        // cursor path per tick was the idle cost.
+        var due = cursors.filter { now.timeIntervalSince($0.value.modified) < window }
+        for path in working where due[path] == nil { if let cursor = cursors[path] { due[path] = cursor } }
+        for (path, cursor) in due {
             if skippingWatched, fileWatchers[path] != nil { continue }
             if cursor.provider == .opencode {
                 // A database changes in place: its write-ahead log grows instead.
