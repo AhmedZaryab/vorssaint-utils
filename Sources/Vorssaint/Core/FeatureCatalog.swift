@@ -25,8 +25,8 @@ enum AppFeature: String, CaseIterable {
     // Energy and display
     case keepAwake, brightness
     // Tools
-    case quickLauncher, quickToggles, colorPicker, screenOCR, cleaningMode, mediaTools,
-         uninstaller, homebrew, appUpdates, screenshot, cameraPreview, radialMenu, scratchpad,
+    case quickLauncher, quickToggles, cleaningMode, mediaTools,
+         uninstaller, homebrew, appUpdates, cameraPreview, radialMenu, scratchpad,
          commandBar, screenRecorder, killProcess, portManager, menuBarTidy
     // Dynamic Island, then its extensions
     case notch, notchCalendar, notchNotifications, notchGestures, notchTimer, notchAccessories, notchLyrics,
@@ -82,7 +82,7 @@ extension AppFeature {
                     ).isEmpty)
         // Watch asks when an area is chosen and checks on every reading. The
         // companion uses no permission at all.
-        case .screenOCR, .cleaningMode, .screenshot, .commandBar, .screenRecorder, .notchWatch,
+        case .cleaningMode, .commandBar, .screenRecorder, .notchWatch,
              .notchMascot:
             return false
         default:
@@ -112,8 +112,8 @@ extension AppFeature {
             return .sound
         case .keepAwake, .brightness:
             return .energyDisplay
-        case .quickLauncher, .quickToggles, .colorPicker, .screenOCR, .cleaningMode, .mediaTools,
-             .uninstaller, .homebrew, .appUpdates, .screenshot, .cameraPreview, .radialMenu,
+        case .quickLauncher, .quickToggles, .cleaningMode, .mediaTools,
+             .uninstaller, .homebrew, .appUpdates, .cameraPreview, .radialMenu,
              .scratchpad, .commandBar, .screenRecorder, .killProcess, .portManager, .menuBarTidy:
             return .tools
         case .notch, .notchCalendar, .notchNotifications, .notchGestures, .notchTimer, .notchAccessories,
@@ -154,14 +154,11 @@ extension AppFeature {
         case .brightness: return "display.2"
         case .quickLauncher: return "wand.and.rays"
         case .quickToggles: return "togglepower"
-        case .colorPicker: return "eyedropper"
-        case .screenOCR: return "text.viewfinder"
         case .cleaningMode: return "bubbles.and.sparkles"
         case .mediaTools: return "photo.on.rectangle.angled"
         case .uninstaller: return "trash"
         case .homebrew: return "shippingbox"
         case .appUpdates: return "arrow.down.app"
-        case .screenshot: return "camera.viewfinder"
         case .screenRecorder: return "record.circle"
         case .cameraPreview: return "web.camera"
         case .notchGestures: return "hand.draw"
@@ -251,8 +248,8 @@ extension AppFeature {
         case .shelf: return [DefaultsKey.shelfEnabled]
         case .brightness: return [DefaultsKey.brightnessControlEnabled]
         case .windowLayout, .mixer, .micMute, .keepAwake,
-             .quickLauncher, .quickToggles, .colorPicker, .screenOCR, .cleaningMode, .mediaTools,
-             .uninstaller, .homebrew, .appUpdates, .screenshot, .cameraPreview, .scratchpad,
+             .quickLauncher, .quickToggles, .cleaningMode, .mediaTools,
+             .uninstaller, .homebrew, .appUpdates, .cameraPreview, .scratchpad,
              .commandBar, .screenRecorder, .killProcess, .portManager,
              .monitorPower:
             return []
@@ -328,8 +325,6 @@ extension AppFeature {
         case .quickToggles: return [.automationFinder]
         case .switcher: return [.accessibility, .screenRecording]
         case .dockPreview: return [.accessibility, .screenRecording]
-        case .screenOCR: return [.screenRecording]
-        case .screenshot: return [.screenRecording]
         // The sound of the Mac is read through an audio grant of its own.
         // Microphone access stays contextual, and Accessibility only keeps
         // typing timing.
@@ -342,7 +337,7 @@ extension AppFeature {
         case .appUpdates: return [.notifications, .appManagement]
         case .mixer: return [.audioCapture, .accessibility]
         case .clipboardHistory, .shelf,
-             .quickLauncher, .colorPicker, .micMute, .mediaTools,
+             .quickLauncher, .micMute, .mediaTools,
              .scratchpad, .monitorPower, .killProcess,
              .portManager:
             return []
@@ -433,8 +428,8 @@ extension AppFeature {
              .clipboardHistory, .pastePlain, .finderCutPaste, .finderRename, .shelf,
              .mixer, .micMute,
              .keepAwake, .brightness,
-             .quickLauncher, .quickToggles, .colorPicker, .screenOCR, .cleaningMode, .mediaTools,
-             .uninstaller, .homebrew, .appUpdates, .screenshot, .cameraPreview, .radialMenu,
+             .quickLauncher, .quickToggles, .cleaningMode, .mediaTools,
+             .uninstaller, .homebrew, .appUpdates, .cameraPreview, .radialMenu,
              .scratchpad, .commandBar, .screenRecorder,
              .notch, .notchCalendar, .notchNotifications, .notchGestures, .notchTimer, .notchAccessories,
              .notchLyrics, .notchQueue, .spotifyQueue, .notchLiveEqualizer, .notchDownloads, .notchAgents, .notchWatch,

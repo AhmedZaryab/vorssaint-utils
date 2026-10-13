@@ -328,22 +328,11 @@ enum SettingsSearchSupport {
     static func screenCaptureFeatureKeywords(_ strings: Strings,
                                               language: AppLanguage)
         -> [(feature: AppFeature, titles: [String])] {
-        let screenshot = FeatureStrings.screenshot(language)
         let recorder = FeatureStrings.recorder(language)
         return [
-            (.screenshot, [screenshot.pageTitle, screenshot.freezeToggle,
-                           screenshot.highlightWindowsToggle, screenshot.highlightWindowsCaption,
-                           screenshot.loupeStartsOnToggle,
-                           screenshot.fullScreenShortcutTitle, screenshot.previewPositionLabel,
-                           screenshot.previewFocusToggle, screenshot.confirmationPreviewToggle,
-                           screenshot.confirmationPreviewDurationLabel,
-                           screenshot.pinButton, screenshot.toolPixelate, screenshot.toolBlur,
-                           screenshot.toolArrow, screenshot.addToShelfToggle]),
             (.screenRecorder, [recorder.pageTitle, recorder.startButton,
                                recorder.systemAudioToggle, recorder.microphoneToggle,
                                recorder.qualityLabel, recorder.frameRateLabel]),
-            (.screenOCR, [strings.ocrName, strings.ocrRemoveLineBreaksToggle, strings.ocrQRToggle]),
-            (.colorPicker, [strings.colorPickerName, strings.colorPickerFormatLabel]),
         ]
     }
 

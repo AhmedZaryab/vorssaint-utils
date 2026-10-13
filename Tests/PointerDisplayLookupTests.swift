@@ -29,42 +29,6 @@ enum PointerDisplayLookupContract {
     }
     enum Event { static var mouseLocation = NSPoint.zero }
 
-    /// `ScreenshotService` with a capture engine that records the display.
-    final class Capturer {
-        typealias NSScreen = Screen
-        typealias NSEvent = Event
-        enum ScreenshotSelectionController {
-            static let isSessionOnScreen = false
-            struct Capture {
-                let image: CGImage
-                let scale: CGFloat
-                let anchorRect: CGRect
-            }
-        }
-        @MainActor enum ScreenshotCaptureEngine {
-            static var displays: [CGDirectDisplayID] = []
-            static func captureDisplay(_ displayID: CGDirectDisplayID, includePointer: Bool,
-                                       hideVorssaintWindows: Bool,
-                                       protectedWindowIDs: Set<CGWindowID>) async -> CGImage? {
-                displays.append(displayID)
-                return nil
-            }
-        }
-        enum QuickToolHUD { static func show(icon: String, message: String) {} }
-        enum UserDefaults {
-            static let standard = Preferences()
-            final class Preferences { func bool(forKey key: String) -> Bool { false } }
-        }
-        final class Preview { func close() {} }
-        struct Strings { let captureFailed = "" }
-        let strings = Strings()
-        var preview: Preview?
-        var directCaptureTask: Task<Void, Never>?
-        let hideVorssaintWindows = false
-        let protectedWindowIDs: Set<CGWindowID> = []
-        func route(_ capture: ScreenshotSelectionController.Capture) {}
-    }
-
     /// `SpaceWindowBridge` over a fixed Space topology.
     enum Bridge {
         typealias NSScreen = Screen
@@ -177,10 +141,6 @@ enum PointerDisplayLookupContract {
             Screen.screens.first { $0.visibleFrame.contains(rect) }?.displayID
         }
         Event.mouseLocation = pointer
-        Capturer.ScreenshotCaptureEngine.displays = []
-        let capturer = Capturer()
-        capturer.beginFullScreenCapture()
-        await capturer.directCaptureTask?.value
         let layout = Layout()
         layout.showDirectionalIndicator(at: pointer, action: nil)
         let chooser = Chooser()
@@ -189,7 +149,6 @@ enum PointerDisplayLookupContract {
         let window = CGSize(width: 400, height: 300)
         Dock().endWindowDrag(Dock.SwitcherItem(windowID: 1, frame: CGRect(origin: .zero, size: window)))
         return [
-            ("a full-display capture", Capturer.ScreenshotCaptureEngine.displays.first),
             ("the Space a dropped window joins", Bridge.visibleSpace(near: pointer).map { CGDirectDisplayID($0 / 10) }),
             ("the directional layout indicator", layout.directionalIndicatorPanel.flatMap { display(holding: $0.frame) }),
             ("a full-display capture from the capture overlay", chooser.panelUnderMouse().flatMap { panel in

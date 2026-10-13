@@ -152,7 +152,6 @@ enum SelfUninstall {
         ScreenCaptureService.shared.suspend()
         RecentCaptureService.shared.suspend()
         QuickLauncherService.shared.suspend()
-        ScreenTextService.shared.suspend()
         CameraPreviewService.shared.suspend()
         RadialMenuService.shared.suspend()
         ScratchpadService.shared.suspend()

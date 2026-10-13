@@ -36,8 +36,9 @@ struct RecentCapturesView: View {
 
     static func visible(_ entries: [RecentCaptureEntry]) -> [RecentCaptureEntry] {
         entries.filter { entry in
+            // Screenshots are parked, so only recordings are listed.
             entry.kind == .screenshot
-                ? AppFeature.screenshot.isAvailable
+                ? false
                 : AppFeature.screenRecorder.isAvailable
         }
     }

@@ -66,10 +66,7 @@ enum NotchModule: String, CaseIterable, Identifiable {
         case .tools: return AppFeature.quickLauncher.isAvailable(in: defaults)
         case .clipboard: return AppFeature.clipboardHistory.isAvailable(in: defaults)
         case .captures:
-            return AppFeature.screenshot.isAvailable(in: defaults)
-                || AppFeature.screenRecorder.isAvailable(in: defaults)
-                || AppFeature.screenOCR.isAvailable(in: defaults)
-                || AppFeature.colorPicker.isAvailable(in: defaults)
+            return AppFeature.screenRecorder.isAvailable(in: defaults)
         case .files: return AppFeature.shelf.isAvailable(in: defaults)
         case .scratchpad: return AppFeature.scratchpad.isAvailable(in: defaults)
         case .agents: return AppFeature.notchAgents.isAvailable(in: defaults)
@@ -1062,8 +1059,8 @@ enum NotchControlSetupRequirement: Equatable {
 }
 
 enum NotchControlItem: String, CaseIterable, Identifiable {
-    case volume, brightness, keyboardLight, music, mixer, keepAwake, timer, calendar, microphone, screenshot, recording, panel, commandBar, scratchpad
-    static let defaultHidden = "keyboardLight,microphone,screenshot,recording,panel,commandBar,scratchpad"
+    case volume, brightness, keyboardLight, music, mixer, keepAwake, timer, calendar, microphone, recording, panel, commandBar, scratchpad
+    static let defaultHidden = "keyboardLight,microphone,recording,panel,commandBar,scratchpad"
     var id: String { rawValue }
 
     /// A level draws as a slider in the card row; everything else is a tile.
@@ -1082,7 +1079,6 @@ enum NotchControlItem: String, CaseIterable, Identifiable {
         case .keyboardLight: return "light.max"
         case .keepAwake: return "cup.and.saucer"
         case .microphone: return "mic.fill"
-        case .screenshot: return "camera.viewfinder"
         case .recording: return "record.circle"
         // The app panel opens as a bubble under the menu bar icon.
         case .panel: return "bubble.middle.top"
@@ -1101,7 +1097,6 @@ enum NotchControlItem: String, CaseIterable, Identifiable {
         case .brightness, .keyboardLight: return .feature(.brightness)
         case .keepAwake: return .feature(.keepAwake)
         case .microphone: return .feature(.micMute)
-        case .screenshot: return .feature(.screenshot)
         case .recording: return .feature(.screenRecorder)
         case .commandBar: return .feature(.commandBar)
         case .scratchpad: return .feature(.scratchpad)
@@ -1121,7 +1116,6 @@ enum NotchControlItem: String, CaseIterable, Identifiable {
         case .keyboardLight: return AppFeature.brightness.isAvailable(in: defaults) && Self.keyboardLightIsSupported()
         case .keepAwake: return AppFeature.keepAwake.isAvailable(in: defaults)
         case .microphone: return AppFeature.micMute.isAvailable(in: defaults)
-        case .screenshot: return AppFeature.screenshot.isAvailable(in: defaults)
         case .recording: return AppFeature.screenRecorder.isAvailable(in: defaults)
         case .commandBar: return AppFeature.commandBar.isAvailable(in: defaults)
         case .scratchpad: return AppFeature.scratchpad.isAvailable(in: defaults)
@@ -1716,7 +1710,7 @@ enum NotchSupport {
             return modules(in: defaults).contains(.clipboard)
                 && defaults.bool(forKey: DefaultsKey.clipboardHistoryEnabled)
         case .capture:
-            return AppFeature.screenshot.isAvailable(in: defaults)
+            return AppFeature.screenRecorder.isAvailable(in: defaults)
                 && modules(in: defaults).contains(.captures)
         case .track: return modules(in: defaults).contains(.music)
         }

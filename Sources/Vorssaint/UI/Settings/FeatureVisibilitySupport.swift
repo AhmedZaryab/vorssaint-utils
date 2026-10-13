@@ -37,10 +37,7 @@ enum SettingsSectionAnchor: String, CaseIterable, Hashable {
     case pastePlain
     case quickLauncher
     case quickToggles
-    case screenshot
     case screenRecorder
-    case colorPicker
-    case screenOCR
     case micMute
     case cameraPreview
     case scratchpad
@@ -64,7 +61,7 @@ enum SettingsSectionAnchor: String, CaseIterable, Hashable {
         case .quickLauncher, .quickToggles, .micMute, .cameraPreview, .scratchpad, .cleaningMode,
              .menuBarTidy:
             return .quickTools
-        case .screenshot, .screenRecorder, .colorPicker, .screenOCR:
+        case .screenRecorder:
             return .screenshot
         case .keyboardBrightnessShortcuts: return .shortcuts
         case .windowMaximizer: return .windowLayout
@@ -322,10 +319,6 @@ extension AppFeature {
             return FeatureSettingsDestination(.quickTools, sectionAnchor: .quickLauncher)
         case .quickToggles:
             return FeatureSettingsDestination(.quickTools, sectionAnchor: .quickToggles)
-        case .colorPicker:
-            return FeatureSettingsDestination(.screenshot, sectionAnchor: .colorPicker)
-        case .screenOCR:
-            return FeatureSettingsDestination(.screenshot, sectionAnchor: .screenOCR)
         case .cleaningMode:
             return FeatureSettingsDestination(.quickTools, sectionAnchor: .cleaningMode)
         case .mediaTools: return FeatureSettingsDestination(.media)
@@ -334,8 +327,6 @@ extension AppFeature {
         case .portManager: return FeatureSettingsDestination(.portManager)
         case .homebrew: return FeatureSettingsDestination(.homebrew)
         case .appUpdates: return FeatureSettingsDestination(.appUpdates)
-        case .screenshot:
-            return FeatureSettingsDestination(.screenshot, sectionAnchor: .screenshot)
         case .cameraPreview:
             return FeatureSettingsDestination(.quickTools, sectionAnchor: .cameraPreview)
         case .notch, .notchCalendar, .notchNotifications, .notchGestures, .notchTimer, .notchAccessories, .notchLyrics, .notchQueue, .spotifyQueue, .notchLiveEqualizer, .notchDownloads, .notchAgents, .notchWatch: return FeatureSettingsDestination(.notch)
@@ -381,7 +372,7 @@ enum FeatureVisibilitySupport {
         case .killProcess: return [.killProcess]
         case .portManager: return [.portManager]
         case .textSnippets: return [.textSnippets]
-        case .screenshot: return [.screenshot, .screenRecorder, .screenOCR, .colorPicker]
+        case .screenshot: return [.screenRecorder]
         case .notch: return [.notch, .notchCalendar, .notchNotifications, .notchGestures, .notchTimer, .notchAccessories, .notchLyrics, .notchQueue, .spotifyQueue, .notchLiveEqualizer, .notchDownloads, .notchAgents, .notchWatch, .notchMascot]
         case .notchMascot: return [.notchMascot]
         case .radialMenu: return [.radialMenu]

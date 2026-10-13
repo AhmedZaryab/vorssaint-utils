@@ -82,20 +82,6 @@ def main():
           + declaration("Sources/Vorssaint/UI/Notch/NotchView.swift", "    func title(_ language: AppLanguage)",
                         scope="extension NotchModule: PanelOrderItem {")
           + "}\n")
-    write("ScrollingCaptureLoop.swift", "import AppKit\nimport CoreGraphics\n"
-          + "extension ScreenshotScrollingCaptureTests {\n"
-          + declaration("Sources/Vorssaint/Services/QuickTools/ScreenshotScrollingCapture.swift",
-                        "enum ScreenshotScrollingCapture {").replace(
-                            "    private static func stitch(", "    static func stitch(")
-          + "}\n")
-    write("ClipboardHistoryImageEditor.swift", "import AppKit\n"
-          + "extension ClipboardHistoryImageEditorTests {\nfinal class Host: Fixture {\n"
-          + declaration("Sources/Vorssaint/Services/Clipboard/ClipboardHistoryService.swift",
-                        "    func editImage(")
-          + "}\n}\nextension ClipboardHistoryImageEditorTests.ScreenshotService {\n"
-          + declaration("Sources/Vorssaint/Services/QuickTools/ScreenshotService.swift",
-                        "    static func imageCapture(")
-          + "}\n")
     panel = "Sources/Vorssaint/App/AppDelegate.swift"
     write("UpdateIntroFlow.swift", "import AppKit\nimport Foundation\n"
           + "extension UpdateIntroFlowTests {\nfinal class Host: Fixture {\n"
@@ -1046,46 +1032,6 @@ def main():
           + declaration("Sources/Vorssaint/Services/QuickTools/QuickTogglesService.swift", "enum QuickToggleAction:")
           + "}\n")
 
-    preview = "Sources/Vorssaint/Services/QuickTools/ScreenshotQuickPreviewController.swift"
-    write("ScreenshotShareCompletion.swift", "import Foundation\n"
-          + "extension ScreenshotShareCompletionTests {\nfinal class Controller: State {\n"
-          + "".join(declaration(preview, prefix).replace("private func", "func", 1)
-                    for prefix in ["    func shareLink()", "    private func performShare(",
-                                   "    private func copySharedLink()", "    private func scheduleAutoDismiss("])
-          + "}\nfinal class Editor: EditorState {\n"
-          + declaration("Sources/Vorssaint/Services/QuickTools/ScreenshotEditorController.swift",
-                        "    func share(duration:")
-          + "}\n@MainActor final class CreationGate: CreationState {\n"
-          + declaration("Sources/Vorssaint/Services/QuickTools/ScreenshotShareService.swift",
-                        "    func createLink(pngData:")
-          + "}\n}\n")
-    screenshot_service = "Sources/Vorssaint/Services/QuickTools/ScreenshotService.swift"
-    write("ScreenshotShortcutCompletion.swift", "import Foundation\n"
-          + "extension ScreenshotShareCompletionTests {\n@MainActor final class Uploader: UploadState {\n"
-          + "".join(declaration(screenshot_service, prefix).replace("private func", "func", 1)
-                    .replace("uploadShortcutEnabled()", "uploadShortcutEnabled(in: defaults)")
-                    .replace("retainsLatestCapture()", "retainsLatestCapture(in: defaults)")
-                    for prefix in ["    private func uploadLastCapture()", "    private func copyUploadedLink(",
-                                   "    func openEditor(with", "    func editorDidClose(",
-                                   "    private func invalidateLatestCaptureUploads()",
-                                   "    private func beginLatestCapture(", "    private func discardLatestCapture(",
-                                   "    private func withholdLatestCapture()", "    private func syncLatestCapture("])
-          + "}\n}\n")
-    write("ScreenshotAutoShelf.swift", "import Foundation\n"
-          + "extension ScreenshotAutoShelfTests {\n@MainActor final class Service: State {\n"
-          + "".join(declaration(screenshot_service, prefix).replace("private func", "func", 1)
-                    for prefix in ["    private func autoShelve(", "    private func unshelve(",
-                                   "    private func editFromPreview(",
-                                   "    private func cancelAutoShelf()"])
-          + "}\n}\n")
-    write("ScreenshotPreviewHover.swift", "import Foundation\n"
-          + "extension ScreenshotPreviewHoverTests {\nfinal class Controller: State {\n"
-          + "".join(declaration(preview, prefix).replace("private func", "func", 1)
-                    for prefix in ["    private func hoverChanged(", "    private func scheduleAutoDismiss(",
-                                   "    private func perform("])
-          + "}\nstruct Preview {\nlet embedded: Bool\nlet hoverChanged: (Bool) -> Void\n"
-          + declaration(preview, "    private func previewHoverChanged(").replace("private func", "func", 1)
-          + "}\n}\n")
     selection = "Sources/Vorssaint/Services/QuickTools/ScreenshotSelectionController.swift"
     refresh_methods = [
         "    private func screenCaptureToolDidChange()",
@@ -1102,33 +1048,6 @@ def main():
         "    fileprivate func confirmRegion(",
         "    fileprivate func confirmColor(",
     ]
-    write("ScreenshotSelectionRefresh.swift", "import Foundation\nimport AppKit\nimport SwiftUI\n"
-          + "extension ScreenshotSelectionRefreshContract.Chooser {\n"
-          + declaration(selection, "    fileprivate func setSelectionInProgress(").replace("fileprivate func", "func", 1)
-          + declaration(selection, "    fileprivate var acceptsCaptureInput:").replace("fileprivate var", "var", 1)
-          + declaration(selection, "    fileprivate var offersFullScreenCapture:").replace("fileprivate var", "var", 1)
-          + declaration(selection, "    fileprivate var acceptsWindowClick:").replace("fileprivate var", "var", 1)
-          + declaration(selection, "    func placeFullScreenControlBelowNotch(")
-          + declaration(selection, "    private var repeatTargetPanel:").replace("private var", "var", 1)
-          + declaration(selection, "    fileprivate var offersRepeatLastRegion:").replace("fileprivate var", "var", 1)
-          + "".join(declaration(selection, prefix).replace("fileprivate func", "func", 1)
-                    .replace("private func", "func", 1).replace("UserDefaults.standard", "ReviewDefaults.current")
-                    for prefix in refresh_methods)
-          + "}\nextension ScreenshotSelectionRefreshContract.View {\n"
-          + declaration(selection, "    func captureToolDidChange()")
-          + declaration(selection, "    func setNotchCaptureControlsHeight(")
-          + declaration(selection, "    func refreshFullScreenControlVisibility()")
-          + declaration(selection, "    private func pointerIsOverFullScreenControl(").replace("private func", "func", 1)
-          + declaration(selection, "    private func updatePointerHover(").replace("private func", "func", 1)
-          + declaration(selection, "    private func fullScreenControlHoverChanged(").replace("private func", "func", 1)
-          + declaration(selection, "    private func resetFullScreenControlHover(").replace("private func", "func", 1)
-          + declaration(selection, "    private func applyDeferredNotchCaptureControlsHeight(").replace("private func", "func", 1)
-          + "}\nextension ScreenshotSelectionRefreshContract.SurfaceService {\n"
-          + declaration("Sources/Vorssaint/Services/QuickTools/ScreenCaptureService.swift",
-                        "    private func connectCaptureControlsSurface(").replace("private func", "func", 1)
-          + "}\n"
-          + declaration(selection, "private final class PassThroughHostingView<")
-              .replace("private final class", "final class", 1))
     write("NotchCaptureKeyboard.swift", "import Foundation\nimport Carbon.HIToolbox\n\nextension NotchCaptureKeyboardContract {\n"
           + "final class NotchService {\nstatic var shared = NotchService()\n"
           + "var presentationWindow: NSPanel? = NSPanel()\nvar acceptsSystemFeedback = true\n"
@@ -1531,9 +1450,6 @@ def main():
           + "extension PointerDisplayLookupContract.Screen {\n"
           + declaration(screens, "    static var withMouse:")
           + declaration(screens, "    static var withMenuBar:")
-          + "}\nextension PointerDisplayLookupContract.Capturer {\n"
-          + declaration("Sources/Vorssaint/Services/QuickTools/ScreenshotService.swift",
-                        "    private func beginFullScreenCapture()").replace("private func", "func", 1)
           + "}\nextension PointerDisplayLookupContract.Bridge {\n"
           + declaration(bridge, "    struct Topology {")
           + declaration(bridge, "    static func visibleSpace(near")

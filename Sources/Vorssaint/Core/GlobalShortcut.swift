@@ -183,10 +183,6 @@ struct GlobalShortcut: Equatable, Hashable {
     static let pastePlainDefault = GlobalShortcut(keyCode: Int64(kVK_ANSI_V),
                                                   modifiers: [.shift, .option, .command])
     static let finderRenameDefault = GlobalShortcut(keyCode: Int64(kVK_F2), modifiers: [])
-    static let colorPickerDefault = GlobalShortcut(keyCode: Int64(kVK_ANSI_C),
-                                                   modifiers: [.control, .option, .command])
-    static let screenOCRDefault = GlobalShortcut(keyCode: Int64(kVK_ANSI_T),
-                                                 modifiers: [.control, .option, .command])
     static let micMuteDefault = GlobalShortcut(keyCode: Int64(kVK_ANSI_M),
                                                modifiers: [.control, .option, .command])
     // W for webcam, on the same free control-option-command layer.
@@ -195,23 +191,9 @@ struct GlobalShortcut: Equatable, Hashable {
     // V for Vorssaint: the quick launcher's own combination.
     static let quickLauncherDefault = GlobalShortcut(keyCode: Int64(kVK_ANSI_V),
                                                      modifiers: [.control, .command])
-    // Default screenshot shortcut on the available control-option-command layer.
-    static let screenshotDefault = GlobalShortcut(keyCode: Int64(kVK_ANSI_4),
-                                                  modifiers: [.control, .option, .command])
-    // Full screen sits beside the selector's 4 and the recorder's 5.
-    static let screenshotFullScreenDefault = GlobalShortcut(keyCode: Int64(kVK_ANSI_3),
-                                                            modifiers: [.control, .option, .command])
-    static let screenshotUploadDefault = GlobalShortcut(keyCode: Int64(kVK_ANSI_U),
-                                                        modifiers: [.control, .option, .command])
-    // E opens the latest capture in the editor, beside the capture shortcut.
-    static let screenshotLastCaptureDefault = GlobalShortcut(keyCode: Int64(kVK_ANSI_E),
-                                                             modifiers: [.control, .option, .command])
     // H opens capture history, on the same free control-option-command layer.
     static let recentCapturesDefault = GlobalShortcut(keyCode: Int64(kVK_ANSI_H),
                                                       modifiers: [.control, .option, .command])
-    // P opens a copied image in the editor, beside the other screenshot tools.
-    static let screenshotClipboardDefault = GlobalShortcut(keyCode: Int64(kVK_ANSI_P),
-                                                           modifiers: [.control, .option, .command])
     // Space for the wheel, on the same free control-option-command layer.
     static let radialMenuDefault = GlobalShortcut(keyCode: Int64(kVK_Space),
                                                   modifiers: [.control, .option, .command])
@@ -688,16 +670,9 @@ enum GlobalShortcutRole: CaseIterable, Identifiable {
     case clipboard
     case pastePlain
     case finderRename
-    case colorPicker
-    case screenOCR
     case micMute
     case quickLauncher
-    case screenshot
-    case screenshotFullScreen
-    case screenshotLastCapture
-    case screenshotUpload
     case recentCaptures
-    case screenshotClipboard
     case cameraPreview
     case radialMenu
     case scratchpad
@@ -721,16 +696,9 @@ enum GlobalShortcutRole: CaseIterable, Identifiable {
         case .clipboard: return DefaultsKey.clipboardHistoryShortcut
         case .pastePlain: return DefaultsKey.pastePlainShortcut
         case .finderRename: return DefaultsKey.finderRenameShortcut
-        case .colorPicker: return DefaultsKey.colorPickerShortcut
-        case .screenOCR: return DefaultsKey.screenOCRShortcut
         case .micMute: return DefaultsKey.micMuteShortcut
         case .quickLauncher: return DefaultsKey.quickLauncherShortcut
-        case .screenshot: return DefaultsKey.screenshotShortcut
-        case .screenshotFullScreen: return DefaultsKey.screenshotFullScreenShortcut
-        case .screenshotLastCapture: return DefaultsKey.screenshotLastCaptureShortcut
-        case .screenshotUpload: return DefaultsKey.screenshotUploadShortcut
         case .recentCaptures: return DefaultsKey.recentCapturesShortcut
-        case .screenshotClipboard: return DefaultsKey.screenshotClipboardShortcut
         case .cameraPreview: return DefaultsKey.cameraPreviewShortcut
         case .radialMenu: return DefaultsKey.radialMenuShortcut
         case .scratchpad: return DefaultsKey.scratchpadShortcut
@@ -754,16 +722,9 @@ enum GlobalShortcutRole: CaseIterable, Identifiable {
         case .clipboard: return .clipboardDefault
         case .pastePlain: return .pastePlainDefault
         case .finderRename: return .finderRenameDefault
-        case .colorPicker: return .colorPickerDefault
-        case .screenOCR: return .screenOCRDefault
         case .micMute: return .micMuteDefault
         case .quickLauncher: return .quickLauncherDefault
-        case .screenshot: return .screenshotDefault
-        case .screenshotFullScreen: return .screenshotFullScreenDefault
-        case .screenshotLastCapture: return .screenshotLastCaptureDefault
-        case .screenshotUpload: return .screenshotUploadDefault
         case .recentCaptures: return .recentCapturesDefault
-        case .screenshotClipboard: return .screenshotClipboardDefault
         case .cameraPreview: return .cameraPreviewDefault
         case .radialMenu: return .radialMenuDefault
         case .scratchpad: return .scratchpadDefault
@@ -806,22 +767,10 @@ enum GlobalShortcutRole: CaseIterable, Identifiable {
         case .clipboard: return FeatureStrings.clipboard(L10n.shared.language).title
         case .pastePlain: return strings.pastePlainName
         case .finderRename: return FeatureStrings.finderRename(L10n.shared.language).hubTitle
-        case .colorPicker: return strings.colorPickerName
-        case .screenOCR: return strings.ocrName
         case .micMute: return strings.micMuteName
         case .quickLauncher: return strings.launcherName
-        case .screenshot:
-            return FeatureStrings.screenshot(L10n.shared.language).pageTitle
-        case .screenshotFullScreen:
-            return FeatureStrings.screenshot(L10n.shared.language).fullScreenShortcutTitle
-        case .screenshotUpload:
-            return FeatureStrings.screenshot(L10n.shared.language).uploadLastCapture
-        case .screenshotLastCapture:
-            return FeatureStrings.screenshot(L10n.shared.language).editLastCapture
         case .recentCaptures:
             return FeatureStrings.recentCaptures(L10n.shared.language).title
-        case .screenshotClipboard:
-            return FeatureStrings.screenshot(L10n.shared.language).editClipboardImage
         case .cameraPreview: return FeatureStrings.cameraPreview(L10n.shared.language).pageTitle
         case .radialMenu: return FeatureStrings.radialMenu(L10n.shared.language).pageTitle
         case .scratchpad: return FeatureStrings.scratchpad(L10n.shared.language).pageTitle
@@ -872,16 +821,9 @@ enum GlobalShortcutRole: CaseIterable, Identifiable {
                                  DefaultsKey.clipboardHistoryShortcutEnabled]
         case .pastePlain: return [DefaultsKey.pastePlainEnabled]
         case .finderRename: return [DefaultsKey.finderRenameEnabled]
-        case .colorPicker: return [DefaultsKey.colorPickerShortcutEnabled]
-        case .screenOCR: return [DefaultsKey.screenOCRShortcutEnabled]
         case .micMute: return [DefaultsKey.micMuteShortcutEnabled]
         case .quickLauncher: return [DefaultsKey.quickLauncherShortcutEnabled]
-        case .screenshot: return [DefaultsKey.screenshotShortcutEnabled]
-        case .screenshotFullScreen: return [DefaultsKey.screenshotFullScreenShortcutEnabled]
-        case .screenshotLastCapture: return [DefaultsKey.screenshotLastCaptureShortcutEnabled]
-        case .screenshotUpload: return [DefaultsKey.screenshotUploadShortcutEnabled, DefaultsKey.screenshotSharingEnabled]
         case .recentCaptures: return [DefaultsKey.recentCapturesShortcutEnabled]
-        case .screenshotClipboard: return [DefaultsKey.screenshotClipboardShortcutEnabled]
         case .cameraPreview: return [DefaultsKey.cameraPreviewShortcutEnabled]
         case .radialMenu: return [DefaultsKey.radialMenuEnabled]
         case .scratchpad: return [DefaultsKey.scratchpadShortcutEnabled]
@@ -907,13 +849,10 @@ enum GlobalShortcutRole: CaseIterable, Identifiable {
         case .clipboard: return .clipboardHistory
         case .pastePlain: return .pastePlain
         case .finderRename: return .finderRename
-        case .colorPicker: return .colorPicker
-        case .screenOCR: return .screenOCR
         case .micMute: return .micMute
         case .quickLauncher: return .quickLauncher
-        case .screenshot, .screenshotFullScreen, .screenshotLastCapture, .recentCaptures,
-             .screenshotClipboard, .screenshotUpload:
-            return .screenshot
+        case .recentCaptures:
+            return .screenRecorder
         case .cameraPreview: return .cameraPreview
         case .radialMenu: return .radialMenu
         case .scratchpad: return .scratchpad
@@ -957,7 +896,6 @@ enum GlobalShortcutRole: CaseIterable, Identifiable {
     /// stays available while either kind of capture that fills it is installed.
     var availabilityFeatures: [AppFeature] {
         switch self {
-        case .recentCaptures: return [.screenshot, .screenRecorder]
         default: return [feature]
         }
     }
@@ -1001,12 +939,11 @@ enum GlobalShortcutRole: CaseIterable, Identifiable {
     /// The features whose shortcuts share one Screen capture group on the
     /// central shortcuts page.
     static let captureFeatures: [AppFeature] =
-        [.screenshot, .screenRecorder, .screenOCR, .colorPicker]
+        [.screenRecorder]
 
     /// Chooser tools first, in chooser order, then shared history and screenshot extras.
     static let captureDisplayOrder: [GlobalShortcutRole] = [
-        .screenshot, .screenRecorder, .screenOCR, .colorPicker,
-        .recentCaptures, .screenshotFullScreen, .screenshotLastCapture, .screenshotClipboard, .screenshotUpload,
+        .screenRecorder, .recentCaptures,
     ]
 
     /// The given roles narrowed to the capture group, in display order. The

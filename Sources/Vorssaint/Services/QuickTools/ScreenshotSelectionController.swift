@@ -101,7 +101,7 @@ final class ScreenshotSelectionController {
         }
     }
     fileprivate var offersScrollingCapture: Bool {
-        supportsScrollingCapture && activeTool == .screenshot && activeMode == .image
+        false
     }
     fileprivate var offersFullScreenCapture: Bool {
         acceptsCaptureInput && activeMode == .image
@@ -209,8 +209,6 @@ final class ScreenshotSelectionController {
     private var activeMode: Mode {
         switch activeTool {
         case .recording: return .geometry
-        case .color: return .color
-        case .screenshot, .text: return .image
         case .none: return baseMode
         }
     }
@@ -1125,7 +1123,7 @@ private final class ScreenshotOverlayView: NSView {
             imageSize: CGSize(width: loupeImage.width, height: loupeImage.height))
         let sample = loupePixelColor(in: loupeImage, at: pixelPoint)
         guard let color = sample.color,
-              let value = ColorSamplerService.shared.copyQuietly(color)
+              let value = LoupeColorFormatter.copyQuietly(color)
         else { return }
         copiedValue = value
         copiedValueReset?.cancel()
@@ -1614,7 +1612,7 @@ private final class ScreenshotOverlayView: NSView {
         if let color = sample.color,
            let srgb = color.usingColorSpace(.sRGB) {
             swatch = srgb
-            value = ColorSamplerService.shared.formattedValue(color) ?? ""
+            value = LoupeColorFormatter.formattedValue(color) ?? ""
         }
         let text: String
         if let copiedValue {
@@ -1930,21 +1928,14 @@ private struct UnifiedCaptureGuideContent: View {
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.75)
-            CaptureKeyHint(key: "1–4", icon: "keyboard")
-            if options.selectedTool != .color {
-                CaptureKeyHint(key: "↩", icon: "rectangle.inset.filled")
-                if offersScrollingCapture, options.selectedTool == .screenshot {
-                    CaptureKeyHint(key: scrollingCaptureEnabled ? "S on" : "S",
-                                   icon: "rectangle.stack")
-                }
-                CaptureKeyHint(key: loupeEnabled ? "Z on" : "Z",
-                               icon: "plus.magnifyingglass")
-                if loupeEnabled {
-                    CaptureKeyHint(key: "C", icon: "doc.on.doc")
-                }
-                if offersRepeatLastRegion {
-                    CaptureKeyHint(key: "R", icon: "rectangle.dashed")
-                }
+            CaptureKeyHint(key: "↩", icon: "rectangle.inset.filled")
+            CaptureKeyHint(key: loupeEnabled ? "Z on" : "Z",
+                           icon: "plus.magnifyingglass")
+            if loupeEnabled {
+                CaptureKeyHint(key: "C", icon: "doc.on.doc")
+            }
+            if offersRepeatLastRegion {
+                CaptureKeyHint(key: "R", icon: "rectangle.dashed")
             }
         }
         .padding(.horizontal, 10)
@@ -2046,20 +2037,9 @@ private struct UnifiedCaptureGuideContent: View {
 
     private var subtitle: String {
         switch options.selectedTool {
-        case .screenshot:
-            let base = strings.hintDrag + "  ·  " + strings.hintClick
-            guard offersScrollingCapture else { return base }
-            return base + "  ·  "
-                + (scrollingCaptureEnabled
-                   ? strings.scrollingCaptureHintOn
-                   : strings.scrollingCaptureHintOff)
         case .recording:
             return FeatureStrings.recorder(l10n.language).selectionPurpose
                 + "  ·  " + strings.hintDrag + "  ·  " + strings.hintClick
-        case .text:
-            return l10n.s.ocrCaption
-        case .color:
-            return l10n.s.colorPickerCaption
         }
     }
 }

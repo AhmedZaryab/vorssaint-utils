@@ -55,7 +55,6 @@ struct NotchSettings: View {
     @AppStorage(DefaultsKey.notchBattery) private var battery = true
     @AppStorage(DefaultsKey.notchClipboard) private var clipboard = true
     @AppStorage(DefaultsKey.notchClipboardWindow) private var clipboardWindow = true
-    @AppStorage(DefaultsKey.screenshotDefaultAction) private var captureAction = ""
     @AppStorage(DefaultsKey.notchCapture) private var capture = true
     @AppStorage(DefaultsKey.notchTrackChange) private var trackChange = true
     @AppStorage(DefaultsKey.notchShowPlayingMusic) private var showPlayingMusic = true
@@ -120,7 +119,7 @@ struct NotchSettings: View {
          String(hoverExpand), String(hideUntilHover), String(hideInFullscreen), String(coversMenus),
          display, silhouette, String(hover), hidden, order, String(volume), String(brightness), String(keyboardLight),
          String(microphone), String(battery), String(clipboard), String(clipboardWindow),
-         String(capture), String(trackChange), captureAction, String(showInCaptures),
+         String(capture), String(trackChange), String(showInCaptures),
          String(returnHome), homeModule, String(opensActivity), String(scratchpad),
          String(agentsEnabled), String(watchEnabled), String(keepAwakeActivity)]
     }
@@ -486,11 +485,7 @@ struct NotchSettings: View {
             destination(FeatureStrings.clipboard(l10n.language).title, symbol: "doc.on.clipboard", value: $clipboardWindow, available: AppFeature.clipboardHistory.isAvailable)
             switchRow("doc.on.clipboard", text.clipboardActivity, caption: text.privacy, isOn: $clipboard)
         case .captures:
-            SettingsFeatureSwitchRow(symbol: "camera.viewfinder", title: text.captureActivity, isOn: $capture, feature: .screenshot)
-            if capture, AppFeature.screenshot.isAvailable {
-                ScreenshotDefaultActionPicker(strings: FeatureStrings.screenshot(l10n.language), selection: $captureAction)
-                    .padding(.leading, settingsRowTextInset)
-            }
+            SettingsFeatureSwitchRow(symbol: "camera.viewfinder", title: text.captureActivity, isOn: $capture, feature: .screenRecorder)
         case .scratchpad:
             destination(FeatureStrings.scratchpad(l10n.language).pageTitle, symbol: "note.text", value: $scratchpad)
         case .agents:
@@ -540,7 +535,7 @@ struct NotchSettings: View {
                 let accessoriesAvailable = AppFeature.notchAccessories.isAvailable && AppFeature.monitorPower.isAvailable
                 let clipboardAvailable = AppFeature.clipboardHistory.isAvailable && clipboardHistoryEnabled
                     && NotchSupport.modules().contains(.clipboard)
-                let capturesAvailable = AppFeature.screenshot.isAvailable && NotchSupport.modules().contains(.captures)
+                let capturesAvailable = AppFeature.screenRecorder.isAvailable && NotchSupport.modules().contains(.captures)
                 let musicAvailable = NotchSupport.modules().contains(.music)
                 let reserves = ![volumeAvailable, brightnessAvailable, keyboardLightAvailable, microphoneAvailable,
                                  batteryAvailable || !hasBattery, accessoriesAvailable, clipboardAvailable, capturesAvailable,
@@ -583,8 +578,8 @@ struct NotchSettings: View {
                                available: clipboardAvailable, reason: clipboardFeedbackReason, reservesReason: reserves,
                                unavailableAction: { openClipboardFeedbackSetup() })
                     toggleCard(text.captures, symbol: "camera.viewfinder", value: $capture, available: capturesAvailable,
-                               reason: pageReason(.captures, feature: .screenshot), reservesReason: reserves,
-                               unavailableAction: pageAction(.captures, feature: .screenshot))
+                               reason: pageReason(.captures, feature: .screenRecorder), reservesReason: reserves,
+                               unavailableAction: pageAction(.captures, feature: .screenRecorder))
                     toggleCard(text.newTrack, symbol: "music.note", value: $trackChange, available: musicAvailable,
                                reason: pageReason(.music, feature: nil), reservesReason: reserves,
                                unavailableAction: pageAction(.music, feature: nil))
