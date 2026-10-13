@@ -189,30 +189,6 @@ enum SwitcherModelFeatureTests {
             Defaults.migrateLegacySwitcherWindowShortcut(in: migrationDefaults)
             suite.expect(migrationDefaults.string(forKey: DefaultsKey.switcherWindowShortcut) == "option:50",
                    "switcher window shortcut migration preserves real custom shortcuts")
-            migrationDefaults.set(30, forKey: DefaultsKey.keyboardDebounceWindowMs)
-            migrationDefaults.set(false, forKey: DefaultsKey.keyboardDebounceEnabled)
-            migrationDefaults.set("", forKey: DefaultsKey.keyboardDebounceKeyWindows)
-            Defaults.migrateLegacyKeyboardDebounceWindow(in: migrationDefaults)
-            suite.expect(migrationDefaults.integer(forKey: DefaultsKey.keyboardDebounceWindowMs)
-                   == Defaults.defaultKeyboardDebounceWindowMs,
-                   "keyboard debounce migration updates the old disabled Developer default")
-            migrationDefaults.set(10, forKey: DefaultsKey.keyboardDebounceWindowMs)
-            migrationDefaults.set(false, forKey: DefaultsKey.keyboardDebounceEnabled)
-            migrationDefaults.set("", forKey: DefaultsKey.keyboardDebounceKeyWindows)
-            Defaults.migrateLegacyKeyboardDebounceWindow(in: migrationDefaults)
-            suite.expect(migrationDefaults.integer(forKey: DefaultsKey.keyboardDebounceWindowMs)
-                   == Defaults.defaultKeyboardDebounceWindowMs,
-                   "keyboard debounce migration updates the old disabled 10 ms default")
-            migrationDefaults.set(30, forKey: DefaultsKey.keyboardDebounceWindowMs)
-            migrationDefaults.set(true, forKey: DefaultsKey.keyboardDebounceEnabled)
-            Defaults.migrateLegacyKeyboardDebounceWindow(in: migrationDefaults)
-            suite.expect(migrationDefaults.integer(forKey: DefaultsKey.keyboardDebounceWindowMs) == 30,
-                   "keyboard debounce migration preserves active user choices")
-            migrationDefaults.set(10, forKey: DefaultsKey.keyboardDebounceWindowMs)
-            migrationDefaults.set(true, forKey: DefaultsKey.keyboardDebounceEnabled)
-            Defaults.migrateLegacyKeyboardDebounceWindow(in: migrationDefaults)
-            suite.expect(migrationDefaults.integer(forKey: DefaultsKey.keyboardDebounceWindowMs) == 10,
-                   "keyboard debounce migration preserves active 10 ms user choices")
             migrationDefaults.removeObject(forKey: DefaultsKey.panelUtilityOrder)
             Defaults.migrateUtilityOrderForScreenshot(in: migrationDefaults)
             suite.expect(migrationDefaults.object(forKey: DefaultsKey.panelUtilityOrder) == nil,
@@ -2131,12 +2107,6 @@ enum SwitcherModelFeatureTests {
                 && approach.y + dockRightTarget.height < 1080
                 && abs(approach.x) <= 4 && abs(approach.y - 31) <= 4,
                "the approach keeps the full target size clear of the Dock edge, a tolerance from the target")
-        suite.expect(registeredDefaults[DefaultsKey.keyboardDebounceEnabled] as? Bool == false,
-               "keyboard debounce is opt-in")
-        suite.expect(registeredDefaults[DefaultsKey.keyboardDebounceWindowMs] as? Int == 5,
-               "keyboard debounce default window starts low")
-        suite.expect(registeredDefaults[DefaultsKey.keyboardDebounceKeyWindows] as? String == "",
-               "keyboard debounce per-key windows start empty")
         suite.expect(registeredDefaults[DefaultsKey.panelUtilityCleaning] as? Bool == true,
                "panel cleaning utility is visible by default")
         suite.expect(registeredDefaults[DefaultsKey.cleaningModeKeepScreenVisible] as? Bool == false,

@@ -1057,18 +1057,6 @@ struct Strings {
     let windowMaximizeCaption: String
     let windowMaximizeActiveNow: String
     let windowMaximizeNeedsAccessibility: String
-    let keyDebounceName: String
-    let keyDebounceEnable: String
-    let keyDebounceCaption: String
-    let keyDebounceActiveNow: String
-    let keyDebounceGlobalWindow: String
-    let keyDebouncePerKeySection: String
-    let keyDebouncePerKeyCaption: String
-    let keyDebounceKeyLabel: String
-    let keyDebounceWindowLabel: String
-    let keyDebounceAddKey: String
-    let keyDebounceNoOverrides: String
-    let keyDebounceRemoveKey: String
     let cleaningPanelCaption: String
     let cleaningOverlayTitle: String
     let cleaningOverlaySubtitle: String
@@ -2160,18 +2148,6 @@ extension Strings {
         windowMaximizeCaption: "O botão verde maximiza sem criar outro Espaço.",
         windowMaximizeActiveNow: "Ativo no botão verde",
         windowMaximizeNeedsAccessibility: "Precisa de Acessibilidade para funcionar.",
-        keyDebounceName: "Debounce",
-        keyDebounceEnable: "Filtrar teclas duplicadas",
-        keyDebounceCaption: "Filtra toques duplicados muito rápidos.",
-        keyDebounceActiveNow: "Filtro ativo",
-        keyDebounceGlobalWindow: "Janela global",
-        keyDebouncePerKeySection: "Teclas específicas",
-        keyDebouncePerKeyCaption: "Valores por tecla substituem a janela global. Use 0 ms para não filtrar uma tecla.",
-        keyDebounceKeyLabel: "Tecla",
-        keyDebounceWindowLabel: "Janela",
-        keyDebounceAddKey: "Adicionar tecla",
-        keyDebounceNoOverrides: "Nenhuma tecla específica configurada.",
-        keyDebounceRemoveKey: "Remover tecla",
         cleaningPanelCaption: "Bloqueia o teclado para limpar com segurança.",
         cleaningOverlayTitle: "Teclado bloqueado para limpeza",
         cleaningOverlaySubtitle: "Pressione Esc 5 vezes para desbloquear",
@@ -3256,18 +3232,6 @@ extension Strings {
         windowMaximizeCaption: "The green button maximizes without creating another Space.",
         windowMaximizeActiveNow: "Green button override active",
         windowMaximizeNeedsAccessibility: "Needs Accessibility to work.",
-        keyDebounceName: "Debounce",
-        keyDebounceEnable: "Filter duplicate keys",
-        keyDebounceCaption: "Filters very fast duplicate key presses.",
-        keyDebounceActiveNow: "Filter active",
-        keyDebounceGlobalWindow: "Global window",
-        keyDebouncePerKeySection: "Specific keys",
-        keyDebouncePerKeyCaption: "Per-key values override the global window. Use 0 ms to stop filtering a key.",
-        keyDebounceKeyLabel: "Key",
-        keyDebounceWindowLabel: "Window",
-        keyDebounceAddKey: "Add key",
-        keyDebounceNoOverrides: "No specific keys configured.",
-        keyDebounceRemoveKey: "Remove key",
         cleaningPanelCaption: "Locks the keyboard so you can clean safely.",
         cleaningOverlayTitle: "Keyboard locked for cleaning",
         cleaningOverlaySubtitle: "Press Escape 5 times to unlock",

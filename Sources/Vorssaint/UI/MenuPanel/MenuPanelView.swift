@@ -1112,7 +1112,7 @@ struct UtilitiesSection: View {
 }
 
 private enum ControlPanelItem: String, PanelOrderItem, Identifiable {
-    case mouseScroll, linearScroll, focusFollowsMouse, mouseAcceleration, mouseNavigation, switcher, cutPaste, autoQuit, shelf, windowMaximize, dockPreview, keyDebounce,
+    case mouseScroll, linearScroll, focusFollowsMouse, mouseAcceleration, mouseNavigation, switcher, cutPaste, autoQuit, shelf, windowMaximize, dockPreview,
          dockClick, dockClickHide, dockClickCycle, middleClick, textSnippets, radialMenu, mouseButtonShortcuts, superKey,
          mouseClickDebounce, notch, spacesOrder
 
@@ -1133,7 +1133,6 @@ private enum ControlPanelItem: String, PanelOrderItem, Identifiable {
         case .shelf: return .shelf
         case .windowMaximize: return .windowMaximizer
         case .dockPreview: return .dockPreview
-        case .keyDebounce: return .keyboardDebounce
         case .dockClick, .dockClickHide, .dockClickCycle: return .dockClick
         case .middleClick: return .middleClick
         case .textSnippets: return .textSnippets
@@ -1159,7 +1158,7 @@ private enum ControlCategory: String, CaseIterable, Identifiable {
         case .switcher, .dockPreview, .dockClick, .dockClickHide, .dockClickCycle, .windowMaximize, .autoQuit, .notch,
              .spacesOrder:
             return .windows
-        case .mouseScroll, .linearScroll, .focusFollowsMouse, .mouseAcceleration, .mouseNavigation, .mouseButtonShortcuts, .middleClick, .keyDebounce,
+        case .mouseScroll, .linearScroll, .focusFollowsMouse, .mouseAcceleration, .mouseNavigation, .mouseButtonShortcuts, .middleClick,
              .textSnippets, .radialMenu, .superKey, .mouseClickDebounce:
             return .inputDevices
         case .cutPaste, .shelf:
@@ -1178,7 +1177,6 @@ struct QuickControlsSection: View {
     @ObservedObject private var cutPaste = FinderCutPaste.shared
     @ObservedObject private var autoQuit = AutoQuitService.shared
     @ObservedObject private var windowMaximizer = WindowMaximizer.shared
-    @ObservedObject private var keyDebounce = KeyboardDebounceService.shared
     @ObservedObject private var middleClick = MiddleClickService.shared
     @ObservedObject private var shelf = ShelfService.shared
     @AppStorage(DefaultsKey.scrollInverterEnabled) private var invertVertical = false
@@ -1194,8 +1192,6 @@ struct QuickControlsSection: View {
     @AppStorage(DefaultsKey.autoQuitEnabled) private var autoQuitEnabled = false
     @AppStorage(DefaultsKey.shelfEnabled) private var shelfEnabled = false
     @AppStorage(DefaultsKey.windowMaximizeEnabled) private var windowMaximizeEnabled = false
-    @AppStorage(DefaultsKey.keyboardDebounceEnabled) private var keyDebounceEnabled = false
-    @AppStorage(DefaultsKey.keyboardDebounceWindowMs) private var keyDebounceWindow = Defaults.defaultKeyboardDebounceWindowMs
     @AppStorage(DefaultsKey.dockClickMinimize) private var dockClickEnabled = false
     @AppStorage(DefaultsKey.dockClickHide) private var dockClickHideEnabled = false
     @AppStorage(DefaultsKey.dockClickCycleWindows) private var dockClickCycleEnabled = false
@@ -1225,7 +1221,6 @@ struct QuickControlsSection: View {
     @AppStorage(DefaultsKey.panelControlAutoQuit) private var showAutoQuit = true
     @AppStorage(DefaultsKey.panelControlShelf) private var showShelf = true
     @AppStorage(DefaultsKey.panelControlWindowMaximize) private var showWindowMaximize = true
-    @AppStorage(DefaultsKey.panelControlKeyDebounce) private var showKeyDebounce = true
     @AppStorage(DefaultsKey.panelControlDockClick) private var showDockClick = true
     @AppStorage(DefaultsKey.panelControlDockClickHide) private var showDockClickHide = true
     @AppStorage(DefaultsKey.panelControlDockClickCycle) private var showDockClickCycle = true
@@ -1348,7 +1343,6 @@ struct QuickControlsSection: View {
         case .shelf: return shelfEnabled
         case .windowMaximize: return windowMaximizeEnabled
         case .dockPreview: return dockPreviewEnabled
-        case .keyDebounce: return keyDebounceEnabled
         case .dockClick: return dockClickEnabled
         case .dockClickHide: return dockClickHideEnabled
         case .dockClickCycle: return dockClickCycleEnabled
@@ -1423,7 +1417,6 @@ struct QuickControlsSection: View {
         case .mouseAcceleration: return showMouseAcceleration
         case .mouseNavigation: return showMouseNavigation
         case .switcher: return showSwitcher
-        case .keyDebounce: return showKeyDebounce
         case .cutPaste: return showCutPaste
         case .autoQuit: return showAutoQuit
         case .shelf: return showShelf
@@ -1534,26 +1527,6 @@ struct QuickControlsSection: View {
                     }
                 if switcherEnabled && !editing {
                     switcherIconRowOption
-                }
-            }
-        case .keyDebounce:
-            VStack(alignment: .leading, spacing: 0) {
-                PanelToggleRow(title: l10n.s.keyDebounceName,
-                               caption: keyDebounceCaption,
-                               systemImage: "keyboard",
-                               isOn: $keyDebounceEnabled,
-                               isEditing: editing,
-                               showsDragHandle: true,
-                               visibility: $showKeyDebounce,
-                               needsAttention: keyDebounceEnabled && !permissions.accessibility,
-                               permissionButtonTitle: l10n.s.permissionRequest,
-                               permissionAction: accessibilityPermissionAction(keyDebounceEnabled))
-                    .onChange(of: keyDebounceEnabled) { _, enabled in
-                        KeyboardDebounceService.shared.syncWithPreferences()
-                        requestAccessibilityIfNeeded(enabled)
-                    }
-                if keyDebounceEnabled && !editing {
-                    keyDebounceWindowControl
                 }
             }
         case .cutPaste:
@@ -1889,7 +1862,6 @@ struct QuickControlsSection: View {
         showShelf = true
         showWindowMaximize = true
         showDockPreview = true
-        showKeyDebounce = true
         showDockClick = true
         showDockClickHide = true
         showDockClickCycle = true
@@ -1920,41 +1892,6 @@ struct QuickControlsSection: View {
     private func requestAccessibilityIfNeeded(_ enabled: Bool) {
         guard enabled, !permissions.accessibility else { return }
         grantAccessibility()
-    }
-
-    private var keyDebounceCaption: String {
-        guard keyDebounceEnabled else { return l10n.s.keyDebounceCaption }
-        guard permissions.accessibility else { return missingPermission(l10n.s.permissionAccessibility) }
-        let window = Defaults.sanitizedKeyboardDebounceWindow(keyDebounceWindow)
-        return "\(l10n.s.keyDebounceGlobalWindow): \(window) ms"
-    }
-
-    private var keyDebounceWindowControl: some View {
-        Stepper(value: keyDebounceWindowBinding,
-                in: Defaults.allowedKeyboardDebounceWindowRange,
-                step: Defaults.keyboardDebounceWindowStep) {
-            HStack(spacing: 6) {
-                Text(l10n.s.keyDebounceGlobalWindow)
-                    .font(.system(size: 10.5, weight: .medium))
-                    .foregroundStyle(.secondary)
-                Spacer(minLength: 0)
-                Text("\(Defaults.sanitizedKeyboardDebounceWindow(keyDebounceWindow)) ms")
-                    .font(.system(size: 10.5, weight: .medium))
-                    .foregroundStyle(.secondary)
-                    .monospacedDigit()
-            }
-        }
-        .controlSize(.small)
-        .panelSubRowInsets()
-    }
-
-    private var keyDebounceWindowBinding: Binding<Int> {
-        Binding {
-            Defaults.sanitizedKeyboardDebounceWindow(keyDebounceWindow)
-        } set: { value in
-            keyDebounceWindow = Defaults.sanitizedKeyboardDebounceWindow(value)
-            KeyboardDebounceService.shared.syncWithPreferences()
-        }
     }
 
     private var scrollDirectionEnabled: Bool {

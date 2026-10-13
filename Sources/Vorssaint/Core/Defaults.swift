@@ -296,9 +296,6 @@ enum DefaultsKey {
     static let urlCleanerDisabledParameters = "urlCleanerDisabledParameters" // built-in host|name pairs switched off
     static let windowMaximizeEnabled = "windowMaximizeEnabled"
     static let windowMaximizeExcludedApps = "windowMaximizeExcludedApps" // [bundle id] whose green button stays native
-    static let keyboardDebounceEnabled = "keyboardDebounceEnabled"
-    static let keyboardDebounceWindowMs = "keyboardDebounceWindowMs"
-    static let keyboardDebounceKeyWindows = "keyboardDebounceKeyWindows" // comma-separated keyCode:ms
     static let panelUtilityCleaning = "panelUtilityCleaning"
     static let cleaningModeKeepScreenVisible = "cleaningModeKeepScreenVisible"
     static let panelUtilityURLCleaner = "panelUtilityURLCleaner"
@@ -1141,13 +1138,7 @@ enum Defaults {
     static let allowedKeepAwakeMouseJiggleIntervals = [1, 2, 5, 10, 15]
     static let allowedBatteryLimits = [0, 5, 10, 15, 20]
     static let allowedMonitorIntervals = [1, 2, 5]
-    static let defaultKeyboardDebounceWindowMs = 5
     static let defaultSnippetSoundName = "Tink"
-    static let allowedKeyboardDebounceWindowRange = 0...500
-    /// Stepper increment for the keyboard debounce window. Kept at 1 ms so
-    /// magnetic-keyboard users can pick values below the old 5 ms UI step
-    /// without changing the stored range (issue #1551).
-    static let keyboardDebounceWindowStep = 1
     static let defaultMouseClickDebounceWindowMs = 25
     static let allowedMouseClickDebounceWindowRange = 5...100
     static let allowedMenuBarPresets = ["dense"]
@@ -1521,9 +1512,6 @@ enum Defaults {
         DefaultsKey.radialMenuActivationMode: RadialMenuActivationMode.pressOrHold.rawValue,
         DefaultsKey.windowMaximizeEnabled: false,
         DefaultsKey.windowMaximizeExcludedApps: [String](),
-        DefaultsKey.keyboardDebounceEnabled: false,
-        DefaultsKey.keyboardDebounceWindowMs: defaultKeyboardDebounceWindowMs,
-        DefaultsKey.keyboardDebounceKeyWindows: "",
         DefaultsKey.panelUtilityCleaning: true,
         DefaultsKey.cleaningModeKeepScreenVisible: false,
         DefaultsKey.panelUtilityURLCleaner: true,
@@ -1958,7 +1946,6 @@ enum Defaults {
         installCompanionForBetaCommandBar(in: defaults)
         migrateLegacyMenuBarTemperatureMetric(in: defaults)
         migrateLegacySwitcherWindowShortcut(in: defaults)
-        migrateLegacyKeyboardDebounceWindow(in: defaults)
         migrateUtilityOrderForScreenshot(in: defaults)
         migrateUtilityOrderForAppUpdates(in: defaults)
         migrateScreenshotOpenEditorDirectly(in: defaults)
@@ -2349,15 +2336,6 @@ enum Defaults {
                      forKey: DefaultsKey.switcherWindowShortcut)
     }
 
-    static func migrateLegacyKeyboardDebounceWindow(in defaults: UserDefaults) {
-        guard let storedWindow = defaults.object(forKey: DefaultsKey.keyboardDebounceWindowMs) as? Int,
-              storedWindow == 30 || storedWindow == 10,
-              defaults.bool(forKey: DefaultsKey.keyboardDebounceEnabled) == false,
-              (defaults.string(forKey: DefaultsKey.keyboardDebounceKeyWindows) ?? "").isEmpty
-        else { return }
-        defaults.set(defaultKeyboardDebounceWindowMs, forKey: DefaultsKey.keyboardDebounceWindowMs)
-    }
-
     static func migrateUtilityOrderForScreenshot(in defaults: UserDefaults) {
         guard let storedOrder = defaults.object(forKey: DefaultsKey.panelUtilityOrder) as? String else {
             return
@@ -2456,11 +2434,6 @@ enum Defaults {
         raw == 3 || raw == 4 ? raw : 0
     }
 
-    static func sanitizedKeyboardDebounceWindow(_ milliseconds: Int) -> Int {
-        allowedKeyboardDebounceWindowRange.contains(milliseconds)
-            ? milliseconds
-            : defaultKeyboardDebounceWindowMs
-    }
 
     static func sanitizedMouseClickDebounceWindow(_ milliseconds: Int) -> Int {
         allowedMouseClickDebounceWindowRange.contains(milliseconds)

@@ -34,135 +34,6 @@ enum PointerInputFeatureTests {
             return Unmanaged<CFData>.fromOpaque(pointer).takeUnretainedValue() as Data
         }
 
-        // MARK: Keyboard debounce
-
-        var debounceState = KeyboardDebounceState()
-        let debounceConfig = KeyboardDebounceConfig(enabled: true,
-                                                    globalWindowMs: 50,
-                                                    keyWindows: [:])
-        func debounceDown(_ keyCode: Int64,
-                          at time: TimeInterval,
-                          repeat isAutoRepeat: Bool = false,
-                          config: KeyboardDebounceConfig) -> Bool {
-            debounceState.shouldSuppress(keyCode: keyCode,
-                                         isAutoRepeat: isAutoRepeat,
-                                         event: .keyDown,
-                                         time: time,
-                                         config: config)
-        }
-        func debounceUp(_ keyCode: Int64,
-                        at time: TimeInterval,
-                        config: KeyboardDebounceConfig) -> Bool {
-            debounceState.shouldSuppress(keyCode: keyCode,
-                                         isAutoRepeat: false,
-                                         event: .keyUp,
-                                         time: time,
-                                         config: config)
-        }
-        suite.expect(!debounceDown(37, at: 10.00, config: debounceConfig),
-               "debounce accepts the first key press")
-        suite.expect(!debounceUp(37, at: 10.01, config: debounceConfig),
-               "debounce accepts key release")
-        suite.expect(debounceDown(37, at: 10.03, config: debounceConfig),
-               "debounce suppresses same-key bounce after release")
-        suite.expect(!debounceDown(37, at: 10.06, config: debounceConfig),
-               "debounce accepts same-key press after the release window")
-        suite.expect(!debounceDown(37, at: 10.07, repeat: true, config: debounceConfig),
-               "debounce leaves key auto-repeat alone")
-        let fastConfig = KeyboardDebounceConfig(enabled: true,
-                                                globalWindowMs: 10,
-                                                keyWindows: [:])
-        debounceState.reset()
-        suite.expect(!debounceDown(0, at: 40.000, config: fastConfig),
-               "debounce 10 ms accepts the first fast key press")
-        _ = debounceUp(0, at: 40.004, config: fastConfig)
-        suite.expect(debounceDown(0, at: 40.009, config: fastConfig),
-               "debounce 10 ms suppresses same-key bounce inside the release window")
-        suite.expect(!debounceDown(0, at: 40.014, config: fastConfig),
-               "debounce 10 ms accepts the same key at the release boundary")
-        let defaultDebounceConfig = KeyboardDebounceConfig(enabled: true,
-                                                           globalWindowMs: Defaults.defaultKeyboardDebounceWindowMs,
-                                                           keyWindows: [:])
-        debounceState.reset()
-        suite.expect(!debounceDown(0, at: 45.000, config: defaultDebounceConfig),
-               "debounce 5 ms default accepts the first fast key press")
-        _ = debounceUp(0, at: 45.001, config: defaultDebounceConfig)
-        suite.expect(debounceDown(0, at: 45.005, config: defaultDebounceConfig),
-               "debounce 5 ms default suppresses same-key bounce inside the release window")
-        suite.expect(!debounceDown(0, at: 45.006, config: defaultDebounceConfig),
-               "debounce 5 ms default accepts the same key at the release boundary")
-        debounceState.reset()
-        suite.expect(!debounceDown(37, at: 50.000, config: fastConfig),
-               "debounce accepts normal phrase first letter")
-        _ = debounceUp(37, at: 50.020, config: fastConfig)
-        suite.expect(!debounceDown(14, at: 50.025, config: fastConfig),
-               "debounce accepts normal phrase next letter")
-        _ = debounceUp(14, at: 50.045, config: fastConfig)
-        suite.expect(!debounceDown(17, at: 50.050, config: fastConfig),
-               "debounce accepts normal phrase repeated-letter first press")
-        _ = debounceUp(17, at: 50.070, config: fastConfig)
-        suite.expect(!debounceDown(17, at: 50.110, config: fastConfig),
-               "debounce accepts normal phrase repeated-letter second press")
-        debounceState.reset()
-        suite.expect(!debounceDown(0, at: 60.000, config: fastConfig),
-               "debounce accepts the first key in an alternating pattern")
-        _ = debounceUp(0, at: 60.004, config: fastConfig)
-        suite.expect(!debounceDown(11, at: 60.006, config: fastConfig),
-               "debounce accepts a different key inside another key's window")
-        _ = debounceUp(11, at: 60.009, config: fastConfig)
-        suite.expect(!debounceDown(0, at: 60.011, config: fastConfig),
-               "debounce accepts a same-key press after another key was accepted")
-        debounceState.reset()
-        suite.expect(!debounceDown(0, at: 70.000, config: fastConfig),
-               "debounce accepts the first key before duplicate down")
-        suite.expect(debounceDown(0, at: 70.004, config: fastConfig),
-               "debounce suppresses non-repeat duplicate down while the key is still down")
-        suite.expect(!debounceUp(0, at: 70.020, config: fastConfig),
-               "debounce still passes the release after a duplicate down")
-        debounceState.reset()
-        suite.expect(!debounceDown(0, at: 75.000, config: fastConfig),
-               "debounce accepts a key before a missing release")
-        suite.expect(!debounceDown(0, at: 75.020, config: fastConfig),
-               "debounce accepts a same-key press after the window even if release was missed")
-        debounceState.reset()
-        suite.expect(!debounceDown(0, at: 80.000, config: fastConfig),
-               "debounce accepts the first key before an out-of-order event")
-        _ = debounceUp(0, at: 80.010, config: fastConfig)
-        suite.expect(!debounceDown(0, at: 79.990, config: fastConfig),
-               "debounce resets same-key state when event timestamps move backward")
-        let perKeyConfig = KeyboardDebounceConfig(enabled: true,
-                                                  globalWindowMs: 20,
-                                                  keyWindows: [37: 100, 40: 0])
-        debounceState.reset()
-        _ = debounceDown(37, at: 20.00, config: perKeyConfig)
-        _ = debounceUp(37, at: 20.01, config: perKeyConfig)
-        suite.expect(debounceDown(37, at: 20.06, config: perKeyConfig),
-               "debounce per-key window overrides the global window")
-        _ = debounceDown(40, at: 30.00, config: perKeyConfig)
-        _ = debounceUp(40, at: 30.005, config: perKeyConfig)
-        suite.expect(!debounceDown(40, at: 30.006, config: perKeyConfig),
-               "debounce per-key zero disables filtering for that key")
-        let encodedKeyWindows = KeyboardDebounceConfig.encodeKeyWindows([37: 100, 40: 0])
-        suite.expect(encodedKeyWindows == "37:100,40:0",
-               "debounce key windows encode in stable key order")
-        suite.expect(KeyboardDebounceConfig.decodeKeyWindows("37:100,bad,40:0,99:999")
-               == [37: 100, 40: 0, 99: Defaults.defaultKeyboardDebounceWindowMs],
-               "debounce key windows decode and sanitize stored values")
-        let preciseConfig = KeyboardDebounceConfig(enabled: true,
-                                                   globalWindowMs: 1,
-                                                   keyWindows: [:])
-        debounceState.reset()
-        suite.expect(!debounceDown(0, at: 90.0000, config: preciseConfig),
-               "a 1 ms keyboard window accepts the first press")
-        _ = debounceUp(0, at: 90.0005, config: preciseConfig)
-        suite.expect(debounceDown(0, at: 90.0010, config: preciseConfig),
-               "a 1 ms keyboard window still filters a same-key bounce")
-        suite.expect(!debounceDown(11, at: 90.0012, config: preciseConfig),
-               "different keys pressed within 5 ms are never filtered")
-        _ = debounceUp(11, at: 90.0014, config: preciseConfig)
-        suite.expect(!debounceDown(0, at: 90.0015, config: preciseConfig),
-               "the first key is accepted again after another key")
-
         // MARK: Mouse click debounce
 
         let clickConfig = MouseClickDebounceConfig(enabled: true, windowMilliseconds: 25)
@@ -533,27 +404,6 @@ enum PointerInputFeatureTests {
                 && liveFromNanoseconds == liveNanoseconds,
                "events stamped with this Mac's mach clock or uptime nanoseconds share one clock")
 
-        // A 50 ms window measured in raw ticks would last about 2.1 s here.
-        let hidDebounceConfig = KeyboardDebounceConfig(enabled: true,
-                                                       globalWindowMs: 50,
-                                                       keyWindows: [:])
-        func hidKey(_ event: KeyboardDebounceState.EventKind, atMilliseconds milliseconds: UInt64) -> Bool {
-            debounceState.shouldSuppress(
-                keyCode: 0,
-                isAutoRepeat: false,
-                event: event,
-                timestampNanoseconds: EventTimestamp.nanoseconds(
-                    raw: ticks(atMilliseconds: milliseconds), nowTicks: nowTicks, timebase: appleSilicon),
-                config: hidDebounceConfig)
-        }
-        debounceState.reset()
-        suite.expect(!hidKey(.keyDown, atMilliseconds: 3_500_000)
-                && !hidKey(.keyUp, atMilliseconds: 3_500_060)
-                && hidKey(.keyDown, atMilliseconds: 3_500_080)
-                && !hidKey(.keyDown, atMilliseconds: 3_500_120)
-                && !hidKey(.keyUp, atMilliseconds: 3_500_180)
-                && !hidKey(.keyDown, atMilliseconds: 3_500_240),
-               "keyboard debounce on HID ticks drops a 20 ms bounce and accepts a press 60 ms after release")
         clickState.reset()
         func hidClick(_ event: MouseClickDebounceEvent, atMilliseconds milliseconds: UInt64) -> Bool {
             clickState.shouldSuppress(
@@ -574,7 +424,7 @@ enum PointerInputFeatureTests {
         // Keys this app posts are recognised on the event itself. Quit
         // Protection confirms a press by posting a copy of the hardware key
         // down, which keeps both the hardware timestamp and its source process
-        // id of 0. KeyboardDebounceTapTests feeds these through the tap handler.
+        // id of 0.
         let ownProcessID = Int64(getpid())
         let hardwareKeyDown = CGEvent(keyboardEventSource: nil, virtualKey: 13, keyDown: true)
         hardwareKeyDown?.setIntegerValueField(.eventSourceUnixProcessID, value: 0)
@@ -3394,7 +3244,6 @@ enum PointerInputFeatureTests {
                          "Sources/Vorssaint/Services/WindowMaximizer.swift",
                          "Sources/Vorssaint/Services/Finder/FinderCutPaste.swift",
                          "Sources/Vorssaint/Services/Finder/FinderRenameService.swift",
-                         "Sources/Vorssaint/Services/KeyboardDebounce/KeyboardDebounceService.swift",
                          "Sources/Vorssaint/Services/SuperKey/SuperKeyService.swift",
                          "Sources/Vorssaint/Services/ShortcutRecordingTap.swift",
                          "Sources/Vorssaint/Services/Switcher/AppSwitcher.swift",

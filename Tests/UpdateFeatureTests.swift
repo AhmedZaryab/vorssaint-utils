@@ -377,12 +377,12 @@ enum UpdateFeatureTests {
                 + [SettingsSidebarItem(id: .feature(.scrollInverter),
                                        destination: AppFeature.scrollInverter.settingsDestination,
                                        title: "Scroll", icon: "")],
-            utilities: quickToolRows + [pageRow(.urlCleaner), pageRow(.keyDebounce),
+            utilities: quickToolRows + [pageRow(.urlCleaner),
                                         pageRow(.superKey), pageRow(.textSnippets),
                                         pageRow(.radialMenu)])
         suite.expect(groupedRows.windowsDock.map(\.id) == [.page(.windowLayout), .page(.autoQuit)]
                 && groupedRows.mouseKeyboard.map(\.id) == [
-                    .page(.quitProtection), .feature(.scrollInverter), .page(.keyDebounce),
+                    .page(.quitProtection), .feature(.scrollInverter),
                     .page(.superKey), .page(.textSnippets)]
                 && groupedRows.files.map(\.id) == [.page(.urlCleaner)]
                 && groupedRows.sound.map(\.id) == [.feature(.micMute)]
