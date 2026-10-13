@@ -1036,14 +1036,9 @@ extension AppFeature {
         case .notch: return FeatureStrings.notch(L10n.shared.language).title
         case .radialMenu: return FeatureStrings.radialMenu(L10n.shared.language).pageTitle
         case .scratchpad: return FeatureStrings.scratchpad(L10n.shared.language).pageTitle
-        case .commandBar: return FeatureStrings.commandBar(L10n.shared.language).pageTitle
         case .cleaningMode: return s.cleaningMenuItem
         case .mediaTools: return s.mediaName
-        case .uninstaller: return s.uninstallerName
-        case .killProcess: return FeatureStrings.killProcess(L10n.shared.language).pageTitle
-        case .portManager: return FeatureStrings.portManager(L10n.shared.language).title
         case .homebrew: return s.homebrewName
-        case .appUpdates: return FeatureStrings.appUpdates(L10n.shared.language).pageTitle
         case .monitorPower: return s.powerSection
         }
     }
@@ -1100,14 +1095,9 @@ extension AppFeature {
         case .notch: return FeatureStrings.notch(L10n.shared.language).description
         case .radialMenu: return FeatureStrings.radialMenu(L10n.shared.language).hubDescription
         case .scratchpad: return FeatureStrings.scratchpad(L10n.shared.language).hubDescription
-        case .commandBar: return FeatureStrings.commandBar(L10n.shared.language).hubDescription
         case .cleaningMode: return hub.descCleaningMode
         case .mediaTools: return hub.descMediaTools
-        case .uninstaller: return hub.descUninstaller
-        case .killProcess: return FeatureStrings.killProcess(L10n.shared.language).hubDescription
-        case .portManager: return FeatureStrings.portManager(L10n.shared.language).hubDescription
         case .homebrew: return hub.descHomebrew
-        case .appUpdates: return FeatureStrings.appUpdates(L10n.shared.language).hubDescription
         case .monitorPower: return hub.descMonitorPower
         }
     }

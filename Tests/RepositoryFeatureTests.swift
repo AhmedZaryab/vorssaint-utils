@@ -135,7 +135,6 @@ enum RepositoryFeatureTests {
         suite.expect(repository.emptyPaths.isEmpty,
                "no Swift source is empty: \(repository.emptyPaths)")
         let requiredSourcePaths = [
-            "Sources/Vorssaint/Services/CommandBar/CommandBarSupport.swift",
             "Sources/Vorssaint/Services/Homebrew/HomebrewManager.swift",
             "Sources/Vorssaint/Services/QuickTools/RecentCaptureService.swift",
             "Sources/Vorssaint/Services/QuickTools/RecentCaptureStore.swift",
@@ -1232,18 +1231,6 @@ enum RepositoryFeatureTests {
                "uninstall sources read back for uninstallation alignment check")
         suite.expect(selfUninstallSource.contains("CleaningModeManager.shared.deactivateForSystemTeardown()"),
                "permission reset removes the cleaning input tap synchronously")
-        let queryHabitSupportSource = repository.source(
-            at: "Sources/Vorssaint/Services/CommandBar/CommandBarSupport.swift")
-        let queryHabitServiceSource = repository.source(
-            at: "Sources/Vorssaint/Services/CommandBar/CommandBarService.swift")
-        suite.expect(!queryHabitSupportSource.isEmpty
-                && !queryHabitServiceSource.isEmpty
-                && !queryHabitSupportSource.contains("SecItem")
-                && !queryHabitSupportSource.contains("import Security")
-                && !selfUninstallSource.contains("removeInstallationKey")
-                && !uninstallScriptSource.contains("delete-generic-password")
-                && queryHabitServiceSource.contains("DefaultsKey.commandBarQueryHabits"),
-               "query learning persists locally without Keychain access")
         let requiredSubpaths = ["Library/Application Support", "Library/Caches", "Library/HTTPStorages"]
         for subpath in requiredSubpaths {
             suite.expect(selfUninstallSource.contains(subpath) && uninstallScriptSource.contains(subpath),

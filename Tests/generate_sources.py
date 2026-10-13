@@ -257,40 +257,10 @@ def main():
               "    private func insertPromoted("])
           + "func setEntries(_ values: [ClipboardHistoryEntry]) { entries = values }\n"
           + "}\n}\n")
-    write("CommandBarInputSource.swift", "import Foundation\n"
-          + "extension CommandBarInputSourceContract {\nfinal class Service: Fixture {\n"
-          + "".join(declaration("Sources/Vorssaint/Services/CommandBar/CommandBarService.swift", prefix)
-                    .replace("private func", "func", 1) for prefix in [
-                        "    private func adoptASCIIInputSource(",
-                        "    private func restoreSuspendedInputSource(",
-                        "    func restoreBorrowedInputSource(",
-                        "    var hasBorrowedInputSource:"])
-          + "}\n}\n")
-    write("CommandBarKillProcessOrder.swift", "import Foundation\n"
-          + "extension CommandBarKillProcessOrderContract {\nfinal class Service: Fixture {\n"
-          + declaration("Sources/Vorssaint/Services/CommandBar/CommandBarService.swift",
-                        "    private func loadKillProcessEntries(").replace("private func", "func", 1)
-          + "}\n}\nextension CommandBarKillProcessOrderContract.Processes {\n"
-          + declaration("Sources/Vorssaint/Services/KillProcess/KillProcessService.swift",
-                        "    var sortedEntries:")
-          + "}\n")
-    write("CommandBarTermination.swift", "import AppKit\nimport Foundation\n"
-          + "extension CommandBarTerminationContract {\nfinal class Host: Fixture {\n"
-          + declaration("Sources/Vorssaint/App/AppDelegate.swift", "    func applicationShouldTerminate(")
-          + "}\n}\n")
-    ports = "Sources/Vorssaint/Services/PortManager/PortManagerService.swift"
-    write("PortManagerRefresh.swift", "import Darwin\nimport Foundation\n"
-          + "extension PortManagerRefreshTests {\nfinal class Service: Fixture {\n"
-          + declaration(ports, "    func refresh(")
-          + declaration(ports, "    private static func snapshot(").replace("private static", "static", 1)
-          + declaration(ports, "    private static func startTimes(").replace("private static", "static", 1)
-          + "}\n}\n")
     write("ProcessName.swift", "import Foundation\n"
           + "extension ProcessNameContract {\nfinal class Lookup: Fixture {\n"
           + declaration("Sources/Vorssaint/Services/ResponsibleProcess.swift", "    static func displayName(")
           + "}\n}\n")
-    uninstall = "Sources/Vorssaint/Services/Uninstall/AppUninstaller.swift"
-    bar = "Sources/Vorssaint/Services/CommandBar/CommandBarService.swift"
     write("QuickPaste.swift", "import Foundation\n"
           + "extension ClipboardFeatureTests.QuickPasteHost {\n"
           + declaration("Sources/Vorssaint/Services/Clipboard/ClipboardHistoryService.swift",
@@ -320,64 +290,10 @@ def main():
           + declaration("Sources/Vorssaint/Services/Clipboard/ClipboardIgnoredApps.swift",
                         "    func sourceSinceLastCheck(")
           + "}\n")
-    write("CommandBarCopyAnswer.swift", "import Foundation\n"
-          + "extension CommandBarFeatureTests.CopyAnswerHost {\n"
-          + declaration("Sources/Vorssaint/Services/CommandBar/CommandBarCatalog.swift",
-                        "    private static func copyAnswer(").replace("private static", "static", 1)
-          + "}\n")
-    write("CommandBarBrightness.swift", "import AppKit\n"
-          + "extension CommandBarFeatureTests.BrightnessHost {\n"
-          + declaration("Sources/Vorssaint/Services/CommandBar/CommandBarCatalog.swift",
-                        "    private static func applyBrightness(").replace("private static", "static", 1)
-          + "}\n")
     write("PointerScreen.swift", "import AppKit\n"
           + "extension PointerScreenContract.Screen {\n"
           + declaration("Sources/Vorssaint/Core/AppKitExtensions.swift", "    static var withMouse:")
           + "}\n")
-    write("CommandBarEmojiBodies.swift", "import Foundation\n"
-          + "extension CommandBarEmojiContract.Catalog {\n"
-          + declaration("Sources/Vorssaint/Services/CommandBar/CommandBarCatalog.swift",
-                        "    static func emojiEntries(")
-          + "}\nextension CommandBarEmojiContract.Service {\n"
-          + "".join(declaration(bar, prefix).replace("private func", "func", 1)
-                    for prefix in ["    struct RowAction:", "    private func skinToneActions(",
-                                   "    private func recordUsage(", "    private func finish("])
-          + "}\n")
-    write("UninstallerFlow.swift", "import AppKit\nimport Carbon.HIToolbox\nimport Combine\n"
-          + "extension UninstallerFlowTests {\n"
-          + declaration(uninstall, "    enum Phase:")
-          + declaration(bar, "    enum Mode:")
-          + "final class Uninstaller: UninstallerState {\nstatic let shared = Uninstaller()\n"
-          + "".join(declaration(uninstall, prefix) for prefix in [
-              "    var isRemoving: Bool", "    func select(appURL:",
-              "    func reset()", "    func setInclude(", "    struct HomebrewRemovalConfirmation",
-              "    var homebrewRemovalConfirmation:", "    func removeSelectedWithHomebrew("])
-          + "}\nfinal class Service: ServiceState {\n"
-          + "".join(declaration(bar, prefix).replace("private func", "func", 1) for prefix in [
-              "    @Published var query", "    private func beginUninstallReview(",
-              "    private func handleUninstallKey(", "    func stepBack()",
-              "    private func finishUninstallReview()"])
-          + "}\n}\nextension UninstallerFlowTests.Finder {\n"
-          + declaration("Sources/Vorssaint/Services/Finder/FinderCutPaste.swift", "    static func selectionURLs(")
-          + "}\n")
-    write("UninstallerCommandBarCleanup.swift", "import Foundation\n"
-          + "extension UninstallerCommandBarCleanupTests {\n"
-          + declaration(uninstall, "    enum Phase:")
-          + "final class Uninstaller: UninstallerState {\n"
-          + "".join(declaration(uninstall, prefix).replace("private func", "func", 1)
-                    .replace("private static func", "static func", 1) for prefix in [
-                        "    var selectedHomebrewPackage:", "    var isRemovingWithHomebrew:",
-                        "    var isRemoving: Bool",
-                        "    func setInclude(", "    private func finishRemovalAfterHomebrew(",
-                        "    private static func removeCommandBarState("])
-          + "}\nfinal class Service: ServiceState {\nstatic let shared = Service()\n"
-          + "".join(declaration(bar, prefix).replace("private var", "var", 1)
-                    .replace("private func", "func", 1) for prefix in [
-                        "    var rowShortcuts:", "    private var storedAliases:",
-                        "    private var storedPins:", "    private var storedHiddenKeys:",
-                        "    private func syncRowHotkeys(", "    func hasStoredApplicationState(",
-                        "    func removeApplicationState("])
-          + "}\n}\n")
     dock = "Sources/Vorssaint/Services/DockPreview/DockPreviewService.swift"
     write("DockPreviewScroll.swift", "import AppKit\nimport SwiftUI\n"
           + "extension DockPreviewScrollTests {\n"
@@ -519,32 +435,6 @@ def main():
     write("MixerPercentKey.swift", "import Foundation\nextension MixerPercentKeyTests {\nfinal class Coordinator: Fixture {\n"
           + "".join(declaration(mixer_section, prefix).replace("private func", "func", 1) for prefix in [
               "        private func startMonitoringEscape()", "        private func finish("])
-          + "}\n}\n")
-    updates = "Sources/Vorssaint/Services/AppUpdates/AppUpdatesService.swift"
-    loader = "Sources/Vorssaint/Services/AppUpdates/AppUpdateFeedLoader.swift"
-    # Only the network configuration, clock and declaration visibility change.
-    # The loader, batch loop, catalog matching and fallback resolution stay verbatim.
-    write("AppUpdates.swift", "import Foundation\nimport Darwin\nextension AppUpdatesContract {\n"
-          + declaration(loader, "final class AppUpdateFeedLoader:")
-          + "final class Service {\nlet workQueue = DispatchQueue(label: \"app-updates.contract\")\n"
-          + "let clock = Clock()\nstatic let ownPackageTokens: Set<String> = [\"vorssaint\", \"vorssaint@beta\", \"vorssaint-beta\"]\n"
-          + "static let onlineCatalogCacheLifetime: TimeInterval = 60 * 60\n"
-          + "var onlineCatalogCache: (loadedAt: Foundation.Date, entries: [AppUpdatesSupport.CatalogEntry])?\n"
-          + "lazy var catalogSession = URLSession(configuration: URLSessionConfiguration.ephemeral)\n"
-          + declaration(updates, "    private struct SourceResult {").replace("private struct", "struct", 1)
-          + declaration(updates, "    private func publisherFindings(").replace("private func", "func", 1).replace("Date()", "self.clock.now()")
-          + declaration(updates, "    private func onlineCatalogFindings(").replace("private func", "func", 1).replace("Date()", "self.clock.now()")
-          + declaration(updates, "    private func onlineResult(").replace("private func", "func", 1)
-          + "}\n}\n")
-    # Rule mutations and completion stay verbatim; only declaration visibility changes.
-    write("AppUpdateRules.swift", "import Foundation\nextension AppUpdateRulesContract {\n"
-          + "final class Service: State {\n"
-          + "".join(declaration(updates, prefix).replace("private func", "func", 1)
-                    for prefix in ["    func skipVersion(", "    func excludeApp(",
-                                   "    private func setRule(", "    func removeRule(",
-                                   "    private func saveRules(", "    private func reloadRules(",
-                                   "    private func applyRules(", "    private func finishCheck(",
-                                   "    private static func announcedIDs(", "    private static func saveAnnouncedIDs("])
           + "}\n}\n")
     playback_adapter = "Sources/NowPlayingAdapter/NowPlayingSelection.swift"
     adapter_entry = "Sources/NowPlayingAdapter/NowPlayingAdapter.swift"

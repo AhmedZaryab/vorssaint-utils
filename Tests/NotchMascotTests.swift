@@ -26,7 +26,6 @@ enum NotchMascotTests {
         reactionContracts(suite)
         sideContracts(suite)
         commandBarContracts(suite)
-        dropletContracts(suite)
         calendarContracts(suite)
         centeringContracts(suite)
     }
@@ -95,12 +94,8 @@ enum NotchMascotTests {
         for (key, value) in Defaults.registeredDefaults where key.hasPrefix("notch") { defaults.set(value, forKey: key) }
         for (key, value) in AppFeature.availabilityDefaults { defaults.set(value, forKey: key) }
         defaults.set(true, forKey: AppFeature.notch.availabilityKey)
-        defaults.set(true, forKey: AppFeature.commandBar.availabilityKey)
 
         defaults.set(true, forKey: DefaultsKey.notchEnabled)
-        suite.expect(!NotchMascotSupport.isEnabled(in: defaults) && !NotchMascotSupport.visits(in: defaults)
-                     && NotchMascotSupport.commandBarStyle(in: defaults) == nil,
-                     "the companion is opt-in, and the Command Bar keeps its own window until it is on")
         defaults.set(true, forKey: DefaultsKey.notchMascotEnabled)
         suite.expect(!NotchMascotSupport.isEnabled(in: defaults) && !NotchMascotSupport.reacts(in: defaults),
                      "switched on but not installed on the Features page, it stays away")
@@ -112,39 +107,18 @@ enum NotchMascotTests {
                      && NotchMascotLook.standard == NotchMascotLook(style: .minimal, shape: .ball, palette: .pearl),
                      "it starts as a pearl ball with two ink eyes")
         defaults.set(true, forKey: DefaultsKey.notchMascotEnabled)
-        suite.expect(NotchMascotSupport.isEnabled(in: defaults) && NotchMascotSupport.visits(in: defaults)
-                     && NotchMascotSupport.reacts(in: defaults)
-                     && NotchMascotSupport.commandBarStyle(in: defaults) == .droplet,
-                     "turned on, it visits now and then, reacts, and the Command Bar falls from the island as a drop")
         defaults.set(false, forKey: DefaultsKey.notchMascotReactions)
         suite.expect(NotchMascotSupport.isEnabled(in: defaults) && !NotchMascotSupport.reacts(in: defaults)
                      && NotchMascotSupport.visits(in: defaults),
                      "its reactions can be turned off while it still rests and visits")
         defaults.set(true, forKey: DefaultsKey.notchMascotReactions)
         defaults.set(false, forKey: AppFeature.notchMascot.availabilityKey)
-        suite.expect(!NotchMascotSupport.isEnabled(in: defaults) && !NotchMascotSupport.visits(in: defaults)
-                     && !NotchMascotSupport.reacts(in: defaults) && NotchMascotSupport.commandBarStyle(in: defaults) == nil,
-                     "uninstalled, it leaves the island and the Command Bar keeps its own window")
         defaults.set(true, forKey: AppFeature.notchMascot.availabilityKey)
-        defaults.set(NotchCommandBarStyle.island.rawValue, forKey: DefaultsKey.notchCommandBarStyle)
-        suite.expect(NotchMascotSupport.commandBarStyle(in: defaults) == .island, "the bar can open inside the island instead")
-        defaults.set("puddle", forKey: DefaultsKey.notchCommandBarStyle)
-        suite.expect(NotchMascotSupport.commandBarStyle(in: defaults) == .droplet, "an unknown style falls back to the drop")
-        defaults.set(false, forKey: DefaultsKey.notchCommandBar)
-        suite.expect(NotchMascotSupport.commandBarStyle(in: defaults) == nil, "turned off, the bar keeps its own window")
-        defaults.set(true, forKey: DefaultsKey.notchCommandBar)
-        defaults.set(false, forKey: AppFeature.commandBar.availabilityKey)
-        suite.expect(NotchMascotSupport.commandBarStyle(in: defaults) == nil,
-                     "a Command Bar taken off the Features page never comes out of the island")
-        defaults.set(true, forKey: AppFeature.commandBar.availabilityKey)
         defaults.set(false, forKey: DefaultsKey.notchMascotVisits)
         suite.expect(NotchMascotSupport.isEnabled(in: defaults) && !NotchMascotSupport.visits(in: defaults),
                      "visits can be turned off while it still rests")
         defaults.set(true, forKey: DefaultsKey.notchMascotVisits)
         defaults.set(false, forKey: DefaultsKey.notchEnabled)
-        suite.expect(!NotchMascotSupport.isEnabled(in: defaults) && !NotchMascotSupport.visits(in: defaults)
-                     && NotchMascotSupport.commandBarStyle(in: defaults) == nil,
-                     "without the island there is no companion and no bar from it")
         defaults.set(true, forKey: DefaultsKey.notchEnabled)
         defaults.set(NotchMascotStyle.robot.rawValue, forKey: DefaultsKey.notchMascotStyle)
         defaults.set(NotchMascotShape.pill.rawValue, forKey: DefaultsKey.notchMascotShape)
@@ -158,8 +132,8 @@ enum NotchMascotTests {
 
         let keys = [DefaultsKey.notchMascotEnabled, DefaultsKey.notchMascotVisits, DefaultsKey.notchMascotReactions,
                     DefaultsKey.notchMascotStyle,
-                    DefaultsKey.notchMascotShape, DefaultsKey.notchMascotPalette, DefaultsKey.notchCommandBar,
-                    DefaultsKey.notchCommandBarStyle, DefaultsKey.notchMascotSide, DefaultsKey.notchMascotVisitFrequency,
+                    DefaultsKey.notchMascotShape, DefaultsKey.notchMascotPalette,
+                    DefaultsKey.notchMascotSide, DefaultsKey.notchMascotVisitFrequency,
                     DefaultsKey.notchMascotHidesWhenIdle]
         suite.expect(keys.allSatisfy { Defaults.registeredDefaults[$0] != nil && $0.hasPrefix("notch") }
                      && SettingsBackupSupport.exportKeys().isSuperset(of: keys),
@@ -770,84 +744,6 @@ enum NotchMascotTests {
         let left = NotchMascotSupport.pointerGaze(from: CGPoint(x: 26, y: 16), to: CGPoint(x: 0, y: 30), size: 20)
         suite.expect(ahead == .zero && right.x > 0 && abs(right.x) <= 0.08 && left.x < 0 && left.y > 0 && abs(left.y) <= 0.05,
                      "its eyes turn toward the pointer, within its face")
-    }
-
-    private static func dropletContracts(_ suite: TestSuite) {
-        let edge = CommandBarDropletMotion.rootDepth
-        let field = CGRect(x: 28, y: edge + CommandBarDropletMotion.landingGap, width: 560, height: 50)
-        let icon = CGPoint(x: field.minX + 27, y: field.midY)
-        let centerX: CGFloat = 308
-        let drop = CommandBarDropletMotion.drop(edge: edge, centerX: centerX, field: field, icon: icon)
-        let structure = elements(CommandBarDropletMotion.neckPath(drop.frames[0], edge: edge, centerX: centerX))
-        suite.expect(drop.frames.count == drop.keyTimes.count && drop.keyTimes.first == 0 && drop.keyTimes.last == 1
-                     && zip(drop.keyTimes, drop.keyTimes.dropFirst()).allSatisfy { $0 < $1 }
-                     && drop.frames.allSatisfy { elements(CommandBarDropletMotion.neckPath($0, edge: edge, centerX: centerX)) == structure },
-                     "the drop is one run of frames whose neck keeps its curves, so each turns into the next")
-        let first = drop.frames[0], last = drop.frames[drop.frames.count - 1]
-        suite.expect(first.bead.midY < edge + 2 && first.bead.midX == centerX && first.mascotScale < 1,
-                     "the drop starts in the island's edge, with the companion small inside")
-        suite.expect(last.bead == field && last.mascot == icon && last.mascotScale == 1 && last.neckRoot == 0
-                     && last.neckEnd <= edge,
-                     "it ends as the bar's field, with the companion in the icon's place and no neck left")
-        suite.expect(drop.duration > 0.4 && drop.duration < 0.9 && drop.landing > 0.15 && drop.landing < drop.reveal
-                     && drop.reveal <= drop.duration && drop.reveal < 0.7,
-                     "it falls and opens quickly, landing first, and the bar takes over before the swing ends")
-        let revealed = drop.frames[min(drop.frames.count - 1,
-                                       Int((drop.reveal / drop.duration * Double(drop.frames.count - 1)).rounded(.up)))]
-        suite.expect(abs(revealed.bead.width - field.width) <= 2.5 && abs(revealed.bead.height - field.height) <= 1.5,
-                     "when the bar takes over, the drop already has its size within a couple of points")
-        suite.expect(drop.frames.allSatisfy { $0.bead.maxY <= field.maxY + 12 && $0.bead.minX >= field.minX - 12
-                                               && $0.bead.maxX <= field.maxX + 12 },
-                     "its spring opens it around the field, never far past it")
-        let pinched = drop.frames.firstIndex { $0.neckEnd < $0.bead.minY - 0.5 } ?? drop.frames.count
-        suite.expect(pinched < drop.frames.count
-                     && drop.frames[pinched...].allSatisfy { $0.neckEnd < $0.bead.minY - 0.5 }
-                     && zip(drop.frames[pinched...], drop.frames[pinched...].dropFirst()).allSatisfy { $0.neckEnd >= $1.neckEnd },
-                     "the neck lets go once and draws back into the island")
-        suite.expect(drop.frames[pinched...].allSatisfy { $0.neckEnd - edge < 1 || $0.neckTip > 0.2 },
-                     "what is left of the neck ends round, never in a point")
-        // Typed into as it falls, the rest of the fall plays under the bar
-        // within a moment. Closed as it falls, it rises back the way it came,
-        // ending inside the island.
-        let midway = drop.frameIndex(at: drop.landing / 2)
-        let rest = drop.remainder(from: midway, within: CommandBarDropletMotion.hurriedReveal)
-        func steady(_ motion: CommandBarDropletMotion) -> Bool {
-            motion.frames.count == motion.keyTimes.count && motion.keyTimes.first == 0 && motion.keyTimes.last == 1
-                && zip(motion.keyTimes, motion.keyTimes.dropFirst()).allSatisfy { $0 < $1 }
-        }
-        suite.expect(midway > 0 && midway < drop.frames.count - 1 && steady(rest)
-                     && rest.frames.first == drop.frames[midway] && rest.frames.last == drop.frames.last
-                     && rest.duration > 0 && rest.duration <= CommandBarDropletMotion.hurriedReveal
-                     && CommandBarDropletMotion.hurriedReveal >= 0.08 && CommandBarDropletMotion.hurriedReveal <= 0.15,
-                     "typing as the drop falls finishes the fall into the field within a quick motion")
-        let rise = drop.rewound(from: midway, within: CommandBarDropletMotion.rewindLength)
-        suite.expect(steady(rise) && rise.frames.first == drop.frames[midway] && rise.frames.last == drop.frames[0]
-                     && rise.duration > 0 && rise.duration <= CommandBarDropletMotion.rewindLength
-                     && rise.duration <= drop.landing / 2 + 0.001,
-                     "a drop closed as it falls rises back the way it came, never slower than it fell")
-        suite.expect(drop.rewound(from: 0, within: 0.2).duration == 0
-                     && drop.remainder(from: drop.frames.count - 1, within: 0.12).duration == 0
-                     && drop.frameIndex(at: -1) == 0 && drop.frameIndex(at: drop.duration + 1) == drop.frames.count - 1
-                     && CommandBarDropletMotion().rewound(from: 3, within: 0.2).frames.isEmpty,
-                     "a drop closed or typed into at either end has nothing left to play")
-
-        let bar = CGRect(x: field.minX, y: field.minY, width: field.width, height: 380)
-        let back = CommandBarDropletMotion.retract(edge: edge, centerX: centerX, bar: bar, field: field, icon: icon)
-        let start = back.frames[0], end = back.frames[back.frames.count - 1]
-        suite.expect(back.frames.count == back.keyTimes.count && start.bead == bar && start.mascot == icon
-                     && start.mascotScale == 1 && back.duration < 0.8,
-                     "the way back starts as the whole bar, its companion in the icon's place")
-        suite.expect(end.bead.midY < edge && end.mascotScale == CommandBarDropletMotion.ridingScale
-                     && back.frames.allSatisfy { elements(CommandBarDropletMotion.neckPath($0, edge: edge, centerX: centerX)) == structure },
-                     "and ends risen into the island, the companion small inside the drop")
-        let side = CommandBarDropletMotion.beadSide
-        suite.expect(back.frames.allSatisfy { frame in
-            let gap = frame.bead.minY - edge
-            let length = frame.neckEnd - edge
-            // Apart, the island only bulges toward the drop. Joined, the
-            // neck is wide where it meets it.
-            return length <= side * 0.3 + 0.5 || gap <= side * 0.3 + 2 || frame.neckTip >= 3
-        }, "rising, no thin thread ever stretches from the island to a drop still far off")
     }
 
     private static func elements(_ path: CGPath) -> [Int32] {

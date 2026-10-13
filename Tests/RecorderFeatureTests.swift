@@ -1407,8 +1407,7 @@ enum RecorderFeatureTests {
                "the dotted I is exactly where locale-aware folding diverges")
         for path in ["Sources/Vorssaint/Services/Clipboard/ClipboardHistorySupport.swift",
                      "Sources/Vorssaint/UI/Settings/SettingsSearchSupport.swift",
-                     "Sources/Vorssaint/Services/Switcher/SwitcherSupport.swift",
-                     "Sources/Vorssaint/Services/CommandBar/CommandBarSupport.swift"] {
+                     "Sources/Vorssaint/Services/Switcher/SwitcherSupport.swift"] {
             let source = (try? String(contentsOfFile: path, encoding: .utf8)) ?? ""
             suite.expect(!source.isEmpty, "\(path) reads back for its folding check")
             let code = source.components(separatedBy: "\n")
@@ -1422,53 +1421,11 @@ enum RecorderFeatureTests {
         suite.expect(ClipboardHistorySearch.matches("café da manhã", query: "cafe"),
                "clipboard search folds accents so a plain query still finds them")
 
-        // An example chip is a promise that typing it does something. The
-        // battery answer is titled with a localized string, so a fixed English
-        // "battery" matched nothing outside English and the chip led to an
-        // empty list, which teaches the opposite of what an example is for.
-        let commandBarViewSource = (try? String(
-            contentsOfFile: "Sources/Vorssaint/UI/CommandBar/CommandBarView.swift",
-            encoding: .utf8)) ?? ""
-        suite.expect(!commandBarViewSource.isEmpty, "the command bar view source reads back for its shape check")
-        // Comments are stripped so prose naming the old literal cannot fail
-        // for code that no longer uses it.
-        let commandBarViewCode = commandBarViewSource.components(separatedBy: "\n")
-            .filter { !$0.trimmingCharacters(in: .whitespaces).hasPrefix("//") }
-            .joined(separator: "\n")
-        suite.expect(!commandBarViewCode.contains("\"battery\""),
-               "the command bar's battery example is the localized word, not a fixed English one")
 
-        // A key glyph in front of a button label reads as that button's
-        // shortcut, so neither command bar action button carries one.
-        let commandBarSettingsSource = (try? String(
-            contentsOfFile: "Sources/Vorssaint/UI/Settings/CommandBarSettings.swift",
-            encoding: .utf8)) ?? ""
-        suite.expect(!commandBarSettingsSource.contains("Label(text.openButton, systemImage:")
-                && !commandBarSettingsSource.contains("Label(text.resetPositionButton, systemImage:"),
-               "neither command bar action button wears an icon")
-        suite.expect(commandBarSettingsSource.contains("Toggle(text.shortcutToggle,")
-                && !commandBarSettingsSource.contains("l10n.s.quickToolShortcutToggle"),
-               "the command bar shortcut toggle says what the shortcut opens")
         suite.expect(Set(GlobalShortcutRole.allCases.map(\.defaultShortcut)).count
                 == GlobalShortcutRole.allCases.count,
                "no two shortcut roles share a default combination")
 
-        // A heavy, rare verb stays out of the list until it is asked for, in
-        // every language the app speaks.
-        for language in AppLanguage.allCases {
-            let format = FeatureStrings.commandBar(language).quitFormat
-            let verb = format.replacingOccurrences(of: "%@", with: " ")
-                .trimmingCharacters(in: .whitespacesAndNewlines)
-            suite.expect(CommandBarSearch.matchesVerb(verb, in: format),
-                   "the quit verb finds its own rows in \(language.rawValue)")
-        }
-        suite.expect(CommandBarSearch.matchesVerb("quit saf", in: "Quit %@")
-                && CommandBarSearch.matchesVerb("encerrar", in: "Encerrar %@")
-                && CommandBarSearch.matchesVerb("終了", in: "%@を終了"),
-               "the verb is recognized with the name typed after it, and without spaces too")
-        suite.expect(!CommandBarSearch.matchesVerb("safari", in: "Quit %@")
-                && !CommandBarSearch.matchesVerb("", in: "Quit %@"),
-               "an app name alone never drags the quit rows in")
         suite.expect(InstalledApps.isSystemApplication(
                     at: URL(fileURLWithPath: "/System/Applications/SystemUtility.app"))
                 && InstalledApps.isSystemApplication(

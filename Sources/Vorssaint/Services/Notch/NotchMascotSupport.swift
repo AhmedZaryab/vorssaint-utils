@@ -1266,14 +1266,6 @@ enum NotchMascotSupport {
             palette: NotchMascotPalette(rawValue: defaults.string(forKey: DefaultsKey.notchMascotPalette) ?? "") ?? .pearl)
     }
 
-    /// How the Command Bar comes out of the island, or nil when it opens in
-    /// its own window as it always has.
-    static func commandBarStyle(in defaults: UserDefaults = .standard) -> NotchCommandBarStyle? {
-        guard isEnabled(in: defaults), AppFeature.commandBar.isAvailable(in: defaults),
-              defaults.bool(forKey: DefaultsKey.notchCommandBar) else { return nil }
-        return NotchCommandBarStyle(rawValue: defaults.string(forKey: DefaultsKey.notchCommandBarStyle) ?? "") ?? .droplet
-    }
-
     /// What the bar's face shows for what is typed. Results get a hop of
     /// their own on arrival, and afterward the eyes simply stay open on them.
     static func commandBarMood(query: String, hasResults: Bool, searching: Bool) -> NotchMascotMood {

@@ -111,21 +111,17 @@ struct NotchView: View {
                 NotchCaptureControlsView(options: options, service: service, layout: service.captureControlsLayout)
             }
         } else if service.expanded {
-            if service.showingCommandBar {
-                commandBarPage
-            } else {
-                expanded
-                    // The companion beside the camera watches the pointer go
-                    // over the island.
-                    .onContinuousHover { phase in
-                        guard service.mascotResidentShows else { return }
-                        switch phase {
-                        case .active: NotificationCenter.default.post(name: .notchMascotPointerMoved, object: nil)
-                        case .ended: NotificationCenter.default.post(name: .notchMascotPointerLeft, object: nil)
-                        }
+            expanded
+                // The companion beside the camera watches the pointer go
+                // over the island.
+                .onContinuousHover { phase in
+                    guard service.mascotResidentShows else { return }
+                    switch phase {
+                    case .active: NotificationCenter.default.post(name: .notchMascotPointerMoved, object: nil)
+                    case .ended: NotificationCenter.default.post(name: .notchMascotPointerLeft, object: nil)
                     }
-                    .overlay(alignment: .top) { residentMascot }
-            }
+                }
+                .overlay(alignment: .top) { residentMascot }
         } else if service.dragPlaceholder {
             Group {
                 if service.mascotOn {
@@ -297,16 +293,6 @@ struct NotchView: View {
                 .allowsHitTesting(false)
                 .transition(.opacity)
         }
-    }
-
-    /// The Command Bar in the open island: its field below the camera, its
-    /// list below the field, and the island as tall as the two.
-    private var commandBarPage: some View {
-        CommandBarView(presentation: .island)
-            .fixedSize(horizontal: false, vertical: true)
-            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { service.updateCommandBarHeight($0) }
-            .padding(.top, service.geometry.safeContentTop)
-            .frame(width: service.surfaceSize.width, height: service.surfaceSize.height, alignment: .top)
     }
 
     private var showsDetail: Bool { service.showingAppPanel }

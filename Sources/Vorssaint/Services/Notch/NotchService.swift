@@ -373,8 +373,6 @@ final class NotchService: ObservableObject {
         return false
     }
     /// The Command Bar open inside the island, in place of its pages.
-    @Published private(set) var showingCommandBar = false
-    @Published private var commandBarHeight: CGFloat?
     private var musicTitleWork: DispatchWorkItem?
     private static let musicTitleDuration: TimeInterval = 4
     private var mirrors: [CGDirectDisplayID: NotchMirror] = [:]
@@ -884,10 +882,7 @@ final class NotchService: ObservableObject {
     }
     var contentSize: CGSize { expandedGeometry.contentSize(for: expandedSize) }
     var usesGlassSurface: Bool {
-        // The Command Bar keeps the island black, as its drop is: it changes
-        // height with every keystroke, and the glass is drawn a frame behind
-        // the shape, which showed rows outside it for that frame.
-        (expanded && !showingCommandBar) || peeking || dragPlaceholder || noticeExpanded
+        expanded || peeking || dragPlaceholder || noticeExpanded
             || (captureControls != nil && !captureControlsCollapsed)
     }
 
@@ -934,7 +929,7 @@ final class NotchService: ObservableObject {
             }
             return captureControlsLayout.size
         }
-        if expanded { return showingCommandBar ? commandBarSurfaceSize : expandedSize }
+        if expanded { return expandedSize }
         if dragPlaceholder { return CGSize(width: geometry.peek.width, height: geometry.safeContentTop + 66) }
         if let notice {
             guard noticeExpanded else { return geometry.noticeSize(wings: notice.wings(in: geometry)) }
@@ -965,14 +960,6 @@ final class NotchService: ObservableObject {
         guard !geometry.floats, !fullscreenCompact, captureControls == nil, !expanded, !dragPlaceholder else { return 0 }
         if let notice { return noticeExpanded ? 0 : geometry.noticeShift(notice.wings(in: geometry)) }
         return namedMusicWings.map { ($0.trailing - $0.leading) / 2 } ?? 0
-    }
-
-    /// The open island around the Command Bar: the bar's width within the
-    /// island's margins, and its height below the camera.
-    var commandBarSurfaceSize: CGSize {
-        let width = max(geometry.cameraWidth + 80, CommandBarView.width + NotchLayout.horizontalInset * 2)
-        let height = geometry.safeContentTop + (commandBarHeight ?? CommandBarView.fieldHeight) + NotchLayout.bottomInset
-        return CGSize(width: min(geometry.screen.width - 24, width), height: min(geometry.screen.height - 48, height))
     }
 
     /// A floating capsule's closed strips run from one round end to the
@@ -1242,11 +1229,6 @@ final class NotchService: ObservableObject {
         mascotTuckWork?.cancel(); mascotTuckWork = nil
         mascotStepsAside = false
         mascotInBar = false
-        commandBarHeight = nil
-        if showingCommandBar {
-            showingCommandBar = false
-            commandBarDidClose()
-        }
         captureControlsWork?.cancel(); captureControlsWork = nil
         musicDetailVisible = false
         pageLayers.removeAll()
@@ -1375,8 +1357,7 @@ final class NotchService: ObservableObject {
             sectionRow = 0
             highlightedSection = destination
         }
-        let closesCommandBar = showingCommandBar
-        let changesPresentation = !expanded || selected != destination || closesCommandBar
+        let changesPresentation = !expanded || selected != destination
             || showingAppPanel != appPanel || showingSections != sections
         if changesPresentation, destination == .tools, !appPanel, !sections {
             QuickLauncherService.shared.prepareForPresentation()
@@ -1396,7 +1377,6 @@ final class NotchService: ObservableObject {
         if !expanded { removeHoverExitMonitors() }
         let mascotFrom = mascotBridgeStart(opening: true)
         mutatePresentation(transitionContent: changesPresentation ? (expanded ? .replace : .reveal) : .none) {
-            showingCommandBar = false
             showingAppPanel = appPanel
             showingSections = sections
             if selected != destination { selected = destination }
@@ -1414,13 +1394,11 @@ final class NotchService: ObservableObject {
         syncVisibleConsumers()
         if takeFocus { panel.makeKey() }
         if feedback, changesPresentation { provideHapticFeedback() }
-        if closesCommandBar { commandBarDidClose() }
     }
 
     func collapse() {
         guard captureControls == nil, !heldDrag else { return }
         let closeCapture = detachCaptureIfClosingOnCollapse()
-        let closesCommandBar = showingCommandBar
         hoverState.close(pointerInside: windowHost?.containsHover(NSEvent.mouseLocation) == true)
         pinned = false
         hoverWork?.cancel(); hoverWork = nil
@@ -1433,7 +1411,6 @@ final class NotchService: ObservableObject {
             peeking = false
             showingAppPanel = false
             showingSections = false
-            showingCommandBar = false
             sectionQuery = ""
             highlightedSection = nil
             sectionRow = 0
@@ -1441,7 +1418,6 @@ final class NotchService: ObservableObject {
         if let mascotFrom { bridgeMascot(from: mascotFrom, opening: false) }
         panel?.acceptsKeyFocus = false
         panel?.resignKey()
-        if closesCommandBar { commandBarDidClose() }
         removeEventMonitors()
         syncVisibleConsumers()
         closeCapture?()
@@ -1467,7 +1443,7 @@ final class NotchService: ObservableObject {
     @discardableResult
     func showClipboard(toggle: Bool = false) -> Bool {
         guard acceptsUserInteraction, NotchSupport.routesClipboardWindow() else { return false }
-        if toggle, expanded, selected == .clipboard, !showingAppPanel, !showingSections, !showingCommandBar { collapse() }
+        if toggle, expanded, selected == .clipboard, !showingAppPanel, !showingSections { collapse() }
         else { open(.clipboard) }
         return true
     }
@@ -1813,7 +1789,6 @@ final class NotchService: ObservableObject {
             case .music: select(.music)
             case .timer: select(.timer)
             case .calendar: select(.calendar)
-            case .commandBar: perform { CommandBarService.shared.show() }
             case .scratchpad: openScratchpad()
             case .volume, .brightness, .keyboardLight: select(.controls)
             }
@@ -1834,14 +1809,14 @@ final class NotchService: ObservableObject {
     @discardableResult
     func showScratchpad(toggle: Bool = false) -> Bool {
         guard NotchSupport.routesScratchpad(), acceptsUserInteraction else { return false }
-        if toggle, expanded, selected == .scratchpad, !showingAppPanel, !showingSections, !showingCommandBar,
+        if toggle, expanded, selected == .scratchpad, !showingAppPanel, !showingSections,
            panel?.isKeyWindow == true { collapse() }
         else { open(.scratchpad) }
         return true
     }
 
     func openAppPanel(toggle: Bool = false) {
-        if toggle, expanded, showingAppPanel, !showingSections, !showingCommandBar { collapse(); return }
+        if toggle, expanded, showingAppPanel, !showingSections { collapse(); return }
         MenuPanelFocus.shared.showNormalPanel()
         open(.controls, appPanel: true)
         // The toggling route is the menu bar's. Opened from there, the panel
@@ -1851,14 +1826,14 @@ final class NotchService: ObservableObject {
 
     func openQuickPanel(toggle: Bool = false) -> Bool {
         guard NotchSupport.routesQuickPanel(), acceptsUserInteraction else { return false }
-        if toggle, expanded, selected == .tools, !showingSections, !showingCommandBar { collapse() }
+        if toggle, expanded, selected == .tools, !showingSections { collapse() }
         else { open(.tools) }
         return true
     }
 
     func openShelf(toggle: Bool = false) -> Bool {
         guard NotchSupport.routesShelf(), acceptsUserInteraction else { return false }
-        if toggle, expanded, selected == .files, !showingSections, !showingCommandBar { collapse() }
+        if toggle, expanded, selected == .files, !showingSections { collapse() }
         else { open(.files) }
         return true
     }
@@ -1934,15 +1909,12 @@ final class NotchService: ObservableObject {
             }
         // A Command Bar open in the island closes with it, or it would keep
         // the island's keys while the controls are up.
-        let closesCommandBar = showingCommandBar
-        showingCommandBar = false
         expanded = false
         showingSections = false
         peeking = false
         notice = nil
         noticeExpanded = false
         hoverWork?.cancel()
-        if closesCommandBar { commandBarDidClose() }
         removeEventMonitors()
         panel?.acceptsKeyFocus = true
         panel?.level = NSWindow.Level(rawValue: Int(CGShieldingWindowLevel()) + 1)
@@ -2392,14 +2364,14 @@ final class NotchService: ObservableObject {
 
     func isCaptureVisible(id: UUID) -> Bool {
         acceptsSystemFeedback && expanded && selected == .captures
-            && !showingAppPanel && !showingSections && !showingCommandBar
+            && !showingAppPanel && !showingSections
             && captureControls == nil && captureID == id && captureContent != nil
     }
 
     func removeCapture(id: UUID) {
         guard captureID == id else { return }
         clearCapture()
-        if expanded, selected == .captures, !showingSections, !showingCommandBar {
+        if expanded, selected == .captures, !showingSections {
             if pinned { refreshPresentation() }
             else { collapse() }
         }
@@ -2565,7 +2537,7 @@ final class NotchService: ObservableObject {
         presented.surfaceShift = surfaceShift
         windowHost?.present(size: size, geometry: presented, animated: animated,
                             transitionContent: contentTransition,
-                            quickAccess: expanded && captureControls == nil && !showingCommandBar && !access.buttons.isEmpty
+                            quickAccess: expanded && captureControls == nil && !access.buttons.isEmpty
                                 ? access : nil,
                             revealFromHidden: !hiddenInFullscreen && captureControls == nil
                                 && UserDefaults.standard.bool(forKey: DefaultsKey.notchHideUntilHover)
@@ -3551,8 +3523,6 @@ final class NotchService: ObservableObject {
             // drops the candidate; the island takes the next one.
             if event.type == .keyDown, event.window === self.panel, event.keyCode == 53,
                (self.panel?.firstResponder as? NSTextView)?.hasMarkedText() == true { return event }
-            // The Command Bar inside the island reads its own keys, Escape included.
-            if event.type == .keyDown, event.window === self.panel, self.showingCommandBar { return event }
             if event.type == .keyDown, event.window === self.panel, self.captureControls == nil {
                 let modifiers = event.modifierFlags.intersection([.command, .control, .option, .shift])
                 if modifiers == .command, event.charactersIgnoringModifiers?.lowercased() == "k" {
@@ -3669,7 +3639,7 @@ final class NotchService: ObservableObject {
         let interaction = NotchGestureSupport.nativeInteraction(at: panel.contentView?.hitTest(event.locationInWindow))
         let musicSurface = modules.contains(.music)
             && (compactMusicIsVisible || (expanded && selected == .music && !showingAppPanel && !showingSections
-                                          && !showingCommandBar))
+                                         ))
         let vertical = NotchGestureSupport.allowsVertical(expanded: expanded, inHeader: inHeader,
                                                           musicSurface: musicSurface,
                                                           control: interaction.control, scroll: interaction.scroll)
@@ -4051,12 +4021,12 @@ final class NotchService: ObservableObject {
             if copiesShowMusic { NotchMusicService.shared.start() } else { NotchMusicService.shared.stop() }
             return
         }
-        if !NotchCameraSupport.canPresent(expanded: expanded && !showingSections && !showingCommandBar, selected: selected,
+        if !NotchCameraSupport.canPresent(expanded: expanded && !showingSections, selected: selected,
             appPanel: showingAppPanel, captureControls: captureControls != nil) {
             CameraPreviewService.shared.hideEmbedded()
         }
         let musicWanted = modules.contains(.music) && ((expanded && (selected == .music || (selected == .controls && NotchSupport.controls().contains(.music)))
-            && !showingAppPanel && !showingSections && !showingCommandBar)
+            && !showingAppPanel && !showingSections)
             || (!hiddenUntilHover && (NotchSupport.watchesMusicActivity() || NotchSupport.routes(.track))))
         if musicWanted { NotchMusicService.shared.start() } else { NotchMusicService.shared.stop() }
     }
@@ -4377,7 +4347,7 @@ extension NotchService {
     /// it. The row must leave it room: free when the header sits below the
     /// camera, or past the title or the actions on its side of the camera.
     var mascotResidentShows: Bool {
-        guard mascotOn, !mascotInBar, expanded, !showingCommandBar, captureControls == nil,
+        guard mascotOn, !mascotInBar, expanded, captureControls == nil,
               !dragPlaceholder, !noticeExpanded, geometry.isNotched, !geometry.floats else { return false }
         let header = expandedGeometry
         guard header.headerCameraGap > 0 else { return true }
@@ -4409,50 +4379,6 @@ extension NotchService {
         return NotchMascotSupport.track(stripWidth: width, stripHeight: geometry.stripHeight,
                                         wing: wing, cameraWidth: geometry.cameraWidth, floats: false,
                                         bodyHeight: geometry.stripBodyHeight, side: mascotSide)
-    }
-
-    // MARK: Command Bar
-
-    /// Where a drop for the Command Bar leaves the closed island: its visible
-    /// shape on screen, a capsule without the margins it floats in, or nil
-    /// when the island cannot show one. The bar opens on the display the
-    /// pointer is on, so the island must be there.
-    func commandBarDropSource() -> CGRect? {
-        guard acceptsSystemFeedback, !hiddenUntilHover, !fullscreenCompact, !expanded, captureControls == nil,
-              panel?.isVisible == true, let frame = windowHost?.visibleFrame, !frame.isEmpty,
-              // The top pixel row is the screen's too, where CGRect.contains says no.
-              NSMouseInRect(NSEvent.mouseLocation, geometry.screen, false) else { return nil }
-        let gap = geometry.floatingGap ?? 0
-        return frame.insetBy(dx: 0, dy: min(gap, frame.height / 2 - 1))
-    }
-
-    /// Opens the island around the Command Bar and hands over its panel,
-    /// which then holds the keyboard. Nil when the island cannot open here.
-    func presentCommandBar() -> NSPanel? {
-        guard NotchSupport.isEnabled(), acceptsUserInteraction, !hiddenInFullscreen, captureControls == nil,
-              !heldDrag, NSMouseInRect(NSEvent.mouseLocation, geometry.screen, false), let panel else { return nil }
-        // The keyboard first, before the island changes shape, so keys typed
-        // right after the shortcut wait here for the bar's field.
-        panel.acceptsKeyFocus = true
-        panel.makeKey()
-        (NSApp.delegate as? AppDelegate)?.closePopover(preservingNotch: true)
-        hoverState.open()
-        hoverWork?.cancel()
-        if !expanded { removeHoverExitMonitors() }
-        mutatePresentation(transitionContent: expanded ? .replace : .reveal) {
-            showingCommandBar = true
-            showingAppPanel = false
-            showingSections = false
-            peeking = false
-            openedByHover = false
-            expanded = true
-            if notice?.notificationID != nil { noticeWork?.cancel(); noticeWork = nil; notice = nil; noticeExpanded = false }
-        }
-        inside = windowHost?.containsHover(NSEvent.mouseLocation) == true
-        installEventMonitors()
-        syncVisibleConsumers()
-        panel.makeKey()
-        return panel
     }
 
     /// The companion leaves the island for the Command Bar's drop, and comes
@@ -4864,26 +4790,6 @@ extension NotchService {
         window.order(.below, relativeTo: panel.windowNumber)
     }
 
-    /// The bar closed itself, and the island closes with it.
-    func dismissCommandBar() {
-        guard showingCommandBar else { return }
-        collapse()
-    }
-
-    /// The island closed around the bar, from a click away or a page opened
-    /// in its place, and the bar closes too.
-    fileprivate func commandBarDidClose() {
-        commandBarHeight = nil
-        CommandBarService.shared.islandDidClose()
-    }
-
-    func updateCommandBarHeight(_ height: CGFloat) {
-        guard showingCommandBar, height.isFinite, height > 0 else { return }
-        let measured = ceil(height)
-        guard commandBarHeight != measured else { return }
-        commandBarHeight = measured
-        refreshPresentation()
-    }
 }
 
 extension NSScreen {

@@ -96,8 +96,6 @@ struct QuickLauncherView: View {
                     PanelHomebrewView { launcher.closeUtility() }
                 case .media:
                     PanelMediaView { launcher.closeUtility() }
-                case .uninstaller:
-                    PanelUninstallerView { launcher.closeUtility() }
                 case .windowLayout:
                     PanelWindowLayoutView { launcher.closeUtility() }
                 case .toggles:
@@ -483,7 +481,6 @@ struct QuickLauncherView: View {
         case .cleaning: return l10n.s.cleaningMenuItem
         case .homebrew: return l10n.s.homebrewName
         case .media: return l10n.s.mediaName
-        case .uninstaller: return l10n.s.uninstallerName
         case .screenshot: return FeatureStrings.screenshot(l10n.language).pageTitle
         case .screenRecorder:
             let strings = FeatureStrings.recorder(l10n.language)
@@ -505,7 +502,6 @@ struct QuickLauncherView: View {
         case .cleaning: return "keyboard"
         case .homebrew: return "shippingbox"
         case .media: return "photo.on.rectangle.angled"
-        case .uninstaller: return "trash"
         case .screenshot: return "camera.viewfinder"
         case .screenRecorder: return recorder.isRecording ? "stop.circle" : "record.circle"
         case .cameraPreview: return "web.camera"

@@ -22,8 +22,7 @@ enum PreferencesFeatureTests {
                "a chosen screenshot save folder is authority on one Mac and must not travel in a settings backup")
         suite.expect(SettingsBackupSupport.exportKeys().contains(DefaultsKey.screenshotSaveSubfolder),
                "a screenshot subfolder name is a pattern rather than a path, so it still follows settings backups")
-        suite.expect(!SettingsBackupSupport.exportKeys().contains(DefaultsKey.commandBarFileScopes)
-            && !SettingsBackupSupport.exportKeys().contains(DefaultsKey.whatsAppOrganizerDestinationPath)
+        suite.expect(!SettingsBackupSupport.exportKeys().contains(DefaultsKey.whatsAppOrganizerDestinationPath)
             && !SettingsBackupSupport.exportKeys().contains(DefaultsKey.notchDownloadsFolderBookmark)
             && !SettingsBackupSupport.exportKeys().contains(DefaultsKey.mediaImageWatermarkLogoPath),
                "every chosen folder already excluded from backups stays excluded")
@@ -70,33 +69,6 @@ enum PreferencesFeatureTests {
         Defaults.migrateLiquidGlassIsland(in: glassDefaults, domainName: glassDomain)
         suite.expect(!glassDefaults.bool(forKey: DefaultsKey.notchLiquidGlassEnabled),
                "an explicit island choice survives later launches")
-        let companionDomain = "vorss.tests.companion-beta.\(UUID().uuidString)"
-        let companionDefaults = UserDefaults(suiteName: companionDomain)!
-        defer { companionDefaults.removePersistentDomain(forName: companionDomain) }
-        // Setup writes every feature's availability, the companion's as off.
-        companionDefaults.set(true, forKey: AppFeature.commandBar.availabilityKey)
-        companionDefaults.set(false, forKey: AppFeature.notchMascot.availabilityKey)
-        companionDefaults.set(false, forKey: AppFeature.notch.availabilityKey)
-        Defaults.installCompanionForBetaCommandBar(in: companionDefaults, isBeta: true)
-        let waitsForSetup = !companionDefaults.bool(forKey: AppFeature.notchMascot.availabilityKey)
-        companionDefaults.set(true, forKey: DefaultsKey.hasOnboarded)
-        Defaults.installCompanionForBetaCommandBar(in: companionDefaults, isBeta: false)
-        let stableUntouched = !companionDefaults.bool(forKey: AppFeature.notchMascot.availabilityKey)
-        Defaults.installCompanionForBetaCommandBar(in: companionDefaults, isBeta: true)
-        let noIsland = !companionDefaults.bool(forKey: AppFeature.notchMascot.availabilityKey)
-            && !companionDefaults.bool(forKey: DefaultsKey.notchMascotBetaInstalled)
-        companionDefaults.set(true, forKey: AppFeature.notch.availabilityKey)
-        Defaults.installCompanionForBetaCommandBar(in: companionDefaults, isBeta: true)
-        let installed = companionDefaults.bool(forKey: AppFeature.notchMascot.availabilityKey)
-            && companionDefaults.bool(forKey: DefaultsKey.notchMascotEnabled)
-        companionDefaults.set(false, forKey: AppFeature.notchMascot.availabilityKey)
-        Defaults.installCompanionForBetaCommandBar(in: companionDefaults, isBeta: true)
-        let keptOut = !companionDefaults.bool(forKey: AppFeature.notchMascot.availabilityKey)
-        companionDefaults.removeObject(forKey: DefaultsKey.notchMascotBetaInstalled)
-        companionDefaults.set(false, forKey: AppFeature.commandBar.availabilityKey)
-        let noCommandBar = !Defaults.installsCompanionForBeta(in: companionDefaults, isBeta: true)
-        suite.expect(waitsForSetup && stableUntouched && noIsland && installed && keptOut && noCommandBar,
-                     "a beta installs the companion once for Command Bar users with the island after setup, even over setup's off, and leaves it out once uninstalled")
         suite.expect(AppAppearance.sanitized(nil) == .system
                 && AppAppearance.sanitized("nonsense") == .system,
                "an unknown stored appearance falls back to the system one")

@@ -52,8 +52,6 @@ enum SettingsBackupSupport {
         DefaultsKey.textSnippets,
         DefaultsKey.radialMenuItems,
         DefaultsKey.radialMenuProfiles,
-        DefaultsKey.commandBarLinks,
-        DefaultsKey.commandBarRowShortcuts,
         DefaultsKey.language,
         DefaultsKey.appVolumes,
         DefaultsKey.appOutputDevices,
@@ -100,10 +98,6 @@ enum SettingsBackupSupport {
         DefaultsKey.micMuteSavedVolumes,
         DefaultsKey.micMuteSavedChannelVolumes,
         DefaultsKey.micMuteMutedDevices,
-        // When the last check ran and what it found belong to one Mac.
-        DefaultsKey.appUpdatesLastCheck,
-        DefaultsKey.appUpdatesLastCount,
-        DefaultsKey.appUpdatesNotifiedIDs,
         DefaultsKey.whatsAppDownloadsAutomaticStartDate,
         DefaultsKey.whatsAppDownloadsLastAutoRun,
         DefaultsKey.whatsAppDownloadsLastCleanup,
@@ -120,14 +114,6 @@ enum SettingsBackupSupport {
         DefaultsKey.whatsAppOrganizerLastMoved,
         DefaultsKey.whatsAppOrganizerLastDuplicates,
         DefaultsKey.whatsAppOrganizerLastFailed,
-        // What one person runs most is habit, not configuration.
-        DefaultsKey.commandBarUsage,
-        DefaultsKey.commandBarQueryHabits,
-        DefaultsKey.commandBarQueryHabitKey,
-        // A chosen folder is authority on one Mac, not portable configuration.
-        // Restoring it elsewhere could search a different volume or trigger a
-        // protected-folder prompt without a fresh choice.
-        DefaultsKey.commandBarFileScopes,
         DefaultsKey.notchDownloadsFolderBookmark,
         DefaultsKey.recorderSaveFolder,
         DefaultsKey.screenshotSaveFolder,

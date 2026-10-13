@@ -13,7 +13,6 @@ struct ShortcutsSettings: View {
     @AppStorage(DefaultsKey.keyboardBrightnessShortcutsEnabled) private var keyboardBrightnessShortcutsEnabled = false
     /// Keyed by group too: brightness has a row in two groups, and each opens on its own.
     @State private var expandedFeatures: [FeatureGroup: Set<AppFeature>] = [.tools: [.screenshot]]
-    @State private var showsAppShortcuts = false
 
     private var text: ShortcutSettingsStrings { FeatureStrings.shortcuts(l10n.language) }
     private var hub: FeatureHubStrings { FeatureStrings.hub(l10n.language) }
@@ -54,27 +53,10 @@ struct ShortcutsSettings: View {
                     }
                 }
             }
-
-            if AppFeature.commandBar.isAvailable {
-                Section {
-                    Button {
-                        showsAppShortcuts = true
-                    } label: {
-                        Label(FeatureStrings.commandBar(l10n.language).appCenterTitle,
-                              systemImage: "app.badge")
-                    }
-                    Text(FeatureStrings.commandBar(l10n.language).appCenterCaption)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
         }
         .formStyle(.grouped)
         .onAppear { revealKeyboardBrightnessShortcuts() }
         .onChange(of: router.requestID) { _, _ in revealKeyboardBrightnessShortcuts() }
-        .sheet(isPresented: $showsAppShortcuts) {
-            CommandBarAppShortcutsView()
-        }
     }
 
     private func featuresWithShortcuts(in group: FeatureGroup) -> [AppFeature] {

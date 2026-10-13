@@ -376,7 +376,6 @@ enum LocalizationFeatureContractTests {
             ("cameraPreviewDefault", GlobalShortcut.cameraPreviewDefault),
             ("clipboardDefault", GlobalShortcut.clipboardDefault),
             ("colorPickerDefault", GlobalShortcut.colorPickerDefault),
-            ("commandBarDefault", GlobalShortcut.commandBarDefault),
             ("finderRenameDefault", GlobalShortcut.finderRenameDefault),
             ("keepAwakeDefault", GlobalShortcut.keepAwakeDefault),
             ("micMuteDefault", GlobalShortcut.micMuteDefault),
