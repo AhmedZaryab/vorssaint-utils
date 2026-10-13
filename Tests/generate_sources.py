@@ -609,14 +609,6 @@ def main():
           + "".join(declaration(cleaner, prefix) for prefix in ["    func reset()", "    func scan("])
           + "}\n}\n")
 
-    super_key = "Sources/Vorssaint/Services/SuperKey/SuperKeyService.swift"
-    write("SuperKeyTap.swift", "import CoreGraphics\nimport Foundation\n"
-          + "extension SuperKeyTapContract {\nfinal class SuperKeyService: State {\n"
-          + "".join(declaration(super_key, prefix).replace("private func", "func", 1)
-                    for prefix in ["    private func runEventTap()", "    private func setMappingFailure("])
-            .replace("CGEvent.tapCreate(", "Tap.create(")
-          + "}\n}\n")
-
     write("CleanerLastRun.swift", "import Foundation\nextension CleanerLastRunContract {\n"
           + "final class Scheduler: SchedulerState {\n"
           + declaration("Sources/Vorssaint/Services/Cleaner/CleanerScheduler.swift", "    private func finishRun(")

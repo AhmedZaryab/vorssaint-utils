@@ -3,7 +3,6 @@
 
 import AppKit
 
-SuperKeyMappingGuard.runIfRequestedAndExit()
 Defaults.register()
 NotchControlItem.keyboardLightIsSupported = { BrightnessService.keyboardLightIsSupported }
 MouseAccelerationGuard.runIfRequestedAndExit()

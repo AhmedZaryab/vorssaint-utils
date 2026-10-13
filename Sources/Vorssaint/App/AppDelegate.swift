@@ -176,7 +176,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSW
                     .dockPreview, .finderCutPaste, .finderRename, .autoQuit, .dockClick,
                     .middleClick, .windowMaximizer, .windowLayout,
                     .textSnippets, .brightness, .radialMenu, .mouseButtonShortcuts,
-                    .mouseClickDebounce, .superKey, .mixer, .notch,
+                    .mouseClickDebounce, .mixer, .notch,
                 ])
             }
             .store(in: &cancellables)
@@ -299,7 +299,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSW
         MouseClickDebounceService.shared.suspend()
         TextSnippetService.shared.suspend()
         // Takes the Super key mapping back out before the process goes away.
-        SuperKeyService.shared.suspend()
         // Dock's app and window switcher hotkeys persist after quit.
         AppSwitcher.shared.suspend()
         MouseButtonShortcutService.shared.suspend()

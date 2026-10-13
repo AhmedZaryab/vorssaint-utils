@@ -9,7 +9,6 @@ import SwiftUI
 private final class SettingsDirectoryCache {
     private struct Key: Equatable {
         let language: AppLanguage
-        let superKeySource: SuperKeySource
         let featureRevision: Int
     }
 
@@ -20,13 +19,13 @@ private final class SettingsDirectoryCache {
     private var searchItems: [SettingsSearchItem] = []
 
     func navigation(strings: Strings, language: AppLanguage,
-                    superKeySource: SuperKeySource, featureRevision: Int,
+                    featureRevision: Int,
                     isAvailable: (AppFeature) -> Bool) -> [SettingsSidebarSection] {
-        let key = Key(language: language, superKeySource: superKeySource,
+        let key = Key(language: language,
                       featureRevision: featureRevision)
         if navigationKey != key {
             sections = SettingsDirectory.sidebarSections(
-                strings, language: language, superKeySource: superKeySource,
+                strings, language: language,
                 isAvailable: isAvailable)
             items = sections.flatMap(\.items)
             navigationKey = key
@@ -35,12 +34,12 @@ private final class SettingsDirectoryCache {
     }
 
     func search(strings: Strings, language: AppLanguage,
-                superKeySource: SuperKeySource, featureRevision: Int) -> [SettingsSearchItem] {
-        let key = Key(language: language, superKeySource: superKeySource,
+                featureRevision: Int) -> [SettingsSearchItem] {
+        let key = Key(language: language,
                       featureRevision: featureRevision)
         if searchKey != key {
             searchItems = SettingsDirectory.searchItems(
-                strings, language: language, superKeySource: superKeySource)
+                strings, language: language)
             searchKey = key
         }
         return searchItems
@@ -53,8 +52,6 @@ struct SettingsView: View {
     @ObservedObject private var l10n = L10n.shared
     @ObservedObject private var router = SettingsRouter.shared
     @ObservedObject private var features = FeatureRuntime.shared
-    @AppStorage(DefaultsKey.superKeySource) private var superKeySourceRaw =
-        SuperKeySource.capsLock.rawValue
     @State private var searchQuery = ""
     @State private var activeSearchIndex: Int?
     @State private var directoryCache = SettingsDirectoryCache()
@@ -89,7 +86,6 @@ struct SettingsView: View {
     private var sidebarSections: [SettingsSidebarSection] {
         directoryCache.navigation(
             strings: l10n.s, language: l10n.language,
-            superKeySource: SuperKeySource.sanitized(superKeySourceRaw),
             featureRevision: features.revision,
             isAvailable: { features.isAvailable($0) })
     }
@@ -139,7 +135,6 @@ struct SettingsView: View {
                     query: searchQuery,
                     items: directoryCache.search(
                         strings: l10n.s, language: l10n.language,
-                        superKeySource: SuperKeySource.sanitized(superKeySourceRaw),
                         featureRevision: features.revision),
                     isAvailable: { features.isAvailable($0) }))
         }()
@@ -583,7 +578,6 @@ struct SettingsView: View {
         case .mouse: MouseSettings()
         case .switcher: SwitcherSettings()
         case .dock: DockSettings()
-        case .superKey: SuperKeySettings()
         case .cutPaste: CutPasteSettings()
         case .autoQuit: AutoQuitSettings()
         case .uninstaller: UninstallerView()
