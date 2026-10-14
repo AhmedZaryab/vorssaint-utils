@@ -217,11 +217,6 @@ def main():
           + "".join(declaration(menu_panel, prefix).replace("private ", "", 1) for prefix in [
                 "    private var middleClickCaption:", "    private func missingPermission("])
           + "}\n}\n")
-    write("RadialMenuProfileDeletion.swift", "import Foundation\n"
-          + "extension RadialMenuProfileDeletionContract {\nfinal class Settings: Fixture {\n"
-          + declaration("Sources/Vorssaint/UI/Settings/RadialMenuSettings.swift",
-                        "    private func deleteProfile(").replace("private ", "", 1)
-          + "}\n}\n")
     write("NotchAudioLevelLifecycle.swift", "import Combine\nimport Foundation\n"
           + "extension NotchAudioLevelLifecycleContract {\n"
           + declaration("Sources/Vorssaint/Services/Notch/NotchAudioLevelService.swift",
@@ -876,6 +871,8 @@ def main():
           + declaration("Sources/Vorssaint/Services/QuickTools/QuickTogglesService.swift", "enum QuickToggleAction:")
           + "}\n")
 
+    # The quick preview controller is parked in Legacy/capture; its key handling is read from there.
+    preview = "Legacy/capture/Sources/Vorssaint/Services/QuickTools/ScreenshotQuickPreviewController.swift"
     selection = "Sources/Vorssaint/Services/QuickTools/ScreenshotSelectionController.swift"
     refresh_methods = [
         "    private func screenCaptureToolDidChange()",

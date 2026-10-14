@@ -180,7 +180,7 @@ enum UpdateFeatureTests {
                 shortcut, liveEntries: [], symbolicHotKeys: fallback, role: role),
                    "the switcher shortcut exception also respects remapped keys in the fallback table")
             suite.expect(GlobalShortcut.conflictsWithSystemShortcut(
-                shortcut, liveEntries: live, symbolicHotKeys: fallback, role: .screenshot),
+                shortcut, liveEntries: live, symbolicHotKeys: fallback, role: .shelf),
                    "other tools cannot take the switcher's native shortcuts")
             let overlapping = live + [LiveSystemShortcut(id: 30, shortcut: shortcut, enabled: true)]
             suite.expect(GlobalShortcut.conflictsWithSystemShortcut(
@@ -282,15 +282,7 @@ enum UpdateFeatureTests {
         let captureSearchKeywords = SettingsSearchSupport.screenCaptureKeywords(
             Strings.enUS, language: .enUS)
         suite.expect(SettingsSearchSupport.matches(
-                    query: "screenshot",
-                    title: FeatureStrings.screenshot(.enUS).screenCaptureTitle,
-                    keywords: captureSearchKeywords)
-                && SettingsSearchSupport.matches(
                     query: "screen recording",
-                    title: FeatureStrings.screenshot(.enUS).screenCaptureTitle,
-                    keywords: captureSearchKeywords)
-                && SettingsSearchSupport.matches(
-                    query: "line breaks",
                     title: FeatureStrings.screenshot(.enUS).screenCaptureTitle,
                     keywords: captureSearchKeywords),
                "Screen capture tools and their options find the one settings page")

@@ -31,7 +31,7 @@ enum FeatureCatalogTests {
 
     static func run(_ suite: TestSuite) {
         suite.expect(AppFeature.allCases.map(\.rawValue) == [
-            "switcher", "dockPreview", "dockClick", "windowMaximizer", "windowLayout", "autoQuit", "scrollInverter", "scrollHorizontal", "focusFollowsMouse", "linearScroll", "mouseAcceleration", "mouseNavigation", "mouseButtonShortcuts", "middleClick", "mouseClickDebounce", "textSnippets", "clipboardHistory", "pastePlain", "shelf", "mixer", "micMute", "keepAwake", "brightness", "quickLauncher", "quickToggles", "colorPicker", "screenOCR", "cleaningMode", "screenshot", "cameraPreview", "radialMenu", "scratchpad", "screenRecorder", "menuBarTidy", "notch", "notchCalendar", "notchNotifications", "notchGestures", "notchTimer", "notchAccessories", "notchLyrics", "notchQueue", "spotifyQueue", "notchLiveEqualizer", "notchDownloads", "notchAgents", "notchWatch", "monitorPower",
+            "switcher", "dockPreview", "dockClick", "windowMaximizer", "windowLayout", "autoQuit", "scrollInverter", "scrollHorizontal", "focusFollowsMouse", "linearScroll", "mouseAcceleration", "mouseNavigation", "mouseButtonShortcuts", "middleClick", "mouseClickDebounce", "textSnippets", "clipboardHistory", "pastePlain", "shelf", "mixer", "micMute", "keepAwake", "brightness", "quickLauncher", "quickToggles", "cleaningMode", "cameraPreview", "radialMenu", "scratchpad", "screenRecorder", "menuBarTidy", "notch", "notchCalendar", "notchNotifications", "notchGestures", "notchTimer", "notchAccessories", "notchLyrics", "notchQueue", "spotifyQueue", "notchLiveEqualizer", "notchDownloads", "notchAgents", "notchWatch", "monitorPower",
         ], "feature ids are stable (they persist inside availability keys)")
         for language in AppLanguage.allCases {
             suite.expect(FeatureStrings.backup(language).description.contains(
@@ -312,7 +312,7 @@ enum FeatureCatalogTests {
 
         // MARK: Features hub catalog
 
-        suite.expect(AppFeature.allCases.count == 48, "feature catalog has 48 features")
+        suite.expect(AppFeature.allCases.count == 45, "feature catalog has 45 features")
         suite.expect(Set(AppFeature.allCases.map(\.rawValue)).count == AppFeature.allCases.count,
                "feature ids are unique")
         suite.expect(AppFeature.allCases.map(\.rawValue) == [
@@ -322,7 +322,7 @@ enum FeatureCatalogTests {
             "clipboardHistory", "pastePlain", "shelf",
             "mixer", "micMute",
             "keepAwake", "brightness",
-            "quickLauncher", "quickToggles", "colorPicker", "screenOCR", "cleaningMode", "screenshot", "cameraPreview",
+            "quickLauncher", "quickToggles", "cleaningMode", "cameraPreview",
             "radialMenu", "scratchpad", "screenRecorder", "menuBarTidy", "notch", "notchCalendar", "notchNotifications", "notchGestures", "notchTimer", "notchAccessories", "notchLyrics", "notchQueue", "spotifyQueue", "notchLiveEqualizer", "notchDownloads", "notchAgents", "notchWatch",
             "monitorPower",
         ], "feature ids are stable (they persist inside availability keys)")
@@ -491,7 +491,7 @@ enum FeatureCatalogTests {
             "clipboardHistory", "pastePlain", "shelf",
             "mixer", "micMute",
             "keepAwake", "brightness",
-            "quickLauncher", "quickToggles", "colorPicker", "screenOCR", "cleaningMode", "screenshot", "cameraPreview", "radialMenu",
+            "quickLauncher", "quickToggles", "cleaningMode", "cameraPreview", "radialMenu",
             "scratchpad", "screenRecorder",
             "notch", "notchCalendar", "notchNotifications", "notchGestures", "notchTimer", "notchAccessories",
             "notchLyrics", "notchQueue", "spotifyQueue", "notchLiveEqualizer", "notchDownloads", "notchAgents", "notchWatch",
@@ -800,11 +800,11 @@ enum FeatureCatalogTests {
                "mixer without precise volume roller does not use accessibility")
 
         suite.expect(activeSet(.screenRecording, on: [DefaultsKey.switcherEnabled])
-                == [.switcher, .screenOCR, .screenshot, .screenRecorder],
+                == [.switcher, .screenRecorder],
                "switcher with previews uses screen recording; OCR, screenshots and recordings are on demand")
         suite.expect(activeSet(.screenRecording,
                          on: [DefaultsKey.switcherEnabled, DefaultsKey.switcherSimpleMode])
-                == [.screenOCR, .screenshot, .screenRecorder],
+                == [.screenRecorder],
                "simple-mode switcher stops using screen recording")
         suite.expect(activeSet(.screenRecording,
                          on: [DefaultsKey.switcherSimpleMode, DefaultsKey.dockPreviewEnabled])
@@ -1276,12 +1276,12 @@ enum FeatureCatalogTests {
                "a handled Settings destination request is cleared")
 
         let featuresDestination = FeatureSettingsDestination(.features)
-        settingsRouter.request(featuresDestination, targetFeature: .screenshot)
+        settingsRouter.request(featuresDestination, targetFeature: .scratchpad)
         let firstFeatureTargetRequestID = settingsRouter.requestID
         suite.expect(settingsRouter.pendingFeatureTarget?.id == firstFeatureTargetRequestID
-                && settingsRouter.pendingFeatureTarget?.feature == .screenshot,
+                && settingsRouter.pendingFeatureTarget?.feature == .scratchpad,
                "requesting Features with a target feature publishes a matching feature-target request")
-        settingsRouter.request(featuresDestination, targetFeature: .screenshot)
+        settingsRouter.request(featuresDestination, targetFeature: .scratchpad)
         let secondFeatureTargetRequestID = settingsRouter.requestID
         suite.expect(secondFeatureTargetRequestID != firstFeatureTargetRequestID
                 && settingsRouter.pendingFeatureTarget?.id == secondFeatureTargetRequestID,
@@ -1353,7 +1353,7 @@ enum FeatureCatalogTests {
                 && historyRouter.requestID == branchedHistoryRequestID,
                "a new sidebar visit after Back discards forward history")
         historyRouter.goBack()
-        historyRouter.request(FeatureSettingsDestination(.features), targetFeature: .screenshot)
+        historyRouter.request(FeatureSettingsDestination(.features), targetFeature: .scratchpad)
         historyRouter.goForward()
         suite.expect(historyRouter.page == .features,
                "a destination request after Back also discards forward history")

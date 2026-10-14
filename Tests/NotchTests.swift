@@ -1428,11 +1428,11 @@ enum NotchTests {
                      && NotchControlItem.mixer.setupRequirement == .page(.mixer, feature: .mixer),
                      "page-gated controls lead to their island section or the required feature")
         defaults.set("panel,panel,unknown,speedTest", forKey: DefaultsKey.notchControlOrder)
-        defaults.set("volume,screenshot", forKey: DefaultsKey.notchHiddenControls)
+        defaults.set("volume,recording", forKey: DefaultsKey.notchHiddenControls)
         let controls = NotchSupport.controls(in: defaults)
         suite.expect(controls.first == .panel && Set(controls).count == controls.count,
                "shortcut ordering tolerates duplicate and obsolete identifiers")
-        suite.expect(!controls.contains(.volume) && !controls.contains(.screenshot), "individual controls can be hidden")
+        suite.expect(!controls.contains(.volume) && !controls.contains(.recording), "individual controls can be hidden")
         defaults.set("", forKey: DefaultsKey.notchHiddenControls)
         suite.expect(NotchSupport.controls(in: defaults).last == .scratchpad
                && NotchQuickAction(id: NotchQuickAction.control(.scratchpad).id) == .control(.scratchpad)

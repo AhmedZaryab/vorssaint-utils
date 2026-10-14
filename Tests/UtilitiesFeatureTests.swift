@@ -751,7 +751,7 @@ enum UtilitiesFeatureTests {
                "six distinct radial profile presets")
         suite.expect(RadialMenuProfilePreset.general.makeItems().count == 6
                 && RadialMenuProfilePreset.media.makeItems().count == 4
-                && RadialMenuProfilePreset.tools.makeItems().count == 6
+                && RadialMenuProfilePreset.tools.makeItems().count == 3
                 && RadialMenuProfilePreset.windowLayout.makeItems().count == 5
                 && RadialMenuProfilePreset.quickToggles.makeItems().count == 5
                 && RadialMenuProfilePreset.blank.makeItems().isEmpty,
@@ -1188,8 +1188,7 @@ enum UtilitiesFeatureTests {
                "disk eject exclusions travel in backups")
 
         // MARK: A sleeping clock
-        for shareService in ["Sources/Vorssaint/Services/QuickTools/ScreenshotShareService.swift",
-                             "Sources/Vorssaint/Services/Recorder/RecordingShareService.swift"] {
+        for shareService in ["Sources/Vorssaint/Services/Recorder/RecordingShareService.swift"] {
             let shareCode = ((try? String(contentsOfFile: shareService, encoding: .utf8)) ?? "")
                 .components(separatedBy: "\n")
                 .filter { !$0.trimmingCharacters(in: .whitespaces).hasPrefix("//") }

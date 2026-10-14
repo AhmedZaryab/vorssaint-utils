@@ -73,11 +73,8 @@ enum RecorderFeatureTests {
                "the recorder keeps its optional capture permissions contextual")
         suite.expect(AppFeature.screenRecorder.energyProfile == .idle,
                "the recorder costs nothing between recordings")
-        suite.expect(FeatureVisibilitySupport.features(for: .screenshot)
-                == [.screenshot, .screenRecorder, .screenOCR, .colorPicker]
+        suite.expect(FeatureVisibilitySupport.features(for: .screenshot) == [.screenRecorder]
                 && pageVisible(.screenshot, available: [.screenRecorder])
-                && pageVisible(.screenshot, available: [.screenOCR])
-                && pageVisible(.screenshot, available: [.colorPicker])
                 && !pageVisible(.screenshot, available: []),
                "every installed screen tool keeps the one Screen capture page")
         suite.expect(SettingsBackupSupport.exportKeys().contains(DefaultsKey.recorderShortcutEnabled)
