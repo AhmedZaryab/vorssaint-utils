@@ -10,17 +10,11 @@ import Foundation
 /// when the chooser opens, so an uninstalled feature never leaves a dead mode
 /// behind.
 enum ScreenCaptureTool: String, CaseIterable {
-    case screenshot
     case recording
-    case text
-    case color
 
     var shortcutKey: String {
         switch self {
-        case .screenshot: return "1"
         case .recording: return "2"
-        case .text: return "3"
-        case .color: return "4"
         }
     }
 
@@ -31,10 +25,7 @@ enum ScreenCaptureTool: String, CaseIterable {
 
     var feature: AppFeature {
         switch self {
-        case .screenshot: return .screenshot
         case .recording: return .screenRecorder
-        case .text: return .screenOCR
-        case .color: return .colorPicker
         }
     }
 
@@ -54,27 +45,15 @@ enum ScreenCaptureTool: String, CaseIterable {
 
     var dedicatedShortcut: DedicatedShortcut {
         switch self {
-        case .screenshot:
-            return DedicatedShortcut(role: .screenshot,
-                                     enabledKey: DefaultsKey.screenshotShortcutEnabled)
         case .recording:
             return DedicatedShortcut(role: .screenRecorder,
                                      enabledKey: DefaultsKey.recorderShortcutEnabled)
-        case .text:
-            return DedicatedShortcut(role: .screenOCR,
-                                     enabledKey: DefaultsKey.screenOCRShortcutEnabled)
-        case .color:
-            return DedicatedShortcut(role: .colorPicker,
-                                     enabledKey: DefaultsKey.colorPickerShortcutEnabled)
         }
     }
 
     var showCaptureMenuOnShortcutKey: String {
         switch self {
-        case .screenshot: return DefaultsKey.screenshotShowCaptureMenuOnShortcut
         case .recording: return DefaultsKey.recorderShowCaptureMenuOnShortcut
-        case .text: return DefaultsKey.screenOCRShowCaptureMenuOnShortcut
-        case .color: return DefaultsKey.colorPickerShowCaptureMenuOnShortcut
         }
     }
 
@@ -91,10 +70,7 @@ enum ScreenCaptureTool: String, CaseIterable {
 
     var systemImageName: String {
         switch self {
-        case .screenshot: return "camera.viewfinder"
         case .recording: return "record.circle"
-        case .text: return "text.viewfinder"
-        case .color: return "eyedropper"
         }
     }
 
@@ -105,10 +81,7 @@ enum ScreenCaptureTool: String, CaseIterable {
 
     func settingsTitle(_ strings: Strings, language: AppLanguage) -> String {
         switch self {
-        case .screenshot: return FeatureStrings.screenshot(language).pageTitle
         case .recording: return FeatureStrings.recorder(language).pageTitle
-        case .text: return strings.ocrName
-        case .color: return strings.colorPickerName
         }
     }
 
@@ -151,8 +124,8 @@ enum ScreenshotSupport {
                                      screenshotHideVorssaintWindows: Bool)
         -> UnifiedCapturePolicy {
         UnifiedCapturePolicy(
-            freeze: tool == .screenshot ? screenshotFreeze : true,
-            includePointer: tool == .screenshot && screenshotIncludePointer,
+            freeze: true,
+            includePointer: false,
             hideVorssaintWindows: tool != .recording && screenshotHideVorssaintWindows,
             keepsContentWindowsOut: tool == .recording || screenshotHideVorssaintWindows,
             usesGeometry: tool == .recording)
@@ -185,7 +158,7 @@ enum ScreenshotSupport {
                                                     standaloneScreenshot: Bool,
                                                     requiresDraggedRegion: Bool,
                                                     scrollingCaptureEnabled: Bool) -> Bool {
-        let isScreenshot = standaloneScreenshot || selectedTool == .screenshot
+        let isScreenshot = standaloneScreenshot
         return isScreenshot && !requiresDraggedRegion && !scrollingCaptureEnabled
     }
 

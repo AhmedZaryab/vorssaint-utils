@@ -3,106 +3,33 @@
 
 import SwiftUI
 
-/// One Settings destination for every tool that starts from the screen. The
-/// tool picker at the top changes the feature-specific options shown
-/// below it, and the top section also carries the selected tool's own
-/// shortcut where the old shared shortcut lived.
+/// The Settings destination for the screen capture tools. Screenshot, screen
+/// text and the color picker are parked in Legacy/capture, so the recorder is
+/// the one tool left; the page keeps the shape it had so they can return.
 struct ScreenCaptureSettings: View {
     @ObservedObject private var l10n = L10n.shared
-    @ObservedObject private var router = SettingsRouter.shared
-    @ObservedObject private var features = FeatureRuntime.shared
-    @State private var selectedTool = ScreenCaptureTool.screenshot
 
     private var strings: ScreenshotFeatureStrings {
         FeatureStrings.screenshot(l10n.language)
     }
 
-    private var availableTools: [ScreenCaptureTool] {
-        ScreenCaptureTool.available()
-    }
-
-    private var currentTool: ScreenCaptureTool {
-        availableTools.contains(selectedTool) ? selectedTool : availableTools.first ?? .screenshot
-    }
-
     var body: some View {
         Form {
-            if !availableTools.isEmpty {
+            if AppFeature.screenRecorder.isAvailable {
                 Section {
-                    if availableTools.count > 1 {
-                        ScreenCaptureToolPicker(tools: availableTools,
-                                                strings: l10n.s,
-                                                language: l10n.language,
-                                                selection: toolSelection)
-                    }
-                    ToolShortcutRows(tool: currentTool, keys: currentTool.dedicatedShortcut)
-                        .id(currentTool)
-                    if AppFeature.screenshot.isAvailable || AppFeature.screenRecorder.isAvailable {
-                        RecentCapturesShortcutRows()
-                    }
+                    ToolShortcutRows(tool: .recording, keys: ScreenCaptureTool.recording.dedicatedShortcut)
+                    RecentCapturesShortcutRows()
                 } header: {
                     Text(strings.screenCaptureTitle)
                 }
+                ScreenRecordingCaptureSettings()
             }
-
-            selectedSettings
         }
         .formStyle(.grouped)
-        .onAppear { reconcileSelection(withDestination: true) }
-        .onChange(of: features.revision) { _, _ in
-            reconcileSelection(withDestination: false)
-        }
-        .onChange(of: router.requestID) { _, _ in
-            reconcileSelection(withDestination: true)
-        }
-    }
-
-    private var toolSelection: Binding<ScreenCaptureTool> {
-        Binding(get: { currentTool }, set: { tool in
-            guard availableTools.contains(tool), tool != currentTool else { return }
-            selectedTool = tool
-            router.request(tool.feature.settingsDestination, sidebarFeature: tool.feature)
-        })
-    }
-
-    @ViewBuilder
-    private var selectedSettings: some View {
-        if availableTools.isEmpty {
-            EmptyView()
-        } else {
-            switch currentTool {
-            case .screenshot:
-                ScreenshotCaptureSettings()
-            case .recording:
-                ScreenRecordingCaptureSettings()
-            case .text:
-                ScreenTextCaptureSettings()
-            case .color:
-                ColorCaptureSettings()
-            }
-        }
-    }
-
-    private func reconcileSelection(withDestination: Bool) {
-        if withDestination {
-            if let anchor = router.destination.sectionAnchor,
-               let requestedTool = anchor.screenCaptureTool,
-               availableTools.contains(requestedTool) {
-                selectedTool = requestedTool
-            } else if router.destination.sectionAnchor == nil,
-                      let first = availableTools.first {
-                selectedTool = first
-            }
-            return
-        }
-        if !availableTools.contains(selectedTool), let first = availableTools.first {
-            selectedTool = first
-        }
     }
 }
 
-/// Capture history belongs to screenshots and recordings together, so its
-/// shortcut stays visible whichever of those tools is selected.
+/// Capture history shortcut, kept with the recorder it now serves.
 private struct RecentCapturesShortcutRows: View {
     @ObservedObject private var l10n = L10n.shared
     @ObservedObject private var service = RecentCaptureService.shared
@@ -121,18 +48,6 @@ private struct RecentCapturesShortcutRows: View {
             Text(l10n.s.shortcutUnavailable)
                 .font(.caption)
                 .foregroundStyle(.orange)
-        }
-    }
-}
-
-private extension SettingsSectionAnchor {
-    var screenCaptureTool: ScreenCaptureTool? {
-        switch self {
-        case .screenshot: return .screenshot
-        case .screenRecorder: return .recording
-        case .screenOCR: return .text
-        case .colorPicker: return .color
-        default: return nil
         }
     }
 }
@@ -174,67 +89,3 @@ private struct ToolShortcutRows: View {
     }
 }
 
-private struct ScreenTextCaptureSettings: View {
-    @ObservedObject private var l10n = L10n.shared
-    @ObservedObject private var permissions = Permissions.shared
-    @AppStorage(DefaultsKey.screenOCRRemoveLineBreaks) private var removesLineBreaks = false
-    @AppStorage(DefaultsKey.screenOCRDetectQRCodes) private var detectsQRCodes = true
-
-    var body: some View {
-        Section {
-            Button {
-                ScreenTextService.shared.capture()
-            } label: {
-                Label(l10n.s.ocrName, systemImage: "text.viewfinder")
-            }
-            Text(l10n.s.ocrCaption)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            Toggle(l10n.s.ocrRemoveLineBreaksToggle, isOn: $removesLineBreaks)
-            Text(l10n.s.ocrRemoveLineBreaksCaption)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            Toggle(l10n.s.ocrQRToggle, isOn: $detectsQRCodes)
-            Text(l10n.s.ocrQRCaption)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            if !permissions.screenRecording {
-                PermissionRow(kind: .screenRecording)
-            }
-        } header: {
-            Text(l10n.s.ocrName)
-        }
-        .settingsFormSectionAnchor(.screenOCR)
-    }
-}
-
-private struct ColorCaptureSettings: View {
-    @ObservedObject private var l10n = L10n.shared
-    @AppStorage(DefaultsKey.colorPickerFormat) private var format = "hex"
-    @AppStorage(DefaultsKey.colorPickerBareHex) private var usesBareHex = false
-
-    var body: some View {
-        Section {
-            Button {
-                ColorSamplerService.shared.pick()
-            } label: {
-                Label(l10n.s.colorPickerPickNow, systemImage: "eyedropper")
-            }
-            Text(l10n.s.colorPickerCaption)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            Picker(l10n.s.colorPickerFormatLabel, selection: $format) {
-                ForEach(ColorCopyFormat.allCases) { format in
-                    Text(format.label).tag(format.rawValue)
-                }
-            }
-            .pickerStyle(.segmented)
-            if format == ColorCopyFormat.hex.rawValue {
-                Toggle(l10n.s.colorPickerBareHexToggle, isOn: $usesBareHex)
-            }
-        } header: {
-            Text(l10n.s.colorPickerName)
-        }
-        .settingsFormSectionAnchor(.colorPicker)
-    }
-}

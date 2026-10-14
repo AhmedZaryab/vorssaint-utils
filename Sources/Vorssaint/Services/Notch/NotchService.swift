@@ -1625,7 +1625,6 @@ final class NotchService: ObservableObject {
             switch item {
             case .keepAwake: KeepAwakeManager.shared.toggle()
             case .microphone: MicMuteService.shared.toggle()
-            case .screenshot: perform { ScreenshotService.shared.capture() }
             case .recording: perform { ScreenRecorderService.shared.toggle() }
             case .panel: openAppPanel()
             case .mixer: select(.mixer)

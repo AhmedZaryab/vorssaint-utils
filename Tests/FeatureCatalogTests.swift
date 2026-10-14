@@ -635,9 +635,6 @@ enum FeatureCatalogTests {
         suite.expect(Set(FeaturePreset.windows.features.flatMap(\.onboardingPermissions))
                 == [.accessibility, .screenRecording],
                "the windows first-run choice explains exactly its two broad permissions")
-        suite.expect(AppFeature.screenshot.permissions == [.screenRecording]
-                && AppFeature.screenshot.onboardingPermissions == [.screenRecording],
-               "screenshots only need the screen recording grant")
         suite.expect(AppFeature.screenRecorder.onboardingPermissions
                 == [.screenRecording, .accessibility],
                "the recorder choice explains both permissions it needs")
@@ -711,15 +708,11 @@ enum FeatureCatalogTests {
             DefaultsKey.windowEdgeSnapEnabled,
         ]
         suite.expect(!AppFeature.windowLayout.monitorsPermissionChanges(boolFor: { _ in false })
-               && !AppFeature.windowLayout.monitorsPermissionChanges {
-                   $0 == DefaultsKey.screenshotShortcutEnabled
-               }
                && windowLayoutPollingKeys.allSatisfy { enabledKey in
                    AppFeature.windowLayout.monitorsPermissionChanges {
                        $0 == enabledKey
                    }
                }
-               && !AppFeature.screenshot.monitorsPermissionChanges
                && !AppFeature.screenRecorder.monitorsPermissionChanges
                && !AppFeature.notchWatch.monitorsPermissionChanges
                && AppFeature.switcher.monitorsPermissionChanges
@@ -1053,7 +1046,6 @@ enum FeatureCatalogTests {
                 && AppFeature.dockPreview.energyProfile == .mouse
                 && AppFeature.mouseClickDebounce.energyProfile == .mouse
                 && AppFeature.switcher.energyProfile == .inputs
-                && AppFeature.colorPicker.energyProfile == .idle
                 && AppFeature.keepAwake.energyProfile == .idle
                 && AppFeature.scratchpad.energyProfile == .idle,
                "energy badges tell the honest mechanism per feature")

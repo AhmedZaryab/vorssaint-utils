@@ -80,16 +80,8 @@ enum RecorderFeatureTests {
                 && pageVisible(.screenshot, available: [.colorPicker])
                 && !pageVisible(.screenshot, available: []),
                "every installed screen tool keeps the one Screen capture page")
-        suite.expect([AppFeature.screenshot, .screenRecorder, .screenOCR, .colorPicker]
-                .allSatisfy { $0.settingsDestination.page == .screenshot },
-               "every screen tool opens its mode inside the centralized Settings page")
         suite.expect(SettingsBackupSupport.exportKeys().contains(DefaultsKey.recorderShortcutEnabled)
                 && SettingsBackupSupport.exportKeys().contains(DefaultsKey.recorderShortcut)
-                && SettingsBackupSupport.exportKeys().contains(DefaultsKey.screenOCRShortcutEnabled)
-                && SettingsBackupSupport.exportKeys().contains(DefaultsKey.screenOCRShortcut)
-                && SettingsBackupSupport.exportKeys().contains(DefaultsKey.colorPickerShortcutEnabled)
-                && SettingsBackupSupport.exportKeys().contains(DefaultsKey.colorPickerShortcut)
-                && SettingsBackupSupport.exportKeys().contains(DefaultsKey.screenshotShortcutEnabled)
                 && SettingsBackupSupport.exportKeys().contains(DefaultsKey.recorderQuality)
                 && SettingsBackupSupport.exportKeys().contains(DefaultsKey.recorderGIFSize)
                 && SettingsBackupSupport.exportKeys().contains(DefaultsKey.recorderMicrophone)

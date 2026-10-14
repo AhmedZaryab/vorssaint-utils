@@ -65,14 +65,8 @@ struct MetricsTests {
             }),
             ("repository", { RepositoryFeatureTests.run(suite) }),
             ("screenshots", {
-                ScreenshotPreviewHoverTests.run(suite)
                 ScreenshotWatermarkTests.run(suite)
-                ScreenshotFeatureTests.run(suite)
-                ScreenshotShareCompletionTests.run(suite)
-                ScreenshotAutoShelfTests.run(suite)
-                ScreenshotScrollingCaptureTests.run(suite)
                 ScreenshotAttachedCaptureTests.run(suite)
-                ScreenCaptureToolPickerTests.run(suite)
             }),
             ("recorder", {
                 RecorderFeatureTests.run(suite)
@@ -109,7 +103,6 @@ struct MetricsTests {
                 BrightnessKeyRoutingTests.run(suite)
             }),
             ("software-dimming", { SoftwareDimmingRouteTests.run { suite.expect($0, $1) } }),
-            ("capture", { ScreenshotSelectionRefreshContract.run(suite) }),
             ("keyboard", {
                 KeyboardFeatureTests.run(suite)
                 AssistiveKeyboardTests.run(suite)

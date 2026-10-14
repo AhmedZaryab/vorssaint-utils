@@ -37,7 +37,7 @@ final class RecentCaptureService: ObservableObject {
     }
 
     func syncWithPreferences() {
-        let available = AppFeature.screenshot.isAvailable || AppFeature.screenRecorder.isAvailable
+        let available = AppFeature.screenRecorder.isAvailable
         let enabled = available
             && UserDefaults.standard.bool(forKey: DefaultsKey.recentCapturesShortcutEnabled)
         let shortcut = GlobalShortcut.saved(for: DefaultsKey.recentCapturesShortcut,
@@ -59,7 +59,7 @@ final class RecentCaptureService: ObservableObject {
             DispatchQueue.main.async { [weak self] in self?.showHistoryWindow() }
             return
         }
-        guard AppFeature.screenshot.isAvailable || AppFeature.screenRecorder.isAvailable else {
+        guard AppFeature.screenRecorder.isAvailable else {
             return
         }
         let anchor = NSApp.keyWindow?.isVisible == true ? NSApp.keyWindow : nil
@@ -359,46 +359,20 @@ final class RecentCaptureService: ObservableObject {
         }
     }
 
+    /// The screenshot tool is parked, so an old screenshot opens in the
+    /// default image app instead of the editor.
     private func restoreScreenshot(_ entry: RecentCaptureEntry) {
-        queue.async { [weak self] in
-            guard let self, let capture = self.loadScreenshot(entry) else {
-                DispatchQueue.main.async { [weak self] in
-                    self?.remove(entry)
-                    NSSound.beep()
-                }
-                return
-            }
-            DispatchQueue.main.async {
-                appDelegate()?.closePopover()
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
-                    ScreenshotService.shared.restorePreview(capture)
-                }
-            }
+        guard let name = entry.screenshotName, Self.isSafeName(name), let root,
+              RecentCaptureStore.isRegularFile(root.appendingPathComponent(name)) else {
+            remove(entry)
+            NSSound.beep()
+            return
         }
-    }
-
-    private func loadScreenshot(_ entry: RecentCaptureEntry)
-        -> ScreenshotSelectionController.Capture? {
-        guard entry.kind == .screenshot,
-              let name = entry.screenshotName,
-              Self.isSafeName(name),
-              let root,
-              let scale = entry.scale,
-              scale.isFinite, scale > 0,
-              let source = CGImageSourceCreateWithURL(
-                root.appendingPathComponent(name) as CFURL,
-                [kCGImageSourceShouldCache: false] as CFDictionary),
-              let image = CGImageSourceCreateImageAtIndex(
-                source, 0,
-                [kCGImageSourceShouldCacheImmediately: true] as CFDictionary)
-        else { return nil }
-        let anchor = CGRect(
-            x: entry.anchorX ?? 0,
-            y: entry.anchorY ?? 0,
-            width: entry.anchorWidth ?? 0,
-            height: entry.anchorHeight ?? 0)
-        return ScreenshotSelectionController.Capture(
-            image: image, scale: CGFloat(scale), anchorRect: anchor)
+        let url = root.appendingPathComponent(name)
+        appDelegate()?.closePopover()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
+            NSWorkspace.shared.open(url)
+        }
     }
 
     private func pruneMissingEntries() {

@@ -11,8 +11,8 @@ enum QuickLauncherItem: String, PanelOrderItem, Identifiable {
     // Case order is the default grid order; the cleaner comes second, right
     // after Keep awake, by the owner's decision. Saved orders are untouched
     // (a case added later joins a saved order at the end).
-    case keepAwake, toggles, micMute, screenOCR, colorPicker, clipboard, windowLayout,
-         cleaning, screenshot, screenRecorder,
+    case keepAwake, toggles, micMute, clipboard, windowLayout,
+         cleaning, screenRecorder,
          cameraPreview, scratchpad
 
     var id: String { rawValue }
@@ -24,12 +24,9 @@ enum QuickLauncherItem: String, PanelOrderItem, Identifiable {
         case .keepAwake: return .keepAwake
         case .toggles: return .quickToggles
         case .micMute: return .micMute
-        case .screenOCR: return .screenOCR
-        case .colorPicker: return .colorPicker
         case .clipboard: return .clipboardHistory
         case .windowLayout: return .windowLayout
         case .cleaning: return .cleaningMode
-        case .screenshot: return .screenshot
         case .screenRecorder: return .screenRecorder
         case .cameraPreview: return .cameraPreview
         case .scratchpad: return .scratchpad
@@ -270,25 +267,10 @@ final class QuickLauncherService: ObservableObject {
             KeepAwakeManager.shared.toggle()
         case .micMute:
             MicMuteService.shared.toggle()
-        case .screenOCR:
-            hide()
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-                ScreenTextService.shared.capture()
-            }
-        case .screenshot:
-            hide()
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-                ScreenshotService.shared.capture()
-            }
         case .screenRecorder:
             hide()
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
                 ScreenRecorderService.shared.toggle()
-            }
-        case .colorPicker:
-            hide()
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-                ColorSamplerService.shared.pick()
             }
         case .cameraPreview:
             let embedded = CameraPreviewService.shared.showInNotchIfEnabled()

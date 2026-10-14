@@ -136,10 +136,6 @@ struct NotchControlsView: View {
         switch item {
         case .keepAwake: NotchAwakeButton()
         case .microphone: NotchMicButton()
-        case .screenshot:
-            NotchActionTile(symbol: item.symbol, title: item.title(l10n)) {
-                service.perform { ScreenshotService.shared.capture() }
-            }
         case .recording: NotchRecorderButton(service: service)
         case .panel:
             NotchActionTile(symbol: item.symbol, title: item.title(l10n)) { service.openAppPanel() }
@@ -162,7 +158,6 @@ extension NotchControlItem {
         case .keyboardLight: return FeatureStrings.brightness(l10n.language).keyboardLight
         case .keepAwake: return l10n.s.keepAwakeTitle
         case .microphone: return l10n.s.micMuteName
-        case .screenshot: return FeatureStrings.recentCaptures(l10n.language).screenshot
         case .recording: return FeatureStrings.recorder(l10n.language).pageTitle
         case .panel: return FeatureStrings.notch(l10n.language).panel
         case .mixer: return l10n.s.mixerSection

@@ -497,11 +497,7 @@ final class ScreenRecorderService: ObservableObject {
             try? await Task.sleep(nanoseconds: 120_000_000)
             guard self.session === session,
                   self.pendingStartIsAuthorized(generation) else { return }
-            // Recording is exempt from the screenshot visibility preference,
-            // so editors and pins stay out of the stream either way.
-            var chrome = Set(ScreenshotService.shared
-                .protectedWindowIDsForCapture(honoursVisibilityPreference: false)
-                .map(Int.init))
+            var chrome = Set<Int>()
             chrome.formUnion(indicator.excludedWindowNumbers)
             if let number = QuickToolHUD.currentWindowNumber { chrome.insert(number) }
             let failure = await session.start(frameRate: frameRate,

@@ -25,7 +25,7 @@ enum AppFeature: String, CaseIterable {
     // Energy and display
     case keepAwake, brightness
     // Tools
-    case quickLauncher, quickToggles, colorPicker, screenOCR, cleaningMode, screenshot, cameraPreview, radialMenu, scratchpad,
+    case quickLauncher, quickToggles, cleaningMode, cameraPreview, radialMenu, scratchpad,
          screenRecorder, menuBarTidy
     // Dynamic Island, then its extensions
     case notch, notchCalendar, notchNotifications, notchGestures, notchTimer, notchAccessories, notchLyrics,
@@ -80,7 +80,7 @@ extension AppFeature {
                         from: edgeSnapDisabledZones
                     ).isEmpty)
         // Watch asks when an area is chosen and checks on every reading.
-        case .screenOCR, .cleaningMode, .screenshot, .screenRecorder, .notchWatch:
+        case .cleaningMode, .screenRecorder, .notchWatch:
             return false
         default:
             return true
@@ -109,7 +109,7 @@ extension AppFeature {
             return .sound
         case .keepAwake, .brightness:
             return .energyDisplay
-        case .quickLauncher, .quickToggles, .colorPicker, .screenOCR, .cleaningMode, .screenshot, .cameraPreview, .radialMenu,
+        case .quickLauncher, .quickToggles, .cleaningMode, .cameraPreview, .radialMenu,
              .scratchpad, .screenRecorder, .menuBarTidy:
             return .tools
         case .notch, .notchCalendar, .notchNotifications, .notchGestures, .notchTimer, .notchAccessories,
@@ -147,10 +147,7 @@ extension AppFeature {
         case .brightness: return "display.2"
         case .quickLauncher: return "wand.and.rays"
         case .quickToggles: return "togglepower"
-        case .colorPicker: return "eyedropper"
-        case .screenOCR: return "text.viewfinder"
         case .cleaningMode: return "bubbles.and.sparkles"
-        case .screenshot: return "camera.viewfinder"
         case .screenRecorder: return "record.circle"
         case .cameraPreview: return "web.camera"
         case .notchGestures: return "hand.draw"
@@ -232,7 +229,7 @@ extension AppFeature {
         case .shelf: return [DefaultsKey.shelfEnabled]
         case .brightness: return [DefaultsKey.brightnessControlEnabled]
         case .windowLayout, .mixer, .micMute, .keepAwake,
-             .quickLauncher, .quickToggles, .colorPicker, .screenOCR, .cleaningMode, .screenshot, .cameraPreview, .scratchpad,
+             .quickLauncher, .quickToggles, .cleaningMode, .cameraPreview, .scratchpad,
              .screenRecorder,
              .monitorPower:
             return []
@@ -302,8 +299,6 @@ extension AppFeature {
         case .quickToggles: return [.automationFinder]
         case .switcher: return [.accessibility, .screenRecording]
         case .dockPreview: return [.accessibility, .screenRecording]
-        case .screenOCR: return [.screenRecording]
-        case .screenshot: return [.screenRecording]
         // The sound of the Mac is read through an audio grant of its own.
         // Microphone access stays contextual, and Accessibility only keeps
         // typing timing.
@@ -313,7 +308,7 @@ extension AppFeature {
         case .brightness: return [.accessibility]
         case .mixer: return [.audioCapture, .accessibility]
         case .clipboardHistory, .shelf,
-             .quickLauncher, .colorPicker, .micMute,
+             .quickLauncher, .micMute,
              .scratchpad, .monitorPower:
             return []
         }
@@ -402,7 +397,7 @@ extension AppFeature {
              .clipboardHistory, .pastePlain, .shelf,
              .mixer, .micMute,
              .keepAwake, .brightness,
-             .quickLauncher, .quickToggles, .colorPicker, .screenOCR, .cleaningMode, .screenshot, .cameraPreview, .radialMenu,
+             .quickLauncher, .quickToggles, .cleaningMode, .cameraPreview, .radialMenu,
              .scratchpad, .screenRecorder,
              .notch, .notchCalendar, .notchNotifications, .notchGestures, .notchTimer, .notchAccessories,
              .notchLyrics, .notchQueue, .spotifyQueue, .notchLiveEqualizer, .notchDownloads, .notchAgents, .notchWatch,

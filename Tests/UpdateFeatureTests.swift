@@ -79,9 +79,6 @@ enum UpdateFeatureTests {
         suite.expect(GlobalShortcut.matchesSystemShortcut(optionShiftS,
                                                     symbolicHotKeys: systemAreaShot),
                "a combination macOS already answers is reported as taken")
-        suite.expect(!GlobalShortcut.matchesSystemShortcut(.screenshotDefault,
-                                                     symbolicHotKeys: systemAreaShot),
-               "the default screenshot shortcut stays clear of the system list")
         suite.expect(!GlobalShortcut.matchesSystemShortcut(
                     GlobalShortcut(keyCode: 1, modifiers: [.command, .shift]),
                     symbolicHotKeys: systemAreaShot),
@@ -142,8 +139,6 @@ enum UpdateFeatureTests {
         suite.expect(!GlobalShortcut.matchesLiveSystemShortcut(
                     GlobalShortcut(keyCode: 0xFFFF, modifiers: [.command, .shift]), entries: liveTable),
                "an unassigned key code never matches a live entry")
-        suite.expect(!GlobalShortcut.matchesLiveSystemShortcut(.screenshotDefault, entries: liveTable),
-               "the default screenshot shortcut stays clear of the live table")
         suite.expect(!GlobalShortcut.matchesLiveSystemShortcut(
                     GlobalShortcut(keyCode: 21, modifiers: [.command, .shift]), entries: []),
                "an empty live table reserves nothing")

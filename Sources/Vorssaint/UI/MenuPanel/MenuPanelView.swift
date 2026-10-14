@@ -391,8 +391,8 @@ private enum UtilityPanelItem: String, PanelOrderItem, Identifiable {
     // Case order IS the default panel order (PanelLayout.itemOrder falls back
     // to allCases). Screenshot leads in 3.1.13; existing orders that predate it
     // are migrated once without disturbing the rest of the user's layout.
-    case screenshot, quickLauncher, clipboard, windowLayout,
-         cleaning, screenOCR, colorPicker, cameraPreview, scratchpad,
+    case quickLauncher, clipboard, windowLayout,
+         cleaning, cameraPreview, scratchpad,
          screenRecorder
 
     var id: String { rawValue }
@@ -405,9 +405,6 @@ private enum UtilityPanelItem: String, PanelOrderItem, Identifiable {
         case .clipboard: return .clipboardHistory
         case .windowLayout: return .windowLayout
         case .cleaning: return .cleaningMode
-        case .screenOCR: return .screenOCR
-        case .colorPicker: return .colorPicker
-        case .screenshot: return .screenshot
         case .screenRecorder: return .screenRecorder
         case .cameraPreview: return .cameraPreview
         case .scratchpad: return .scratchpad
@@ -425,10 +422,7 @@ struct UtilitiesSection: View {
     @AppStorage(DefaultsKey.panelUtilityCleaning) private var showCleaning = true
     @AppStorage(DefaultsKey.panelUtilityClipboard) private var showClipboard = true
     @AppStorage(DefaultsKey.panelUtilityWindowLayout) private var showWindowLayout = true
-    @AppStorage(DefaultsKey.panelUtilityScreenOCR) private var showScreenOCR = true
-    @AppStorage(DefaultsKey.panelUtilityScreenshot) private var showScreenshot = true
     @AppStorage(DefaultsKey.panelUtilityQuickLauncher) private var showQuickLauncher = true
-    @AppStorage(DefaultsKey.panelUtilityColorPicker) private var showColorPicker = true
     @AppStorage(DefaultsKey.panelUtilityCameraPreview) private var showCameraPreview = true
     @AppStorage(DefaultsKey.panelUtilityScratchpad) private var showScratchpad = true
     @AppStorage(DefaultsKey.panelUtilityScreenRecorder) private var showScreenRecorder = true
@@ -536,12 +530,9 @@ struct UtilitiesSection: View {
         case .clipboard: return showClipboard
         case .windowLayout: return showWindowLayout
         case .cleaning: return showCleaning
-        case .screenOCR: return showScreenOCR
-        case .colorPicker: return showColorPicker
         case .cameraPreview: return showCameraPreview
         case .scratchpad: return showScratchpad
         case .quickLauncher: return showQuickLauncher
-        case .screenshot: return showScreenshot
         case .screenRecorder: return showScreenRecorder
         }
     }
@@ -584,43 +575,6 @@ struct UtilitiesSection: View {
                                 permissionButtonTitle: l10n.s.permissionRequest,
                                 permissionAction: cleaningNeedsAccessibility ? grantAccessibility : nil,
                                 action: startCleaning)
-        case .screenOCR:
-            UtilityActionButton(title: l10n.s.ocrName,
-                                caption: ocrCaption,
-                                systemImage: "text.viewfinder",
-                                isEditing: editing,
-                                showsDragHandle: true,
-                                visibility: $showScreenOCR,
-                                needsAttention: !permissions.screenRecording,
-                                permissionButtonTitle: l10n.s.permissionRequest,
-                                permissionAction: permissions.screenRecording ? nil : grantScreenRecordingPermission,
-                                shortcutHint: shortcutHint(.screenOCR),
-                                action: {
-                                    appDelegate()?.closePopover()
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                                        ScreenTextService.shared.capture()
-                                    }
-                                })
-        case .screenshot:
-            UtilityActionButton(title: FeatureStrings.screenshot(l10n.language).pageTitle,
-                                caption: screenshotCaption,
-                                systemImage: "camera.viewfinder",
-                                isEditing: editing,
-                                showsDragHandle: true,
-                                visibility: $showScreenshot,
-                                needsAttention: !permissions.screenRecording,
-                                permissionButtonTitle: l10n.s.permissionRequest,
-                                permissionAction: permissions.screenRecording ? nil : grantScreenRecordingPermission,
-                                shortcutHint: shortcutHint(.screenshot),
-                                accessoryTitle: FeatureStrings.recentCaptures(l10n.language).title,
-                                accessorySystemImage: "clock.arrow.circlepath",
-                                accessoryAction: showRecentCaptures,
-                                action: {
-                                    appDelegate()?.closePopover()
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                                        ScreenshotService.shared.capture()
-                                    }
-                                })
         case .screenRecorder:
             UtilityActionButton(title: screenRecorderTitle,
                                 caption: screenRecorderCaption,
@@ -642,20 +596,6 @@ struct UtilitiesSection: View {
                                     appDelegate()?.closePopover()
                                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
                                         ScreenRecorderService.shared.toggle()
-                                    }
-                                })
-        case .colorPicker:
-            UtilityActionButton(title: l10n.s.colorPickerName,
-                                caption: l10n.s.colorPickerCaption,
-                                systemImage: "eyedropper",
-                                isEditing: editing,
-                                showsDragHandle: true,
-                                visibility: $showColorPicker,
-                                shortcutHint: shortcutHint(.colorPicker),
-                                action: {
-                                    appDelegate()?.closePopover()
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-                                        ColorSamplerService.shared.pick()
                                     }
                                 })
         case .cameraPreview:
@@ -719,12 +659,6 @@ struct UtilitiesSection: View {
         return role.savedShortcut.displayString
     }
 
-    private var ocrCaption: String {
-        permissions.screenRecording
-            ? l10n.s.ocrCaption
-            : "\(l10n.s.permissionRequired): \(l10n.s.permissionScreenRecording)"
-    }
-
     /// While a recording runs the tile becomes the way to end it, so the
     /// panel never shows an action the person cannot take.
     private var screenRecorderTitle: String {
@@ -740,12 +674,6 @@ struct UtilitiesSection: View {
         return recorder.isRecording
             ? RecorderSupport.elapsedLabel(seconds: recorder.elapsedSeconds)
             : strings.panelCaption
-    }
-
-    private var screenshotCaption: String {
-        permissions.screenRecording
-            ? FeatureStrings.screenshot(l10n.language).panelCaption
-            : "\(l10n.s.permissionRequired): \(l10n.s.permissionScreenRecording)"
     }
 
     private var cameraPreviewCaption: String {
@@ -768,9 +696,6 @@ struct UtilitiesSection: View {
         showClipboard = true
         showWindowLayout = true
         showCleaning = true
-        showScreenOCR = true
-        showScreenshot = true
-        showColorPicker = true
         showCameraPreview = true
         showScratchpad = true
         showQuickLauncher = true

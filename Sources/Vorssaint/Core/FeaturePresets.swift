@@ -142,8 +142,8 @@ extension AppFeature {
                     defaults.string(forKey: DefaultsKey.brightnessKeyStep)) != .standard
                 ? .keyboard : .idle
         case .mouseAcceleration, .pastePlain, .micMute,
-             .keepAwake, .quickLauncher, .quickToggles, .colorPicker,
-             .screenOCR, .cleaningMode, .screenshot,
+             .keepAwake, .quickLauncher, .quickToggles,
+             .cleaningMode,
              .cameraPreview, .scratchpad, .screenRecorder:
             return .idle
         }

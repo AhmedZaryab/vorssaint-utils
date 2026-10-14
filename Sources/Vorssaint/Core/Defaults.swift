@@ -364,14 +364,9 @@ enum DefaultsKey {
     // Quick tools: paste as plain text, color picker, screen OCR, mic mute.
     static let pastePlainEnabled = "pastePlainEnabled"
     static let pastePlainShortcut = "pastePlainShortcut"
-    static let colorPickerShortcutEnabled = "colorPickerShortcutEnabled"
-    static let colorPickerShortcut = "colorPickerShortcut"
     static let colorPickerFormat = "colorPickerFormat"       // hex | rgb | hsl | swiftui
     static let colorPickerBareHex = "colorPickerBareHex"     // copy HEX without the leading #
-    static let screenOCRShortcutEnabled = "screenOCRShortcutEnabled"
-    static let screenOCRShortcut = "screenOCRShortcut"
     static let screenOCRRemoveLineBreaks = "screenOCRRemoveLineBreaks"
-    static let screenOCRDetectQRCodes = "screenOCRDetectQRCodes" // QR content wins over OCR text
     static let micMuteShortcutEnabled = "micMuteShortcutEnabled"
     static let micMuteShortcut = "micMuteShortcut"
     static let cameraPreviewShortcutEnabled = "cameraPreviewShortcutEnabled"
@@ -407,31 +402,17 @@ enum DefaultsKey {
     static let clipboardHistoryShortcutEnabled = "clipboardHistoryShortcutEnabled"
     static let clipboardHistoryShortcut = "clipboardHistoryShortcut"
     // Mode chooser visibility for dedicated capture shortcuts.
-    static let screenshotShowCaptureMenuOnShortcut = "screenshotShowCaptureMenuOnShortcut"
     static let recorderShowCaptureMenuOnShortcut = "recorderShowCaptureMenuOnShortcut"
-    static let screenOCRShowCaptureMenuOnShortcut = "screenOCRShowCaptureMenuOnShortcut"
-    static let colorPickerShowCaptureMenuOnShortcut = "colorPickerShowCaptureMenuOnShortcut"
     // Screenshot capture and editor.
-    static let screenshotShortcutEnabled = "screenshotShortcutEnabled"
-    static let screenshotShortcut = "screenshotShortcut"
     static let unifiedScreenCaptureShortcutMigrated = "unifiedScreenCaptureShortcutMigrated"
     static let restoredScreenCaptureShortcutsMigrated = "restoredScreenCaptureShortcutsMigrated"
     static let orphanedCaptureShortcutMigrated = "orphanedCaptureShortcutMigrated"
-    static let screenshotFullScreenShortcutEnabled = "screenshotFullScreenShortcutEnabled"
-    static let screenshotFullScreenShortcut = "screenshotFullScreenShortcut"
     static let screenshotLastCaptureShortcutEnabled = "screenshotLastCaptureShortcutEnabled"
-    static let screenshotLastCaptureShortcut = "screenshotLastCaptureShortcut"
     static let recentCapturesShortcutEnabled = "recentCapturesShortcutEnabled"
     static let recentCapturesShortcut = "recentCapturesShortcut"
-    static let screenshotClipboardShortcutEnabled = "screenshotClipboardShortcutEnabled"
-    static let screenshotClipboardShortcut = "screenshotClipboardShortcut"
     static let screenshotFreeze = "screenshotFreeze"
     static let screenshotHideVorssaintWindows = "screenshotHideVorssaintWindows"
     static let screenshotSaveFolder = "screenshotSaveFolder"
-    static let screenshotSaveSubfolder = "screenshotSaveSubfolder"
-    static let screenshotFileNamePattern = "screenshotFileNamePattern"
-    static let screenshotFileNumberStart = "screenshotFileNumberStart"
-    static let screenshotFileNumberNext = "screenshotFileNumberNext"
     static let screenshotDefaultAction = "screenshotDefaultAction"
     static let screenshotIncludePointer = "screenshotIncludePointer"
     static let screenshotShowLastRegion = "screenshotShowLastRegion"
@@ -441,32 +422,13 @@ enum DefaultsKey {
     static let screenshotLoupeDefaultZoom = "screenshotLoupeDefaultZoom"
     static let screenshotLoupeLastZoom = "screenshotLoupeLastZoom"
     static let screenshotLoupeSteppedZoomByDefault = "screenshotLoupeSteppedZoomByDefault"
-    static let screenshotDownscale = "screenshotDownscale"
-    static let screenshotDelay = "screenshotDelay"
-    static let screenshotLastTool = "screenshotLastTool"
-    static let screenshotLastColor = "screenshotLastColor"
-    static let screenshotLastStroke = "screenshotLastStroke"
-    static let screenshotLastTextSize = "screenshotLastTextSize"
-    static let screenshotLastBlurLevel = "screenshotLastBlurLevel"
-    static let screenshotLastBlurStyle = "screenshotLastBlurStyle"
-    static let screenshotLastBlurTextOnly = "screenshotLastBlurTextOnly"
-    static let screenshotLastArrowStyle = "screenshotLastArrowStyle"
-    static let screenshotLastSticker = "screenshotLastSticker"
-    static let screenshotAnnotationShadows = "screenshotAnnotationShadows"
-    static let screenshotToolOrder = "screenshotToolOrder"
-    static let screenshotToolShortcuts = "screenshotToolShortcuts"
-    static let screenshotToolShortcutsEnabled = "screenshotToolShortcutsEnabled"
-    static let screenshotBackdropStyle = "screenshotBackdropStyle"
     static let screenshotBackdropPresets = "screenshotBackdropPresets"
     static let screenshotWatermarkStyle = "screenshotWatermarkStyle"
     static let screenshotWatermarkPresets = "screenshotWatermarkPresets"
     static let screenshotOpenEditorDirectly = "screenshotOpenEditorDirectly"
-    static let screenshotCopyToClipboard = "screenshotCopyToClipboard"
     static let screenshotAddToShelf = "screenshotAddToShelf"
-    static let screenshotPreviewPosition = "screenshotPreviewPosition"
     static let screenshotPreviewTakesFocus = "screenshotPreviewTakesFocus"
     static let screenshotUploadShortcutEnabled = "screenshotUploadShortcutEnabled"
-    static let screenshotUploadShortcut = "screenshotUploadShortcut"
     static let screenshotUploadDuration = "screenshotUploadDuration"
     static let screenshotPreviewEnabled = "screenshotPreviewEnabled"
     static let screenshotPreviewDuration = "screenshotPreviewDuration"
@@ -1302,14 +1264,9 @@ enum Defaults {
         DefaultsKey.diskEjectExcludedVolumes: [String](),
         DefaultsKey.pastePlainEnabled: false,
         DefaultsKey.pastePlainShortcut: GlobalShortcut.pastePlainDefault.storageValue,
-        DefaultsKey.colorPickerShortcutEnabled: false,
-        DefaultsKey.colorPickerShortcut: GlobalShortcut.colorPickerDefault.storageValue,
         DefaultsKey.colorPickerFormat: "hex",
         DefaultsKey.colorPickerBareHex: false,
-        DefaultsKey.screenOCRShortcutEnabled: false,
-        DefaultsKey.screenOCRShortcut: GlobalShortcut.screenOCRDefault.storageValue,
         DefaultsKey.screenOCRRemoveLineBreaks: false,
-        DefaultsKey.screenOCRDetectQRCodes: true,
         DefaultsKey.micMuteShortcutEnabled: false,
         DefaultsKey.micMuteShortcut: GlobalShortcut.micMuteDefault.storageValue,
         DefaultsKey.cameraPreviewShortcutEnabled: false,
@@ -1348,29 +1305,15 @@ enum Defaults {
         DefaultsKey.recorderEditorPresets: Data(),
         DefaultsKey.recorderSharingEnabled: true,
         DefaultsKey.panelUtilityScreenRecorder: true,
-        DefaultsKey.screenshotShowCaptureMenuOnShortcut: true,
         DefaultsKey.recorderShowCaptureMenuOnShortcut: true,
-        DefaultsKey.screenOCRShowCaptureMenuOnShortcut: true,
-        DefaultsKey.colorPickerShowCaptureMenuOnShortcut: true,
-        DefaultsKey.screenshotShortcutEnabled: false,
-        DefaultsKey.screenshotShortcut: GlobalShortcut.screenshotDefault.storageValue,
         DefaultsKey.unifiedScreenCaptureShortcutMigrated: false,
         DefaultsKey.restoredScreenCaptureShortcutsMigrated: false,
-        DefaultsKey.screenshotFullScreenShortcutEnabled: false,
-        DefaultsKey.screenshotFullScreenShortcut: GlobalShortcut.screenshotFullScreenDefault.storageValue,
         DefaultsKey.screenshotLastCaptureShortcutEnabled: false,
-        DefaultsKey.screenshotLastCaptureShortcut: GlobalShortcut.screenshotLastCaptureDefault.storageValue,
         DefaultsKey.recentCapturesShortcutEnabled: false,
         DefaultsKey.recentCapturesShortcut: GlobalShortcut.recentCapturesDefault.storageValue,
-        DefaultsKey.screenshotClipboardShortcutEnabled: false,
-        DefaultsKey.screenshotClipboardShortcut: GlobalShortcut.screenshotClipboardDefault.storageValue,
         DefaultsKey.screenshotFreeze: true,
         DefaultsKey.screenshotHideVorssaintWindows: true,
         DefaultsKey.screenshotSaveFolder: "",
-        DefaultsKey.screenshotSaveSubfolder: "",
-        DefaultsKey.screenshotFileNamePattern: "",
-        DefaultsKey.screenshotFileNumberStart: 1,
-        DefaultsKey.screenshotFileNumberNext: 1,
         DefaultsKey.screenshotDefaultAction: "",
         DefaultsKey.screenshotIncludePointer: false,
         DefaultsKey.screenshotShowLastRegion: true,
@@ -1380,32 +1323,13 @@ enum Defaults {
         DefaultsKey.screenshotLoupeDefaultZoom: 1.0,
         DefaultsKey.screenshotLoupeLastZoom: 1.0,
         DefaultsKey.screenshotLoupeSteppedZoomByDefault: false,
-        DefaultsKey.screenshotDownscale: false,
-        DefaultsKey.screenshotDelay: 0,
-        DefaultsKey.screenshotLastTool: "arrow",
-        DefaultsKey.screenshotLastColor: "red",
-        DefaultsKey.screenshotLastStroke: "medium",
-        DefaultsKey.screenshotLastTextSize: ScreenshotSupport.defaultTextSize,
-        DefaultsKey.screenshotLastBlurLevel: ScreenshotSupport.BlurStrength.defaultLevel,
-        DefaultsKey.screenshotLastBlurStyle: "pixelate",
-        DefaultsKey.screenshotLastBlurTextOnly: false,
-        DefaultsKey.screenshotLastArrowStyle: "filled",
-        DefaultsKey.screenshotLastSticker: "check",
-        DefaultsKey.screenshotAnnotationShadows: false,
-        DefaultsKey.screenshotToolOrder: ScreenshotSupport.Tool.defaultOrderStorage,
-        DefaultsKey.screenshotToolShortcutsEnabled: true,
-        DefaultsKey.screenshotToolShortcuts: "",
-        DefaultsKey.screenshotBackdropStyle: "",
         DefaultsKey.screenshotBackdropPresets: "[]",
         DefaultsKey.screenshotWatermarkStyle: "",
         DefaultsKey.screenshotWatermarkPresets: "[]",
         DefaultsKey.screenshotOpenEditorDirectly: false,
-        DefaultsKey.screenshotCopyToClipboard: false,
         DefaultsKey.screenshotAddToShelf: false,
-        DefaultsKey.screenshotPreviewPosition: ScreenshotSupport.QuickPreviewPosition.automatic.rawValue,
         DefaultsKey.screenshotPreviewTakesFocus: true,
         DefaultsKey.screenshotUploadShortcutEnabled: false,
-        DefaultsKey.screenshotUploadShortcut: GlobalShortcut.screenshotUploadDefault.storageValue,
         DefaultsKey.screenshotUploadDuration: ScreenshotShareDuration.oneHour.rawValue,
         DefaultsKey.screenshotPreviewEnabled: true,
         DefaultsKey.screenshotPreviewDuration: ScreenshotSupport.defaultConfirmationPreviewDuration,
@@ -1480,11 +1404,7 @@ enum Defaults {
         defaults.register(defaults: AppFeature.availabilityDefaults)
         activateBetaChannelIfRunningBeta(in: defaults)
         migrateLegacySwitcherWindowShortcut(in: defaults)
-        migrateUtilityOrderForScreenshot(in: defaults)
         migrateScreenshotOpenEditorDirectly(in: defaults)
-        migrateUnifiedScreenCaptureShortcut(in: defaults)
-        migrateRestoredScreenCaptureShortcuts(in: defaults)
-        migrateOrphanedCaptureShortcut(in: defaults)
         migrateSilentHeadphonesDisconnectVolume(in: defaults)
         migrateSwitcherWindowlessFinder(in: defaults)
         recheckBrightnessDDCWriteOnlyPaths(in: defaults)
@@ -1721,106 +1641,6 @@ enum Defaults {
                      forKey: DefaultsKey.screenshotDefaultAction)
     }
 
-    /// The four screen tools now share the screenshot shortcut. Preserve the
-    /// first dedicated shortcut an existing setup had enabled, while fresh
-    /// installs keep the combined shortcut off by default.
-    static func migrateUnifiedScreenCaptureShortcut(in defaults: UserDefaults) {
-        guard !defaults.bool(forKey: DefaultsKey.unifiedScreenCaptureShortcutMigrated) else {
-            return
-        }
-        defer {
-            defaults.set(true, forKey: DefaultsKey.unifiedScreenCaptureShortcutMigrated)
-        }
-        guard !defaults.bool(forKey: DefaultsKey.screenshotShortcutEnabled) else { return }
-
-        let legacyChoices: [(enabled: String, shortcut: String, fallback: GlobalShortcut)] = [
-            (DefaultsKey.recorderShortcutEnabled,
-             DefaultsKey.recorderShortcut,
-             .screenRecorderDefault),
-            (DefaultsKey.screenOCRShortcutEnabled,
-             DefaultsKey.screenOCRShortcut,
-             .screenOCRDefault),
-            (DefaultsKey.colorPickerShortcutEnabled,
-             DefaultsKey.colorPickerShortcut,
-             .colorPickerDefault),
-        ]
-        guard let choice = legacyChoices.first(where: {
-            defaults.bool(forKey: $0.enabled)
-        }) else { return }
-        let shortcut = defaults.string(forKey: choice.shortcut) ?? choice.fallback.storageValue
-        defaults.set(true, forKey: DefaultsKey.screenshotShortcutEnabled)
-        defaults.set(shortcut, forKey: DefaultsKey.screenshotShortcut)
-    }
-
-    /// The unified-capture migration copied an enabled dedicated shortcut to
-    /// the general capture role. Now that dedicated shortcuts are back, keep
-    /// the original role instead of registering the same combination twice.
-    static func migrateRestoredScreenCaptureShortcuts(in defaults: UserDefaults) {
-        guard !defaults.bool(forKey: DefaultsKey.restoredScreenCaptureShortcutsMigrated) else {
-            return
-        }
-        defer {
-            defaults.set(true, forKey: DefaultsKey.restoredScreenCaptureShortcutsMigrated)
-        }
-        guard defaults.bool(forKey: DefaultsKey.screenshotShortcutEnabled),
-              let generalShortcut = defaults.string(forKey: DefaultsKey.screenshotShortcut)
-        else { return }
-
-        let dedicatedKeys = [
-            (DefaultsKey.recorderShortcutEnabled, DefaultsKey.recorderShortcut),
-            (DefaultsKey.screenOCRShortcutEnabled, DefaultsKey.screenOCRShortcut),
-            (DefaultsKey.colorPickerShortcutEnabled, DefaultsKey.colorPickerShortcut),
-        ]
-        guard dedicatedKeys.contains(where: { enabledKey, shortcutKey in
-            defaults.bool(forKey: enabledKey)
-                && defaults.string(forKey: shortcutKey) == generalShortcut
-        }) else { return }
-        defaults.set(false, forKey: DefaultsKey.screenshotShortcutEnabled)
-    }
-
-    /// The general capture shortcut now belongs to the screenshot tool, so on
-    /// an install without that tool a saved combination would register
-    /// nothing. Move it once onto the first available tool that has no
-    /// shortcut of its own, so the combination keeps opening the chooser.
-    /// A tool whose shortcut is switched off but was customized still counts
-    /// as having its own, so its saved combination is never overwritten.
-    /// Availability is read from the passed defaults — the same key
-    /// `isAvailable` reads from the standard ones — to stay testable.
-    static func migrateOrphanedCaptureShortcut(in defaults: UserDefaults) {
-        guard !defaults.bool(forKey: DefaultsKey.orphanedCaptureShortcutMigrated) else {
-            return
-        }
-        defer {
-            defaults.set(true, forKey: DefaultsKey.orphanedCaptureShortcutMigrated)
-        }
-        guard defaults.bool(forKey: DefaultsKey.screenshotShortcutEnabled),
-              !defaults.bool(forKey: AppFeature.screenshot.availabilityKey)
-        else { return }
-        let shortcut = defaults.string(forKey: DefaultsKey.screenshotShortcut)
-            ?? GlobalShortcut.screenshotDefault.storageValue
-
-        let candidates: [(feature: AppFeature, enabled: String,
-                          shortcut: String, unset: String)] = [
-            (.screenRecorder, DefaultsKey.recorderShortcutEnabled,
-             DefaultsKey.recorderShortcut,
-             GlobalShortcut.screenRecorderDefault.storageValue),
-            (.screenOCR, DefaultsKey.screenOCRShortcutEnabled,
-             DefaultsKey.screenOCRShortcut,
-             GlobalShortcut.screenOCRDefault.storageValue),
-            (.colorPicker, DefaultsKey.colorPickerShortcutEnabled,
-             DefaultsKey.colorPickerShortcut,
-             GlobalShortcut.colorPickerDefault.storageValue),
-        ]
-        guard let target = candidates.first(where: {
-            defaults.bool(forKey: $0.feature.availabilityKey)
-                && !defaults.bool(forKey: $0.enabled)
-                && (defaults.string(forKey: $0.shortcut) ?? $0.unset) == $0.unset
-        }) else { return }
-        defaults.set(true, forKey: target.enabled)
-        defaults.set(shortcut, forKey: target.shortcut)
-        defaults.set(false, forKey: DefaultsKey.screenshotShortcutEnabled)
-    }
-
     static func migrateLegacySwitcherWindowShortcut(in defaults: UserDefaults) {
         let wrongDeveloperDefault = GlobalShortcut(keyCode: Int64(kVK_ANSI_Grave),
                                                    modifiers: [.control, .option, .command]).storageValue
@@ -1829,16 +1649,6 @@ enum Defaults {
         }
         defaults.set(GlobalShortcut.switcherWindowDefault.storageValue,
                      forKey: DefaultsKey.switcherWindowShortcut)
-    }
-
-    static func migrateUtilityOrderForScreenshot(in defaults: UserDefaults) {
-        guard let storedOrder = defaults.object(forKey: DefaultsKey.panelUtilityOrder) as? String else {
-            return
-        }
-        let ids = storedOrder.split(separator: ",").map(String.init)
-        guard !ids.contains("screenshot") else { return }
-        defaults.set((["screenshot"] + ids).joined(separator: ","),
-                     forKey: DefaultsKey.panelUtilityOrder)
     }
 
     static func sanitizedDefaultDuration(_ minutes: Int) -> Int {

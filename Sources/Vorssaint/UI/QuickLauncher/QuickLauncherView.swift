@@ -18,8 +18,6 @@ struct QuickLauncherView: View {
     /// close the card before leaving edit mode.
     private var optionsItem: QuickLauncherItem? { launcher.editingOptionsItem }
     @AppStorage(DefaultsKey.micMuteMenuBarIndicator) private var micBadgeInMenuBar = false
-    @AppStorage(DefaultsKey.colorPickerFormat) private var colorFormat = "hex"
-    @AppStorage(DefaultsKey.colorPickerBareHex) private var colorBareHex = false
     @AppStorage(DefaultsKey.defaultDuration) private var defaultDuration = 0
     @AppStorage(DefaultsKey.clipboardHistoryEnabled) private var clipboardEnabled = false
     @AppStorage(DefaultsKey.clipboardHistoryLimit) private var clipboardLimit = 50
@@ -78,9 +76,6 @@ struct QuickLauncherView: View {
             launcher.refreshPanelLayout()
         }
         .onChange(of: clipboardEnabled) { _, _ in
-            launcher.refreshPanelLayout()
-        }
-        .onChange(of: colorFormat) { _, _ in
             launcher.refreshPanelLayout()
         }
     }
@@ -376,7 +371,7 @@ struct QuickLauncherView: View {
     /// change what the tile itself does.
     private func hasQuickOptions(_ item: QuickLauncherItem) -> Bool {
         switch item {
-        case .keepAwake, .micMute, .colorPicker, .clipboard: return true
+        case .keepAwake, .micMute, .clipboard: return true
         default: return false
         }
     }
@@ -438,17 +433,6 @@ struct QuickLauncherView: View {
                         ClipboardHistoryService.shared.trimToLimit()
                     }
                 }
-            case .colorPicker:
-                Picker(l10n.s.colorPickerFormatLabel, selection: $colorFormat) {
-                    ForEach(ColorCopyFormat.allCases) { format in
-                        Text(format.label).tag(format.rawValue)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .labelsHidden()
-                if colorFormat == ColorCopyFormat.hex.rawValue {
-                    Toggle(l10n.s.colorPickerBareHexToggle, isOn: $colorBareHex)
-                }
             default:
                 EmptyView()
             }
@@ -470,12 +454,9 @@ struct QuickLauncherView: View {
         case .keepAwake: return l10n.s.keepAwakeTitle
         case .toggles: return FeatureStrings.quickToggles(l10n.language).pageTitle
         case .micMute: return micMute.isMuted ? l10n.s.micUnmuteName : l10n.s.micMuteName
-        case .screenOCR: return l10n.s.ocrName
-        case .colorPicker: return l10n.s.colorPickerName
         case .clipboard: return FeatureStrings.clipboard(l10n.language).title
         case .windowLayout: return FeatureStrings.windowLayout(l10n.language).title
         case .cleaning: return l10n.s.cleaningMenuItem
-        case .screenshot: return FeatureStrings.screenshot(l10n.language).pageTitle
         case .screenRecorder:
             let strings = FeatureStrings.recorder(l10n.language)
             return recorder.isRecording ? strings.stopButton : strings.pageTitle
@@ -489,12 +470,9 @@ struct QuickLauncherView: View {
         case .keepAwake: return keepAwake.isActive ? "bolt.fill" : "bolt"
         case .toggles: return "togglepower"
         case .micMute: return micMute.isMuted ? "mic.slash.fill" : "mic"
-        case .screenOCR: return "text.viewfinder"
-        case .colorPicker: return "eyedropper"
         case .clipboard: return "doc.on.clipboard"
         case .windowLayout: return "rectangle.3.group"
         case .cleaning: return "keyboard"
-        case .screenshot: return "camera.viewfinder"
         case .screenRecorder: return recorder.isRecording ? "stop.circle" : "record.circle"
         case .cameraPreview: return "web.camera"
         case .scratchpad: return "note.text"

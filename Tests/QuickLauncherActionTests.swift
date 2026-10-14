@@ -70,10 +70,7 @@ enum QuickLauncherContract {
     }
     enum KeepAwakeManager { static let shared = Spy(name: "keepAwake") }
     enum MicMuteService { static let shared = Spy(name: "micMute") }
-    enum ScreenTextService { static let shared = Spy(name: "screenOCR") }
-    enum ScreenshotService { static let shared = Spy(name: "screenshot") }
     enum ScreenRecorderService { static let shared = Spy(name: "recorder") }
-    enum ColorSamplerService { static let shared = Spy(name: "colorPicker") }
     enum CameraPreviewService { static let shared = Spy(name: "camera") }
     enum ScratchpadService { static let shared = Spy(name: "scratchpad") }
     enum ClipboardHistoryService { static let shared = Spy(name: "clipboard") }
@@ -93,10 +90,7 @@ enum QuickLauncherContract {
         let cases: [(QuickLauncherItem, AppFeature, String?, Double?)] = [
             (.keepAwake, .keepAwake, "keepAwake.toggle", nil),
             (.micMute, .micMute, "micMute.toggle", nil),
-            (.screenOCR, .screenOCR, "screenOCR.capture", 0.15),
-            (.screenshot, .screenshot, "screenshot.capture", 0.15),
             (.screenRecorder, .screenRecorder, "recorder.toggle", 0.15),
-            (.colorPicker, .colorPicker, "colorPicker.pick", 0.15),
             (.cameraPreview, .cameraPreview, "camera.show", 0.15),
             (.scratchpad, .scratchpad, "scratchpad.show", 0.15),
             (.clipboard, .clipboardHistory, "clipboard.showHistoryWindow", 0.1),

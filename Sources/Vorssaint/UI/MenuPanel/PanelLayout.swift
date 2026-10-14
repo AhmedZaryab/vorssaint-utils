@@ -65,8 +65,8 @@ enum PanelSectionID: String, CaseIterable, Identifiable, Hashable {
         case .mixer: return [.mixer]
         case .utilities: return [.quickLauncher,
                                  .clipboardHistory,
-                                 .windowLayout, .cleaningMode, .screenOCR,
-                                 .colorPicker, .screenshot, .screenRecorder,
+                                 .windowLayout, .cleaningMode,
+                                 .screenRecorder,
                                  .cameraPreview, .scratchpad]
         case .controls: return [.scrollInverter, .linearScroll, .focusFollowsMouse, .mouseAcceleration, .mouseNavigation, .mouseButtonShortcuts, .switcher,
                                 .autoQuit,

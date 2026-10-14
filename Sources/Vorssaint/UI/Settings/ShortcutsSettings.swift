@@ -12,7 +12,7 @@ struct ShortcutsSettings: View {
     @ObservedObject private var router = SettingsRouter.shared
     @AppStorage(DefaultsKey.keyboardBrightnessShortcutsEnabled) private var keyboardBrightnessShortcutsEnabled = false
     /// Keyed by group too: brightness has a row in two groups, and each opens on its own.
-    @State private var expandedFeatures: [FeatureGroup: Set<AppFeature>] = [.tools: [.screenshot]]
+    @State private var expandedFeatures: [FeatureGroup: Set<AppFeature>] = [.tools: [.screenRecorder]]
 
     private var text: ShortcutSettingsStrings { FeatureStrings.shortcuts(l10n.language) }
     private var hub: FeatureHubStrings { FeatureStrings.hub(l10n.language) }
@@ -45,7 +45,7 @@ struct ShortcutsSettings: View {
             ForEach(visibleGroups, id: \.self) { group in
                 Section(groupTitle(group)) {
                     ForEach(featuresWithShortcuts(in: group), id: \.self) { feature in
-                        if feature == .screenshot {
+                        if feature == .screenRecorder {
                             captureGroupRows
                         } else {
                             featureRows(feature, in: group)
@@ -63,7 +63,7 @@ struct ShortcutsSettings: View {
         AppFeature.allCases.filter { feature in
             // The screenshot slot anchors the combined capture group; the
             // other capture tools render inside it instead of on their own.
-            if feature == .screenshot { return group == .tools && !captureRoles.isEmpty }
+            if feature == .screenRecorder { return group == .tools && !captureRoles.isEmpty }
             if GlobalShortcutRole.captureFeatures.contains(feature) { return false }
             if feature == .windowLayout {
                 return group == .windowsDock && feature.isAvailable
@@ -79,11 +79,11 @@ struct ShortcutsSettings: View {
         let roles = captureRoles
         disclosureHeader(
             title: FeatureStrings.screenshot(l10n.language).screenCaptureTitle,
-            symbolName: AppFeature.screenshot.symbolName,
-            isActive: featureHasActiveShortcut(.screenshot, roles: roles),
+            symbolName: AppFeature.screenRecorder.symbolName,
+            isActive: featureHasActiveShortcut(.screenRecorder, roles: roles),
             count: roles.count,
-            isExpanded: expansionBinding(for: .screenshot, in: .tools))
-        if expandedFeatures[.tools, default: []].contains(.screenshot) {
+            isExpanded: expansionBinding(for: .screenRecorder, in: .tools))
+        if expandedFeatures[.tools, default: []].contains(.screenRecorder) {
             ForEach(roles) { role in
                 roleRow(role, showsFeatureContext: false)
                     .disclosureIndent()
