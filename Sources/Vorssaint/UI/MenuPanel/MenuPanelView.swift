@@ -549,18 +549,6 @@ struct UtilitiesSection: View {
     @ViewBuilder
     private func itemView(_ item: UtilityPanelItem, editing: Bool) -> some View {
         switch item {
-                                isEditing: editing,
-                                showsDragHandle: true,
-                                action: {
-                                })
-                                isEditing: editing,
-                                showsDragHandle: true,
-                                action: {
-                                })
-                                isEditing: editing,
-                                showsDragHandle: true,
-                                action: {
-                                })
         case .clipboard:
             UtilityActionButton(title: FeatureStrings.clipboard(l10n.language).title,
                                 caption: clipboardEnabled

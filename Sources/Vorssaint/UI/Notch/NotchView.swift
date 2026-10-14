@@ -234,10 +234,6 @@ struct NotchView: View {
 
     private var compact: some View { NotchRestingStrip(service: service) }
 
-    }
-
-    }
-
     private var showsDetail: Bool { service.showingAppPanel }
 
     private var expanded: some View {

@@ -92,7 +92,6 @@ struct QuickLauncherView: View {
         ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: 0) {
                 switch item {
-                    PanelMediaView { launcher.closeUtility() }
                 case .windowLayout:
                     PanelWindowLayoutView { launcher.closeUtility() }
                 case .toggles:
