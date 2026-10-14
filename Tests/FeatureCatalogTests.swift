@@ -31,16 +31,7 @@ enum FeatureCatalogTests {
 
     static func run(_ suite: TestSuite) {
         suite.expect(AppFeature.allCases.map(\.rawValue) == [
-            "switcher", "dockPreview", "dockClick", "windowMaximizer", "windowLayout", "autoQuit",
-            "scrollInverter", "scrollHorizontal", "focusFollowsMouse", "linearScroll", "mouseAcceleration", "mouseNavigation", "mouseButtonShortcuts", "middleClick",
-            "mouseClickDebounce", "textSnippets",
-            "clipboardHistory", "pastePlain", "finderCutPaste", "finderRename", "shelf",
-            "mixer", "micMute",
-            "keepAwake", "brightness",
-            "quickLauncher", "quickToggles", "colorPicker", "screenOCR", "cleaningMode", "mediaTools",
-            "homebrew", "screenshot", "cameraPreview",
-            "radialMenu", "scratchpad", "screenRecorder", "menuBarTidy", "notch", "notchCalendar", "notchNotifications", "notchGestures", "notchTimer", "notchAccessories", "notchLyrics", "notchQueue", "spotifyQueue", "notchLiveEqualizer", "notchDownloads", "notchAgents", "notchWatch", "notchMascot",
-            "monitorPower",
+            "switcher", "dockPreview", "dockClick", "windowMaximizer", "windowLayout", "autoQuit", "scrollInverter", "scrollHorizontal", "focusFollowsMouse", "linearScroll", "mouseAcceleration", "mouseNavigation", "mouseButtonShortcuts", "middleClick", "mouseClickDebounce", "textSnippets", "clipboardHistory", "pastePlain", "shelf", "mixer", "micMute", "keepAwake", "brightness", "quickLauncher", "quickToggles", "colorPicker", "screenOCR", "cleaningMode", "screenshot", "cameraPreview", "radialMenu", "scratchpad", "screenRecorder", "menuBarTidy", "notch", "notchCalendar", "notchNotifications", "notchGestures", "notchTimer", "notchAccessories", "notchLyrics", "notchQueue", "spotifyQueue", "notchLiveEqualizer", "notchDownloads", "notchAgents", "notchWatch", "monitorPower",
         ], "feature ids are stable (they persist inside availability keys)")
         for language in AppLanguage.allCases {
             suite.expect(FeatureStrings.backup(language).description.contains(
@@ -321,7 +312,7 @@ enum FeatureCatalogTests {
 
         // MARK: Features hub catalog
 
-        suite.expect(AppFeature.allCases.count == 56, "feature catalog has 56 features")
+        suite.expect(AppFeature.allCases.count == 48, "feature catalog has 48 features")
         suite.expect(Set(AppFeature.allCases.map(\.rawValue)).count == AppFeature.allCases.count,
                "feature ids are unique")
         suite.expect(AppFeature.allCases.map(\.rawValue) == [
@@ -846,8 +837,6 @@ enum FeatureCatalogTests {
 
         suite.expect(AppFeature.quickToggles.permissions == [.automationFinder],
                "the quick toggles need no permission beyond the Trash's Finder ask")
-        suite.expect(activeSet(.appManagement) == [.appUpdates],
-               "package and update installs declare App Management access")
         suite.expect(activeSet(.audioCapture) == [.mixer], "the mixer is the only audio capture user")
         suite.expect(activeSet(.audioCapture, available: Set(AppFeature.allCases).subtracting([.mixer])) == [],
                "audio capture reads as unused once the mixer is off in the hub")
@@ -1295,12 +1284,12 @@ enum FeatureCatalogTests {
                "a handled Settings destination request is cleared")
 
         let featuresDestination = FeatureSettingsDestination(.features)
-        settingsRouter.request(featuresDestination, targetFeature: .uninstaller)
+        settingsRouter.request(featuresDestination, targetFeature: .screenshot)
         let firstFeatureTargetRequestID = settingsRouter.requestID
         suite.expect(settingsRouter.pendingFeatureTarget?.id == firstFeatureTargetRequestID
-                && settingsRouter.pendingFeatureTarget?.feature == .uninstaller,
+                && settingsRouter.pendingFeatureTarget?.feature == .screenshot,
                "requesting Features with a target feature publishes a matching feature-target request")
-        settingsRouter.request(featuresDestination, targetFeature: .uninstaller)
+        settingsRouter.request(featuresDestination, targetFeature: .screenshot)
         let secondFeatureTargetRequestID = settingsRouter.requestID
         suite.expect(secondFeatureTargetRequestID != firstFeatureTargetRequestID
                 && settingsRouter.pendingFeatureTarget?.id == secondFeatureTargetRequestID,
@@ -1372,7 +1361,7 @@ enum FeatureCatalogTests {
                 && historyRouter.requestID == branchedHistoryRequestID,
                "a new sidebar visit after Back discards forward history")
         historyRouter.goBack()
-        historyRouter.request(FeatureSettingsDestination(.features), targetFeature: .uninstaller)
+        historyRouter.request(FeatureSettingsDestination(.features), targetFeature: .screenshot)
         historyRouter.goForward()
         suite.expect(historyRouter.page == .features,
                "a destination request after Back also discards forward history")

@@ -61,22 +61,6 @@ enum UpdateFeatureTests {
                        || $0 == DefaultsKey.clipboardHistoryShortcutEnabled
                }).contains(.clipboard),
                "the clipboard shortcut activates with both gates on")
-        suite.expect(GlobalShortcutRole.conflict(for: .commandBarDefault,
-                                           excluding: .quickLauncher,
-                                           isOn: { _ in false },
-                                           isAvailable: { _ in true }) == nil,
-               "a disabled feature does not reserve its saved shortcut")
-        suite.expect(GlobalShortcutRole.conflict(for: .commandBarDefault,
-                                           excluding: .quickLauncher,
-                                           isOn: { $0 == DefaultsKey.commandBarShortcutEnabled },
-                                           isAvailable: { _ in true }) == .commandBar,
-               "an enabled feature keeps its saved shortcut reserved")
-        suite.expect(GlobalShortcutRole.conflict(for: .commandBarDefault,
-                                           excluding: .quickLauncher,
-                                           isOn: { _ in true },
-                                           isAvailable: { $0 != .commandBar }) == nil,
-               "a feature hidden from the hub does not reserve its shortcut")
-
         // macOS stores its own shortcuts as [character, key code, modifier mask],
         // the mask in NSEvent.ModifierFlags bits. 1 is S, 655360 is shift+option
         // — the combination "save picture of selected area as a file" carries
@@ -436,7 +420,7 @@ enum UpdateFeatureTests {
         }, "search finds keyboard brightness shortcuts by their sidebar name in every language")
 
         let settingsFeatureTitles: [AppFeature: String] = [
-            .uninstaller: "Homebrew",
+            .shelf: "Homebrew",
             .cameraPreview: "Camera Preview",
             .screenRecorder: "Screen Recorder",
             .micMute: "Mic Mute",
@@ -445,7 +429,7 @@ enum UpdateFeatureTests {
             settingsFeatureTitles[feature] ?? feature.rawValue
         }
         let expectedFeatureSearchDestinations: [(AppFeature, FeatureSettingsDestination)] = [
-            (.uninstaller, FeatureSettingsDestination(.uninstaller)),
+            (.shelf, FeatureSettingsDestination(.shelf)),
             (.cameraPreview, FeatureSettingsDestination(.quickTools, sectionAnchor: .cameraPreview)),
             (.screenRecorder, FeatureSettingsDestination(.screenshot, sectionAnchor: .screenRecorder)),
             (.micMute, FeatureSettingsDestination(.quickTools, sectionAnchor: .micMute)),
@@ -483,18 +467,18 @@ enum UpdateFeatureTests {
 
         // MARK: Settings search structural deduplication
         let structuralPage = SettingsSearchItem(
-            id: .page(.uninstaller), destination: FeatureSettingsDestination(.uninstaller),
+            id: .page(.shelf), destination: FeatureSettingsDestination(.shelf),
             title: "Dedicated Packages Page", icon: "shippingbox", keywords: ["Formulae"])
         let structuralFeature = SettingsSearchItem(
-            id: .feature(.uninstaller), destination: FeatureSettingsDestination(.uninstaller),
-            title: "Generated Homebrew Feature", icon: "externaldrive", feature: .uninstaller)
+            id: .feature(.shelf), destination: FeatureSettingsDestination(.shelf),
+            title: "Generated Homebrew Feature", icon: "externaldrive", feature: .shelf)
         let structurallyMerged = SettingsSearchSupport.combinedItems(
             pageItems: [structuralPage], featureItems: [structuralFeature])
-        suite.expect(structurallyMerged.map(\.id) == [.page(.uninstaller)]
+        suite.expect(structurallyMerged.map(\.id) == [.page(.shelf)]
                 && structurallyMerged.first?.title == "Dedicated Packages Page"
                 && structurallyMerged.first?.icon == "shippingbox"
                 && structurallyMerged.first?.keywords == ["Formulae"]
-                && structurallyMerged.first?.feature == .uninstaller,
+                && structurallyMerged.first?.feature == .shelf,
                "differently titled Homebrew rows merge into the stable page row")
 
         let islandPage = SettingsSearchItem(id: .page(.notch),
@@ -512,8 +496,8 @@ enum UpdateFeatureTests {
                "the real shared island destination does not merge a multi-feature page")
 
         let actionCoveredMappings: [(SettingsPage, AppFeature)] = [
-            (.uninstaller, .uninstaller),
-            (.appUpdates, .appUpdates),
+            (.shelf, .shelf),
+            (.windowLayout, .windowLayout),
         ]
         let actionCoveredPages = actionCoveredMappings.map { page, feature in
             SettingsSearchItem(id: .page(page), destination: FeatureSettingsDestination(page),
@@ -537,45 +521,45 @@ enum UpdateFeatureTests {
                                 destination: FeatureSettingsDestination(.features),
                                 title: "Features", icon: "square.grid.2x2",
                                 keywords: ["Homebrew", "Camera Preview"],
-                                keywordFeatures: [.uninstaller, .cameraPreview]),
-            SettingsSearchItem(id: .page(.appUpdates),
-                                destination: FeatureSettingsDestination(.appUpdates),
+                                keywordFeatures: [.shelf, .cameraPreview]),
+            SettingsSearchItem(id: .page(.windowLayout),
+                                destination: FeatureSettingsDestination(.windowLayout),
                                 title: "App Updates", icon: "arrow.down.app",
                                 keywords: ["Homebrew"]),
             SettingsSearchItem(id: .page(.quickTools),
                                 destination: FeatureSettingsDestination(.quickTools),
                                 title: "Quick Tools", icon: "wand.and.rays",
                                 keywords: ["Camera Preview"]),
-            SettingsSearchItem(id: .page(.uninstaller),
-                                destination: FeatureSettingsDestination(.uninstaller),
+            SettingsSearchItem(id: .page(.shelf),
+                                destination: FeatureSettingsDestination(.shelf),
                                 title: "Homebrew", icon: "shippingbox"),
         ]
         let combinedSettingsItems = SettingsSearchSupport.combinedItems(
             pageItems: dedicatedSettingsItems,
             featureItems: featureSearchItems)
         suite.expect(combinedSettingsItems.filter {
-            $0.title == "Homebrew" && $0.destination == FeatureSettingsDestination(.uninstaller)
+            $0.title == "Homebrew" && $0.destination == FeatureSettingsDestination(.shelf)
         }.count == 1
-                && combinedSettingsItems.contains { $0.id == .page(.uninstaller) },
+                && combinedSettingsItems.contains { $0.id == .page(.shelf) },
                "the explicit Homebrew page result replaces its equivalent generated result")
         suite.expect(combinedSettingsItems.filter {
-            $0.destination == FeatureSettingsDestination(.appUpdates)
+            $0.destination == FeatureSettingsDestination(.windowLayout)
         }.count == 1
-                && combinedSettingsItems.contains { $0.id == .page(.appUpdates) },
+                && combinedSettingsItems.contains { $0.id == .page(.windowLayout) },
                "a structurally one-to-one App Updates result is deduplicated to the page")
-        suite.expect(combinedSettingsItems.first { $0.id == .page(.uninstaller) }?.feature == .uninstaller,
+        suite.expect(combinedSettingsItems.first { $0.id == .page(.shelf) }?.feature == .shelf,
                "a deduplicated Homebrew page result keeps its feature identity")
         suite.expect(combinedSettingsItems.first { $0.id == .page(.features) }?.feature == nil,
                "a generic page result that does not merge with a feature carries no feature identity")
         // MARK: Settings search routing
 
-        let homebrewPageItem = combinedSettingsItems.first { $0.id == .page(.uninstaller) }!
+        let homebrewPageItem = combinedSettingsItems.first { $0.id == .page(.shelf) }!
         let unavailableHomebrewRoute = SettingsSearchSupport.route(for: homebrewPageItem) { _ in false }
         suite.expect(unavailableHomebrewRoute.destination == FeatureSettingsDestination(.features)
-                && unavailableHomebrewRoute.targetFeature == .uninstaller,
+                && unavailableHomebrewRoute.targetFeature == .shelf,
                "an unavailable Homebrew result preserves its identity and targets its Feature Hub row")
         let availableHomebrewRoute = SettingsSearchSupport.route(for: homebrewPageItem) { _ in true }
-        suite.expect(availableHomebrewRoute.destination == FeatureSettingsDestination(.uninstaller)
+        suite.expect(availableHomebrewRoute.destination == FeatureSettingsDestination(.shelf)
                 && availableHomebrewRoute.targetFeature == nil,
                "an available Homebrew result still opens its own dedicated page with no row to reveal")
 
@@ -642,9 +626,9 @@ enum UpdateFeatureTests {
 
         let homebrewMatches = SettingsSearchSupport.matchingItems(
             query: "  HOMEBREW ", items: combinedSettingsItems)
-        suite.expect(homebrewMatches.first?.destination == FeatureSettingsDestination(.uninstaller)
+        suite.expect(homebrewMatches.first?.destination == FeatureSettingsDestination(.shelf)
                 && homebrewMatches.map(\.id)
-                    == [.page(.uninstaller), .page(.features), .page(.appUpdates)],
+                    == [.page(.shelf), .page(.features), .page(.windowLayout)],
                "an exact Homebrew title ranks before earlier generic keyword matches")
         let cameraPreviewMatches = SettingsSearchSupport.matchingItems(
             query: "Camera Preview", items: combinedSettingsItems)
@@ -658,11 +642,11 @@ enum UpdateFeatureTests {
             id: .page(.features), destination: FeatureSettingsDestination(.features),
             title: "Features", icon: "square.grid.2x2", keywords: ["Homebrew Packages"])
         let partialTitleAfterKeyword = SettingsSearchItem(
-            id: .page(.appUpdates), destination: FeatureSettingsDestination(.appUpdates),
+            id: .page(.windowLayout), destination: FeatureSettingsDestination(.windowLayout),
             title: "Homebrew Packages", icon: "arrow.down.app")
         let partialMatches = SettingsSearchSupport.matchingItems(
             query: "brew", items: [keywordBeforePartialTitle, partialTitleAfterKeyword])
-        suite.expect(partialMatches.map(\.id) == [.page(.appUpdates), .page(.features)],
+        suite.expect(partialMatches.map(\.id) == [.page(.windowLayout), .page(.features)],
                "partial title containment ranks before an earlier keyword-only match")
 
         let tiedTitleMatches = [
@@ -705,7 +689,7 @@ enum UpdateFeatureTests {
         let homebrewGroups = SettingsSearchSupport.groupedMatchingItems(
             query: "Homebrew", items: combinedSettingsItems,
             isAvailable: { _ in true })
-        suite.expect(homebrewGroups.map(\.id) == [.uninstaller, .features, .appUpdates]
+        suite.expect(homebrewGroups.map(\.id) == [.shelf, .features, .windowLayout]
                 && homebrewGroups.first?.parentMatches == true
                 && homebrewGroups.first?.suggestions.isEmpty == true,
                "a matching main page is shown once before grouped keyword matches")
@@ -1284,6 +1268,11 @@ enum UpdateFeatureTests {
 
         Signed with an Apple Developer ID and notarized by Apple, so it downloads and opens normally. Requires macOS 14 or later. Open the .dmg below and drag Vorssaint to Applications.
         """
+        let inAppUpdateBody = ReleaseNotes.inAppUpdateNotes(from: githubReleaseBodyWithFooter) ?? ""
+        suite.expect(!inAppUpdateBody.contains("Signed with an Apple Developer ID"),
+               "in-app update notes remove the GitHub installation footer")
+        let githubPreviewNotes = ReleaseNotes.notes(for: "2.17.4",
+                                                    changelog: "## [2.17.4]\n\n" + inAppUpdateBody)
         suite.expect(githubPreviewNotes.sections.first?.bulletItems == ["Update preview stays focused on changes."],
                "in-app update notes keep release changes after removing the footer")
         let unreleasedChangelog = """
@@ -1305,281 +1294,6 @@ enum UpdateFeatureTests {
                "allVersions excludes the unreleased header")
         suite.expect(ReleaseNotes.rawNotes(for: "dev", changelog: unreleasedChangelog).contains("Feature pending release."),
                "rawNotes for dev falls back to the unreleased block")
-
-
-        func caskUpdate(_ token: String, installed: String, current: String,
-                        pinned: Bool = false) -> HomebrewPackageUpdate {
-            HomebrewPackageUpdate(kind: .cask, name: token, installedVersions: [installed],
-                                  currentVersion: current, isPinned: pinned)
-        }
-        let caskRecords = [
-            HomebrewCaskRecord(token: "editor", displayName: "Editor",
-                               installedVersion: "1.129.0", appFileNames: ["Editor.app"]),
-            HomebrewCaskRecord(token: "chat", displayName: "Chat",
-                               installedVersion: "0.0.374", appFileNames: ["Chat.app"]),
-            HomebrewCaskRecord(token: "installer", displayName: "Installer",
-                               installedVersion: "26.078", appFileNames: []),
-        ]
-        ]
-        suite.expect(!packageRows.contains { $0.token == "editor" },
-               "an app that already updated itself is not offered again")
-        suite.expect(packageRows.contains { $0.token == "chat" && $0.installedVersion == "0.0.401" },
-               "the version the app reports wins over the package receipt")
-        suite.expect(!packageRows.contains { $0.token == "installer" },
-               "a package record without an app bundle is not presented as an installed app")
-        suite.expect(namedRows.first?.installedVersion == "26.084",
-               "a package with no declared app is matched by its catalog name")
-        let exactPathRecord = HomebrewCaskRecord(token: "editor", displayName: "Editor",
-                                                 installedVersion: "1.0",
-                                                 appFileNames: ["Editor.app"],
-                                                 appPaths: ["/Users/test/Applications/Editor.app"])
-        ]
-        suite.expect(alreadyCurrent.isEmpty,
-               "the name match also suppresses an app that ran ahead of its package")
-        suite.expect(!packageRows.contains { $0.token == "pinnedApp" }
-                && !packageRows.contains { $0.token == "rolling" },
-               "pinned packages and packages without a version stay out")
-        suite.expect(packageRows.allSatisfy { $0.canInstallInPlace },
-               "package rows can be installed on the spot")
-        suite.expect(ownPackageRows.isEmpty,
-               "the app update list never offers to replace Vorssaint through its own package")
-
-        ]
-        suite.expect(candidates.count == 3 && !candidates.contains { $0.bundleID == "com.example.chat" },
-               "only store purchases are asked about, and never one the package manager answers for")
-        ]
-        suite.expect(storeRows.count == 1 && storeRows[0].name == "Blocker"
-                && !storeRows[0].canInstallInPlace,
-               "a store app is listed only when its newer version runs on this macOS")
-
-        suite.expect(mergedRows.count == packageRows.count + storeRows.count
-                && mergedRows.first?.canInstallInPlace == true
-                && mergedRows.last?.canInstallInPlace == false,
-               "the merged list puts what can be updated here first")
-        let everything = Set(mergedRows.map(\.id))
-        let twoStoreRows = mergedRows + [secondStoreRow]
-
-        suite.expect(keptSelection == [mergedRows[0].id],
-               "a row that disappeared leaves the selection behind")
-        suite.expect(withNewFinding == Set(mergedRows.map(\.id)),
-               "findings the person has not seen yet arrive already ticked")
-
-        suite.expect(lookup.contains("bundleId=a.b,c.d") && lookup.contains("country=BR")
-                && lookup.contains("entity=macSoftware"),
-               "several apps are asked about in one request")
-        suite.expect(!noCountry.contains("country="), "without a region the request carries none")
-        let lookupBody = Data(#"{"resultCount":2,"results":[{"kind":"mac-software","bundleId":"a.b","version":"2.0","minimumOsVersion":"15.0","trackViewUrl":"https://x"},{"kind":"software","bundleId":"c.d","version":"9.0","minimumOsVersion":"12.0"}]}"#.utf8)
-        let lookupEntry = lookupEntries["a.b"]
-        suite.expect(lookupEntry?.version == "2.0" && lookupEntry?.minimumOSVersion == "15.0",
-               "the store answer is read back")
-        suite.expect(lookupEntries["c.d"] == nil,
-               "another platform's listing is not the installed Mac app's version")
-
-        let storeFailures: [(Data?, Int?)] = [
-            (nil, 200), (lookupBody, nil), (lookupBody, 429), (lookupBody, 500),
-            (Data("not json".utf8), 200), (Data("{}".utf8), 200),
-            (Data(#"{"resultCount":0,"results":[]}"#.utf8), 200),
-            (Data(#"{"results":[{"kind":"mac-software","bundleId":"a.b","version":""}]}"#.utf8), 200),
-        ]
-        suite.expect(partialStoreRows.count == 1 && partialStoreRows[0].latestVersion == "2.0",
-               "a partial store check still offers the updates it could verify")
-
-        let universalStoreBody = Data(#"""
-        {"results":{
-          "123":{"bundleId":"com.example.universal","kind":"iosSoftware","deviceFamilies":["mac","iphone"],"minimumOSVersion":"14.0","url":"https://apps.apple.com/app/id123","offers":[{"version":{"display":"2.0"},"assets":[{"flavor":"macSoftware"}]},{"version":{"display":"9.0"},"assets":[{"flavor":"iosSoftware"}]}]},
-          "456":{"bundleId":"com.example.mobile","deviceFamilies":["iphone"],"minimumOSVersion":"18.0","offers":[{"version":{"display":"9.0"},"assets":[{"flavor":"iosSoftware"}]}]},
-          "789":{"bundleId":"com.example.no-mac-offer","deviceFamilies":["mac","iphone"],"minimumOSVersion":"14.0","offers":[{"version":{"display":"9.0"},"assets":[{"flavor":"iosSoftware"}]}]}
-        }}
-        """#.utf8)
-        suite.expect(universalEntries.count == 1 && universalEntries["com.example.universal"]?.version == "2.0"
-                && universalEntries["com.example.universal"]?.minimumOSVersion == "14.0",
-               "universal store apps use the Mac offer and Mac OS requirement, not the mobile version")
-
-        suite.expect(publisherFeed?.format == .appcast, "the app's declared feed is a supported source")
-        suite.expect(packagedFeed?.url.absoluteString == "https://updates.example.com/stable/latest-mac.yml",
-               "packaged update configuration selects the Mac release manifest")
-        suite.expect(hostedFeed?.url.absoluteString == "https://github.com/example/editor/releases/latest/download/latest-mac.yml",
-               "an explicitly declared release repository supplies its Mac metadata")
-        let appcast = Data(#"""
-        <rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle"><channel>
-          <item><sparkle:version>110</sparkle:version><sparkle:shortVersionString>1.1</sparkle:shortVersionString><sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion><enclosure url="https://example.com/app.zip" /></item>
-          <item><sparkle:version>200</sparkle:version><sparkle:shortVersionString>2.0</sparkle:shortVersionString><sparkle:minimumSystemVersion>27.0</sparkle:minimumSystemVersion><enclosure url="https://example.com/new.zip" /></item>
-          <item><sparkle:channel>beta</sparkle:channel><enclosure sparkle:version="300" sparkle:shortVersionString="3.0" url="https://example.com/beta.zip" /></item>
-          <item><enclosure sparkle:version="400" sparkle:shortVersionString="4.0" sparkle:os="windows" url="https://example.com/app.exe" /></item>
-          <item><sparkle:deltas><enclosure sparkle:version="500" sparkle:deltaFrom="100" url="https://example.com/app.delta" /></sparkle:deltas></item>
-        </channel></rss>
-        """#.utf8)
-        suite.expect(feedUpdate(releases)?.latestVersion == "1.1",
-               "feeds choose the newest compatible stable Mac release, not the first or largest entry")
-        suite.expect(feedUpdate(releases)?.isSelectable == false && feedUpdate(releases)?.token == nil,
-               "publisher findings leave installation with the app's own updater")
-        suite.expect(feedUpdate([.init(version: "101", displayVersion: "1.0", hasDownload: true)])?
-            .latestVersion == "1.0 (101)",
-               "new builds with the same visible version are detected and distinguished")
-        ] {
-            suite.expect(feedUpdate([excluded]) == nil,
-                   "older builds, preview releases and incompatible update paths are excluded")
-        }
-        let manifest = Data("version: 1.2\nfiles:\n  - url: app.zip\nminimumSystemVersion: 24.0.0\n".utf8)
-        suite.expect(feedUpdate(manifestReleases, format: .manifest)?.latestVersion == "1.2",
-               "Mac manifests compare visible app versions and use the kernel version for their OS requirement")
-        suite.expect(absentFindings.complete && absentFindings.checkedPaths.isEmpty
-                && absentFindings.uncheckedPaths.isEmpty
-                && absentFindings.catalogFallbackPaths == [feedApp.path],
-               "an absent publisher manifest requires catalog coverage before clearing its warning")
-        suite.expect(!failedFindings.complete && failedFindings.checkedPaths.isEmpty
-                && failedFindings.uncheckedPaths == [feedApp.path],
-               "a failed publisher manifest remains incomplete and names the app")
-        suite.expect(successfulFindings.complete && successfulFindings.checkedPaths == [feedApp.path]
-                && successfulFindings.uncheckedPaths.isEmpty
-               && successfulFindings.items.first?.latestVersion == "1.2",
-               "a readable publisher manifest still reports its newer release")
-        suite.expect(!unparseableFindings.complete && unparseableFindings.checkedPaths.isEmpty
-                && unparseableFindings.uncheckedPaths == [feedApp.path]
-                && unparseableFindings.items.isEmpty,
-               "an unreadable publisher manifest stays a failure and is not treated as absent")
-        suite.expect(!unstableFindings.complete && unstableFindings.checkedPaths.isEmpty
-                && unstableFindings.uncheckedPaths == [unstableFeedApp.path],
-               "a publisher feed cannot check an app with an unstable installed version")
-        suite.expect(feedUpdate([.init(version: "1.2", displayVersion: "1.2", minimumOS: "25.0.0", hasDownload: true)],
-                          format: .manifest) == nil,
-               "a manifest requiring a newer kernel cannot be offered")
-
-        let onlineCatalogBody = Data(#"""
-        [
-          {"token":"notes-stable","version":"2.0,revision","artifacts":[{"uninstall":[{"quit":"com.example.notes"}]},{"app":["Notes.app"],"target":"/Applications/Notes.app"}],"depends_on":{"macos":{">=":["14"]}}},
-          {"token":"notes-preview","version":"3.0","artifacts":[{"uninstall":[{"quit":["com.example.notes.preview"]}]},{"app":["Notes.app"]}],"depends_on":{"macos":{">=":["14"]}}},
-          {"token":"writer","version":"2.0","artifacts":[{"app":["Writer Source.app",{"target":"Writer.app"}],"target":"/Applications/Writer.app"}]},
-          {"token":"duplicate-one","version":"2.0","artifacts":[{"uninstall":[{"quit":"com.example.one"}]},{"app":["Duplicate.app"]}]},
-          {"token":"duplicate-two","version":"2.0","artifacts":[{"uninstall":[{"quit":"com.example.two"}]},{"app":["Duplicate.app"]}]},
-          {"token":"future","version":"4.0","artifacts":[{"app":["Future.app"]}],"depends_on":{"macos":{">=":["26"]}}},
-          {"token":"exact","version":"5.0","artifacts":[{"app":["Exact.app"]}],"depends_on":{"macos":{"==":["15"]}}},
-          {"token":"rolling","version":"latest","artifacts":[{"app":["Rolling.app"]}]},
-          {"token":"case-sensitive","version":"2.0","artifacts":[{"app":["Case.app"]}]},
-          {"token":"older","version":"1.0","artifacts":[{"app":["Older.app"]}]},
-          {"token":"own-tool","version":"9.0","artifacts":[{"app":["Own.app"]}]}
-        ]
-        """#.utf8)
-        suite.expect(onlineCatalog.count == 11
-                && onlineCatalog.first?.bundleIDs == ["com.example.notes"]
-                && onlineCatalog.first?.minimumOSVersions == ["14"]
-                && onlineCatalog.first { $0.token == "writer" }?.appNames == ["Writer.app"],
-               "the online catalog keeps final app names, explicit bundle identifiers and OS rules")
-
-        ]
-        suite.expect(Set(onlineRows.map(\.name)) == ["Notes", "Writer", "Exact"]
-                && onlineRows.allSatisfy { $0.source == .onlineCatalog && !$0.isSelectable },
-               "online matching requires an exact unique bundle name, uses an explicit ID to resolve ambiguity and keeps rows action-only")
-        let expandedCatalogBody = Data(#"""
-        [
-          {"token":"installer","version":"2.0","artifacts":[{"pkg":["installer.pkg"]},{"uninstall":[{"quit":["com.example.installer","com.example.installer.helper"],"delete":["/Applications/Installed.app","/Applications/Wild*.app","/tmp/Other.app"]}]}]},
-          {"token":"renamed","version":"2.0","artifacts":[{"app":["Original.app"]},{"uninstall":[{"quit":"com.example.renamed"}]}]},
-          {"token":"unrelated","version":"9.0","artifacts":[{"app":["Unrelated.app"]},{"uninstall":[{"quit":"com.example.other"}]}]},
-          {"token":"companion","version":"99.0","artifacts":[{"app":["Companion.app"]},{"uninstall":[{"quit":["com.example.companion","com.example.renamed"]}]}]}
-        ]
-        """#.utf8)
-        suite.expect(expandedCatalog.first?.appNames == ["Installed.app"],
-               "installer removal metadata supplies exact app names without treating globs or temporary paths as installed apps")
-        ]
-        suite.expect(Set(expandedRows.map(\.name)) == ["Installer", "Renamed"],
-               "identity matching finds installer-based and renamed apps without accepting a conflicting same-name app")
-        suite.expect(expandedRows.allSatisfy { $0.latestVersion == "2.0" },
-               "a companion app's quit list cannot take over another app's identity")
-        suite.expect(!onlineRows.contains { $0.name == "Duplicate" || $0.name == "Future"
-                || $0.name == "Rolling" || $0.name == "Case" || $0.name == "Older"
-                || $0.name == "Own" },
-               "ambiguous, incompatible, uncomparable, differently cased, current and ignored catalog entries stay out")
-        suite.expect(externalCandidates == [onlineApps[0]],
-               "store receipts and package-managed paths never reach the online catalog source")
-
-        suite.expect(selectionWithOnline == Set(mergedRows.map(\.id))
-                && listWithOnline.suffix(onlineRows.count).allSatisfy { $0.source == .onlineCatalog },
-               "online rows remain outside bulk selection and follow the managed sources in the list")
-        let discoveredPaths = InstalledApps.applicationScanPaths(
-            folderPaths: ["/Applications/Editor.app",
-                          "/System/Applications/System Utility.app",
-                          "/Applications/Editor.app"],
-            spotlightPaths: ["/Users/test/Tools/Side App.app",
-                             "/Users/test/.Trash/Old.app",
-                             "/Users/test/Library/Services/Helper.app",
-                             "/Users/test/Projects/Sample/build/Debug.app",
-                             "/Users/test/Tools/Container.app/Contents/Helper.app",
-                             "/Volumes/Installer/Sample.app"],
-            homeDirectory: "/Users/test")
-        suite.expect(discoveredPaths == ["/Applications/Editor.app", "/Users/test/Tools/Side App.app"],
-               "shared app discovery keeps installed apps and rejects system, transient, nested and duplicate copies")
-
-        let noon = Date(timeIntervalSince1970: 1_800_000_000)
-
-        suite.expect(HomebrewCommandBuilder.upgradeCasks(brewPath: "/opt/x/brew", tokens: [])?.arguments == nil
-                && HomebrewCommandBuilder.upgradeCasks(brewPath: "/opt/x/brew",
-                                                       tokens: ["; rm -rf /"])?.arguments == nil,
-               "an upgrade with nothing valid to name builds no command")
-        suite.expect(HomebrewCommandBuilder.upgradeCasks(brewPath: "/opt/x/brew",
-                                                   tokens: ["chat", "--force", "editor"])?.arguments
-                == ["upgrade", "--cask", "--greedy", "chat", "editor"],
-               "only real package names reach the upgrade command")
-        suite.expect(HomebrewCommandBuilder.outdatedCasksIncludingSelfUpdating(brewPath: "/opt/x/brew").arguments
-                == ["outdated", "--cask", "--greedy", "--json=v2"],
-               "the update check asks for the apps that carry their own updater too")
-        let caskJSON = #"{"formulae":[],"casks":[{"token":"editor","name":["Editor"],"installed":"1.129.0","artifacts":[{"app":["Source.app",{"target":"Editor.app"}],"target":"/Applications/Editor.app"},{"zap":[]}]},{"token":"tapped-tool","full_token":"example/tap/tapped-tool","name":["Tapped Tool"],"installed":"1.0.0","artifacts":[{"app":["Tapped Tool.app"]}]}]}"#
-        let parsedRecords = HomebrewParser.parseInstalledCaskRecords(caskJSON)
-        suite.expect(parsedRecords.count == 2 && parsedRecords[0].appFileNames == ["Editor.app"]
-                && parsedRecords[0].appPaths == ["/Applications/Editor.app"]
-                && parsedRecords[0].displayName == "Editor"
-                && parsedRecords[0].installedVersion == "1.129.0",
-               "an installed package is traced to the final app name after a rename")
-        suite.expect(parsedRecords.first { $0.token == "tapped-tool" }?.displayName == "Tapped Tool",
-               "parseInstalledCaskRecords keeps the short token brew outdated reports for a cask from a tap")
-        suite.expect(HomebrewParser.parseInstalledCaskRecords("garbage").isEmpty,
-               "unreadable package output yields no records")
-        let managedPackage = HomebrewOwnershipSupport.packageManagingApplication(
-            atPath: "/Applications/Editor.app",
-            installed: parsedRecords
-        )
-        suite.expect(managedPackage?.name == "editor" && managedPackage?.kind == .cask,
-               "the exact installed app path resolves to its package")
-        suite.expect(HomebrewOwnershipSupport.packageManagingApplication(
-            atPath: "/Users/test/Desktop/Editor.app",
-            installed: parsedRecords
-        ) == nil,
-        "a same-named app outside the managed path never resolves to a package")
-        let legacyRecord = HomebrewCaskRecord(token: "legacy-tool",
-                                              displayName: "Legacy Tool",
-                                              installedVersion: "2.0",
-                                              appFileNames: ["Legacy Tool.app"])
-        suite.expect(HomebrewOwnershipSupport.packageManagingApplication(
-            atPath: "/Users/test/Applications/Legacy Tool.app",
-            installed: [legacyRecord]
-        ) == nil,
-        "package uninstall requires exact path ownership even when the catalog omits its target")
-        suite.expect(HomebrewOwnershipSupport.packageManagingApplication(
-            atPath: "/Applications/Legacy Tool.app",
-            installed: [legacyRecord, legacyRecord]
-        ) == nil,
-        "ambiguous package ownership is never used for uninstall")
-
-        suite.expect(Defaults.registeredDefaults[DefaultsKey.appUpdatesCheckFrequency] as? String == "off",
-               "the background check starts off")
-        suite.expect(SettingsBackupSupport.exportKeys().contains(DefaultsKey.appUpdatesCheckFrequency)
-                && SettingsBackupSupport.exportKeys().contains(DefaultsKey.appUpdatesIncludeHomebrewApps)
-                && SettingsBackupSupport.exportKeys().contains(DefaultsKey.appUpdatesIncludeOnlineCatalog)
-                && !SettingsBackupSupport.exportKeys().contains(DefaultsKey.appUpdatesLastCheck),
-               "app update preferences travel in a backup, the last check does not")
-        suite.expect(AppFeature.appUpdates.enabledKeys.isEmpty
-                && AppFeature.appUpdates.permissions == [.notifications, .appManagement]
-                && AppFeature.appUpdates.group == .tools,
-               "app updates is an on demand tool that declares its update access")
-        suite.expect(FeatureVisibilitySupport.features(for: .appUpdates) == [.appUpdates]
-                && !FeatureVisibilitySupport.isPageVisible(.appUpdates, isAvailable: { _ in false }),
-               "the page follows the feature in the hub")
-        suite.expect(activeSet(.notifications, on: [DefaultsKey.appUpdatesNotify],
-                         strings: [DefaultsKey.appUpdatesCheckFrequency: "daily"])
-                .contains(.appUpdates),
-               "app updates only use notifications with a background check armed")
-        suite.expect(!activeSet(.notifications, on: [DefaultsKey.appUpdatesNotify])
-                .contains(.appUpdates),
-               "with the schedule off, app updates need no notification permission")
 
     }
 }

@@ -13,69 +13,6 @@ import VMStatisticsCompat
 
 enum UtilitiesFeatureTests {
     static func run(_ suite: TestSuite) {
-        // MARK: Port manager parser
-
-        let lsofFixture = """
-        p123
-        cExample Server
-        PTCP
-        n127.0.0.1:3000
-        n127.0.0.1:3000
-        n[::1]:3000
-        n*:3001
-        p456
-        cOther Server
-        PTCP
-        n*:3000
-        """
-        suite.expect(parsedPorts.map(\.port) == [3000, 3000, 3000, 3001],
-               "port parser keeps every distinct listening endpoint and removes exact duplicates")
-        suite.expect(parsedPorts.filter { $0.pid == 123 }.count == 3,
-               "port parser keeps multiple ports and address families for one process")
-
-        let invalidEndpointFixture = """
-        p789
-        cNo Port Process
-        PTCP
-        n*:4000
-        n127.0.0.1
-        """
-        suite.expect(parsedInvalid.count == 1 && parsedInvalid.first?.port == 4000,
-               "port parser ignores address lines that lack a port instead of pairing with previous port")
-
-        // MARK: Port manager all-interfaces marker (issue #1785)
-
-        let exposedFixture = """
-        p321
-        cDev Server
-        PTCP
-        n*:5173
-        n0.0.0.0:8000
-        n[::]:8001
-        n127.0.0.1:8002
-        n[::1]:8003
-        n192.168.1.20:8004
-        n[fe80::1]:8005
-        """
-        suite.expect(exposed[5173] == true && exposed[8000] == true && exposed[8001] == true,
-               "wildcard IPv4 and IPv6 binds from lsof are marked as listening on all interfaces")
-        suite.expect(exposed[8002] == false && exposed[8003] == false,
-               "loopback binds stay unmarked because only this Mac can reach them")
-        suite.expect(exposed[8004] == false && exposed[8005] == false,
-               "a bind to one specific address is not reported as all interfaces")
-
-        // MARK: Port manager browser destinations (issue #1787)
-
-        for (address, expected) in [
-            ("*:3000", "http://localhost:3000"),
-            ("0.0.0.0:3000", "http://127.0.0.1:3000"),
-            ("[::]:3000", "http://[::1]:3000"),
-            ("127.0.0.1:3000", "http://127.0.0.1:3000"),
-            ("[::1]:3000", "http://[::1]:3000"),
-            ("192.168.1.20:3000", "http://192.168.1.20:3000"),
-            ("[fe80::1%en0]:3000", "http://[fe80::1%25en0]:3000"),
-
-
         // MARK: Text snippets engine (issue #201)
 
         suite.expect(TextSnippetSupport.alertSoundNames(from: ["Tink.aiff", "Basso.aiff"])
@@ -771,10 +708,10 @@ enum UtilitiesFeatureTests {
             RadialMenuItem(kind: .quickToggle, payload: "unknownAction"),
         ]).isEmpty,
                "unknown quick-toggle slices cannot leave a dead action on the wheel")
-        let addedWheelTools: [RadialMenuTool] = [.screenRecorder, .uninstaller, .appUpdates]
+        let addedWheelTools: [RadialMenuTool] = [.screenRecorder]
         suite.expect(addedWheelTools.allSatisfy {
             $0.isRunnable(isFeatureAvailable: { _ in true }, boolFor: { _ in false })
-        }, "recording and maintenance tools are selectable when their hub features are available")
+        }, "the recording tool is selectable when their hub features are available")
         suite.expect(!RadialMenuTool.shelf.isRunnable(isFeatureAvailable: { _ in true },
                                                 boolFor: { _ in false })
                 && RadialMenuTool.shelf.isRunnable(isFeatureAvailable: { _ in true },

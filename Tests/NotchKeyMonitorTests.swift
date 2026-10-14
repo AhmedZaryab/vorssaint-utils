@@ -126,18 +126,6 @@ enum NotchKeyMonitorTests {
             suite.expect(NSEvent.handler?(escape) == nil && actions == [destination.action],
                          "Esc reaches the island from \(destination.name) once composition ends")
         }
-        // The Command Bar inside the island reads its own keys: Escape steps
-        // back through its search, and Command-K is its actions, not the gallery.
-        service.selected = .controls
-        service.showingSections = false
-        service.showingAppPanel = false
-        service.panel?.firstResponder = nil
-        service.showingCommandBar = true
-        actions = []
-        let commandK = NSEvent(window: service.panel, keyCode: 40, modifierFlags: .command, charactersIgnoringModifiers: "k")
-        suite.expect(NSEvent.handler?(escape) != nil && NSEvent.handler?(commandK) != nil && actions.isEmpty,
-                     "the island hands Escape and its shortcuts to the Command Bar open inside it")
-        service.showingCommandBar = false
         actions = []
         suite.expect(NSEvent.handler?(escape) == nil && actions == ["stepBack"],
                      "without the bar, Escape steps back through the island again")

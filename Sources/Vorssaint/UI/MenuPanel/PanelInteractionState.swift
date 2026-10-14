@@ -28,7 +28,6 @@ final class PanelInteractionState {
         viewKeepsPopoverOpen
             || isPresentingPopoverModal
             || AirPlayRouteManager.isPresentingPicker
-            || HomebrewManager.shared.operationStatus?.isActive == true
     }
 
 

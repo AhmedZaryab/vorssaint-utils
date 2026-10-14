@@ -130,17 +130,6 @@ enum NotchDestinationContract {
         reopeningContracts(defaults: defaults, suite: suite)
         countdownContracts(defaults: defaults, suite: suite)
         stepBackContracts(suite)
-        // A page opened while the Command Bar is in the island takes its place.
-        let barHost = Service()
-        barHost.expanded = true
-        barHost.showingCommandBar = true
-        barHost.modules = NotchSupport.modules(in: defaults)
-        barHost.open(.controls)
-        suite.expect(barHost.expanded && !barHost.showingCommandBar && barHost.selected == .controls
-                     && barHost.commandBarClosings == 1,
-                     "opening a page in place of the Command Bar closes the bar once")
-        barHost.open(.controls)
-        suite.expect(barHost.commandBarClosings == 1, "opening a page without the bar leaves the bar alone")
         for resting in [NotchIdleContent.none, .music] {
             defaults.set(resting.rawValue, forKey: DefaultsKey.notchIdleContent)
             defaults.set(false, forKey: DefaultsKey.notchShowPlayingMusic)
@@ -172,13 +161,13 @@ enum NotchDestinationContract {
         service.open(.tools)
         suite.expect(launcher.presentationID == unchangedPresentation,
                "reopening the same visible Tools destination does not reset its working presentation")
-        launcher.activeUtility = .media
+        launcher.activeUtility = .windowLayout
         service.open(.controls)
         service.open(.tools)
-        suite.expect(launcher.activeUtility == .media,
+        suite.expect(launcher.activeUtility == .windowLayout,
                "navigation preserves a still-available hosted utility")
         service.open(.controls)
-        defaults.set(false, forKey: AppFeature.mediaTools.availabilityKey)
+        defaults.set(false, forKey: AppFeature.windowLayout.availabilityKey)
         service.open(.tools)
         suite.expect(launcher.activeUtility == nil,
                "returning to Tools after removal cannot revive its previous utility")

@@ -421,22 +421,5 @@ enum NotchMusicVisibilityTests {
         suite.expect(naming.compactActivity == nil, "a player that quits takes its held song with it")
         naming.musicStripHeldSong = nil
         reader.playback = .init(isPlaying: true)
-
-        // The Command Bar inside the island takes its own size and closes with it.
-        let bar = Service()
-        bar.expanded = true
-        bar.showingCommandBar = true
-        suite.expect(bar.surfaceSize == bar.commandBarSurfaceSize, "the open island fits the Command Bar inside it")
-        bar.collapse()
-        suite.expect(!bar.showingCommandBar && !bar.expanded && bar.commandBarClosings == 1,
-                     "closing the island closes the Command Bar inside it once")
-        bar.collapse()
-        suite.expect(bar.commandBarClosings == 1, "closing an island without the bar leaves the bar alone")
-        bar.expanded = true
-        bar.showingCommandBar = true
-        bar.selected = .camera
-        bar.modules = [.camera]
-        bar.syncVisibleConsumers()
-        suite.expect(!reader.running, "the bar covering a page keeps that page's readers stopped")
     }
 }

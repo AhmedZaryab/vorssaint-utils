@@ -3875,7 +3875,7 @@ enum ScreenshotFeatureTests {
         suite.expect(GlobalShortcutRole.captureRoles(in: GlobalShortcutRole.allCases)
                 == GlobalShortcutRole.captureDisplayOrder,
                "every role of a capture feature reaches the shortcuts page, in display order")
-        suite.expect(GlobalShortcutRole.captureRoles(in: [.colorPicker, .screenshot, .commandBar])
+        suite.expect(GlobalShortcutRole.captureRoles(in: [.colorPicker, .screenshot, .shelf])
                 == [.screenshot, .colorPicker],
                "capture roles are reordered for display and other roles fall away")
         GlobalShortcut.refreshLayoutLabels()

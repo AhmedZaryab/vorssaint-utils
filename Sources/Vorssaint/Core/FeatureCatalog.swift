@@ -314,8 +314,7 @@ extension AppFeature {
         case .mixer: return [.audioCapture, .accessibility]
         case .clipboardHistory, .shelf,
              .quickLauncher, .colorPicker, .micMute,
-             .scratchpad, .monitorPower,
-             .portManager:
+             .scratchpad, .monitorPower:
             return []
         }
     }

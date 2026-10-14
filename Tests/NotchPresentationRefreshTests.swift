@@ -554,11 +554,6 @@ enum NotchPresentationRefreshContract {
         material.expanded = true
         material.refreshPresentation(animated: false)
         suite.expect(material.windowHost?.usesGlass == true, "expanded content requests the glass backdrop")
-        material.showingCommandBar = true
-        material.refreshPresentation(animated: false)
-        suite.expect(!material.usesGlassSurface && material.windowHost?.usesGlass == false,
-                     "the Command Bar keeps the open island black, as its drop is")
-        material.showingCommandBar = false
         material.expanded = false
         material.noticeExpanded = true
         material.refreshPresentation(animated: false)
