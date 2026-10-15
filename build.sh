@@ -296,6 +296,7 @@ if (( TEST )); then
         Sources/Vorssaint/Services/Notch/NotchAudioLevelSupport.swift
         Sources/Vorssaint/Services/Notch/NotchVolumeKeyGate.swift
         Sources/Vorssaint/Services/Notch/NotchMusicSupport.swift
+        Sources/Vorssaint/UI/Notch/NotchDesign.swift
         Sources/Vorssaint/UI/Notch/NotchDecorativeClock.swift
         Sources/Vorssaint/UI/Notch/NotchEqualizerBars.swift
         Sources/Vorssaint/UI/Notch/NotchScrollEdgeFade.swift

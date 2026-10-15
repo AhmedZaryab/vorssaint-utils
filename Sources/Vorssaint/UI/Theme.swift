@@ -3,6 +3,11 @@
 
 import SwiftUI
 
+// Inside the notch, look here only for the menu panel it hosts. Every value a
+// notch view draws, the notch branch of PanelCardModifier below included, comes
+// from NotchDesign (UI/Notch/NotchDesign.swift), specified in
+// docs/design/NOTCH-DESIGN.md.
+
 /// Shared look & feel: brand colors, card styling and the brand mark.
 enum Theme {
     /// Near-black background behind the brand mark. Neutral greys into black, no
