@@ -23,6 +23,20 @@ struct NotchNotice: Equatable {
     /// and a band grown below it, for an agent finishing or nearing a limit.
     /// The wings beside the camera never change for it.
     var tall = false
+    /// The file a download peek is about; its Finder icon is the peek's mark.
+    var fileURL: URL? = nil
+    /// The title's width in the strip's word face, measured once when the notice is made.
+    private(set) var wordWidth: CGFloat = 0
+
+    init(event: NotchEvent, title: String, detail: String, symbol: String, level: Double? = nil,
+         notification: NotchNotificationContent? = nil, notificationID: UUID? = nil,
+         agent: AgentProvider? = nil, minimumWings: NotchNoticeWings = .zero, tall: Bool = false,
+         fileURL: URL? = nil) {
+        self.event = event; self.title = title; self.detail = detail; self.symbol = symbol
+        self.level = level; self.notification = notification; self.notificationID = notificationID
+        self.agent = agent; self.minimumWings = minimumWings; self.tall = tall; self.fileURL = fileURL
+        self.wordWidth = (title as NSString).size(withAttributes: [.font: Self.wordFont]).width
+    }
 
     /// A compact peek keeps both wings the same width, within the compact
     /// range, and never widens for text. Battery, accessory and microphone
@@ -65,17 +79,14 @@ struct NotchNotice: Equatable {
     private static let wordFont = NotchDesign.Typography.stripPrimary.nsFont
     private static let readingFont = NotchDesign.Typography.readout.nsFont
 
-    /// The one word of a glyph-and-word notice, as the strip draws it.
-    private var wordWidth: CGFloat { (title as NSString).size(withAttributes: [.font: Self.wordFont]).width }
 
     /// A volume, brightness or keyboard light reading: the glyph in one wing,
     /// the meter and its percent in the other (docs/design/NOTCH-DESIGN.md 11.1).
     var isHUD: Bool { clampsWings && level != nil }
 
     /// The widest reading a HUD shows, so the wings never change as it counts.
-    static var hudReadingWidth: CGFloat {
+    static let hudReadingWidth: CGFloat =
         ceil(("100%" as NSString).size(withAttributes: [.font: readingFont]).width) + 2
-    }
     /// The meter's least length in a HUD's wing.
     static let hudMeterMinimum: CGFloat = 28
 
@@ -2097,7 +2108,8 @@ final class NotchService: ObservableObject {
         // Slider and key bursts only replace the displayed value. They never
         // restart a window resize or enqueue another layout animation.
         let transition: NotchContentTransition = !noticeCanPresent ? .none
-            : notice == nil ? (incoming.event.answersKeyPress ? .none : .reveal) : notice?.event != incoming.event || noticeExpanded ? .replace : .none
+            : incoming.event.answersKeyPress ? .none
+            : notice == nil ? .reveal : notice?.event != incoming.event || noticeExpanded ? .replace : .none
         // The same notice with a new reading only fits its width, steadily.
         noticeFitsInPlace = noticeCanPresent && !noticeExpanded && !keepsPreview && notice?.event == incoming.event
         mutatePresentation(transitionContent: transition) {
@@ -3694,9 +3706,12 @@ final class NotchService: ObservableObject {
                 self?.refreshPresentation()
             }.store(in: &subscriptions)
             NotchDownloadService.shared.onArrival = { [weak self] item in
-                self?.show(NotchNotice(event: .download,
-                    title: FeatureStrings.notchFiles(L10n.shared.language).completed,
-                    detail: item.name, symbol: "arrow.down.circle.fill", tall: true))
+                let word = FeatureStrings.notchFiles(L10n.shared.language).completed
+                let bytes = item.receivedBytes ?? (try? item.url.resourceValues(forKeys: [.fileSizeKey]).fileSize).flatMap { $0 }.map(Int64.init)
+                let size = bytes.map { ByteCountFormatter.string(fromByteCount: $0, countStyle: .file) }
+                self?.show(NotchNotice(event: .download, title: item.name,
+                    detail: [word, size].compactMap { $0 }.joined(separator: " · "),
+                    symbol: "arrow.down.circle.fill", tall: true, fileURL: item.url))
             }
         }
         if modules.contains(.agents) {

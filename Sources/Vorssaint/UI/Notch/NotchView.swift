@@ -69,26 +69,22 @@ struct NotchView: View {
     }
 
     @ViewBuilder private var surface: some View {
-        if service.songPeekBandActive, let peek = service.songPeek {
-            // The strip keeps its closed frame; the band fills the body below
-            // and lays out its own margins from the canvas.
-            let base = service.baseSurfaceSize
-            VStack(spacing: 0) {
-                baseSurface().frame(width: base.width, height: base.height)
-                NotchSongPeekBand(model: peek)
+        // One structure for every state: the live strip is always the first child, so a band
+        // or a tall notice arriving or leaving never rebuilds it (its equalizer and @State
+        // keep running). The strip keeps its closed frame; the band fills the body below.
+        let song = service.songPeekBandActive ? service.songPeek : nil
+        let tall = service.tallNoticeKeepsStrip ? service.notice : nil
+        let strip: CGSize? = song != nil ? service.baseSurfaceSize : tall != nil ? service.stripBehindNoticeSize : nil
+        VStack(spacing: 0) {
+            baseSurface(showingNotice: tall == nil).frame(width: strip?.width, height: strip?.height)
+            if let song {
+                NotchSongPeekBand(model: song)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            } else if let tall {
+                // A tall notice keeps the live strip exactly as it was (11.2) and grows its band below.
+                noticeButton(tall, reservesStrip: false)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             }
-        } else if service.tallNoticeKeepsStrip, let notice = service.notice {
-            // A tall notice keeps the live strip exactly as it was (11.2) and
-            // grows its band below, as the song band does.
-            let strip = service.stripBehindNoticeSize
-            VStack(spacing: 0) {
-                baseSurface(showingNotice: false).frame(width: strip.width, height: strip.height)
-                noticeButton(notice, reservesStrip: false)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            }
-        } else {
-            baseSurface()
         }
     }
 
