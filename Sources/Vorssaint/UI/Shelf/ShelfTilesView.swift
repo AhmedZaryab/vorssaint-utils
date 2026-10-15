@@ -111,7 +111,12 @@ struct ShelfTilesView: NSViewRepresentable {
     static func inset(sideways: Bool) -> CGFloat { sideways ? 0 : inset }
     static let wellSize = NSSize(width: 76, height: 48)
     static let wellToLabel = NotchDesign.Spacing.xxSmall
-    static let labelHeight: CGFloat = 24
+    /// Two lines of Typography.caption (10 pt).
+    static let labelHeight: CGFloat = 26
+    /// The island's strip: the tile is as wide as its well, so the well sits
+    /// on the page margin instead of 8 pt inside it.
+    static let sidewaysTileSize = NSSize(width: wellSize.width, height: tileSize.height)
+    static func tileSize(sideways: Bool) -> NSSize { sideways ? sidewaysTileSize : tileSize }
 
     func makeNSView(context: Context) -> NSScrollView {
         // A view built now has nothing to reveal: the docked shelf rebuilds
@@ -174,11 +179,11 @@ struct ShelfTilesView: NSViewRepresentable {
                              coordinator: Coordinator? = nil) {
         guard let document = scroll.documentView else { return }
 
-        let tile = Self.tileSize
         let spacing = Self.spacing
         // The document remembers its flow, so a rebuild started by a tile
         // after a merge lays out the same way SwiftUI did.
         let sideways = (document as? FlippedView)?.sideways == true
+        let tile = Self.tileSize(sideways: sideways)
         let inset = Self.inset(sideways: sideways)
         let contentWidth = max(scroll.contentSize.width, 276)
         let columns = ShelfTileLayout.columnCount(contentWidth: contentWidth,
@@ -233,7 +238,8 @@ struct ShelfTilesView: NSViewRepresentable {
             let view = ShelfTileView(item: item,
                                      isSelected: selection.contains(item.id),
                                      isExpanded: expandedBatches.contains(item.id),
-                                     isPinned: pinnedIDs.contains(item.id))
+                                     isPinned: pinnedIDs.contains(item.id),
+                                     sideways: sideways)
             view.frame = frame(index)
             document.addSubview(view)
         }
@@ -334,6 +340,7 @@ final class ShelfTileView: NSView, NSDraggingSource {
     private let isSelected: Bool
     private let isExpanded: Bool
     private let isPinned: Bool
+    private let tileWidth: CGFloat
     private var mouseDownPoint: NSPoint = .zero
     private var didDrag = false
     private var draggedIDs: [UUID] = []
@@ -344,12 +351,13 @@ final class ShelfTileView: NSView, NSDraggingSource {
     private var expandButton: NSButton?
     private let sharePresenter = ShelfSharePresenter()
 
-    init(item: ShelfService.Item, isSelected: Bool, isExpanded: Bool, isPinned: Bool) {
+    init(item: ShelfService.Item, isSelected: Bool, isExpanded: Bool, isPinned: Bool, sideways: Bool = false) {
+        self.tileWidth = ShelfTilesView.tileSize(sideways: sideways).width
         self.item = item
         self.isSelected = isSelected
         self.isExpanded = isExpanded
         self.isPinned = isPinned
-        super.init(frame: NSRect(origin: .zero, size: ShelfTilesView.tileSize))
+        super.init(frame: NSRect(origin: .zero, size: NSSize(width: tileWidth, height: ShelfTilesView.tileSize.height)))
         wantsLayer = true
         layer?.cornerRadius = NotchDesign.Radius.card
         syncChrome()
@@ -382,20 +390,22 @@ final class ShelfTileView: NSView, NSDraggingSource {
 
     private func buildSubviews() {
 
-        let label = NSTextField(labelWithString: item.title)
-        label.font = .systemFont(ofSize: 10)
+        let label = NSTextField(wrappingLabelWithString: item.title)
+        label.font = NotchDesign.Typography.caption.nsFont
         label.alignment = .center
         label.lineBreakMode = .byCharWrapping
         label.maximumNumberOfLines = 2
         label.cell?.truncatesLastVisibleLine = true
-        label.textColor = .secondaryLabelColor
-        let labelWidth = ShelfTilesView.wellSize.width + 8
+        label.isSelectable = false
+        label.textColor = NSColor(NotchDesign.Ink.secondary)
+        label.setAccessibilityElement(false)
+        let labelWidth = tileWidth
         // A fixed two line box, so every tile in a row puts its well at the
         // same height and the group stays centred top to bottom.
         let labelHeight = ShelfTilesView.labelHeight
         let group = ShelfTilesView.wellSize.height + ShelfTilesView.wellToLabel + labelHeight
         let top = ((ShelfTilesView.tileSize.height - group) / 2).rounded()
-        let wellX = ((ShelfTilesView.tileSize.width - ShelfTilesView.wellSize.width) / 2).rounded()
+        let wellX = ((tileWidth - ShelfTilesView.wellSize.width) / 2).rounded()
 
         let wellFrame = NSRect(x: wellX, y: top, width: ShelfTilesView.wellSize.width, height: ShelfTilesView.wellSize.height)
         if item.isBatch { addStackBackplates(wellFrame: wellFrame) }
@@ -419,20 +429,24 @@ final class ShelfTileView: NSView, NSDraggingSource {
         if item.isBatch {
             let badge = NSTextField(labelWithString: "\(item.leafCount)")
             badge.frame = NSRect(x: iconWell.frame.maxX - 22, y: iconWell.frame.maxY - 15, width: 22, height: 15)
-            badge.font = .systemFont(ofSize: 9, weight: .bold)
+            badge.font = NotchDesign.Typography.caption.nsFont
             badge.alignment = .center
-            badge.textColor = .white
+            badge.textColor = NSColor(NotchDesign.Ink.onFill(NotchDesign.Palette.accent))
+            badge.setAccessibilityElement(false)
             badge.wantsLayer = true
-            badge.layer?.cornerRadius = 7.5
+            badge.layer?.cornerRadius = 7.5  // half of the 15 pt pill
             badge.layer?.backgroundColor = NSColor.controlAccentColor.cgColor
             addSubview(badge)
 
-            let expand = NSButton(frame: NSRect(x: 4, y: 4, width: 17, height: 17))
-            expand.image = NSImage(systemSymbolName: isExpanded ? "chevron.down.circle.fill" : "chevron.right.circle.fill",
-                                   accessibilityDescription: nil)
+            let s = L10n.shared.s
+            let expand = NSButton(frame: hitFrame(centerX: Self.glyphInset + Self.glyph / 2))
+            expand.image = Self.glyphImage(isExpanded ? "chevron.down.circle.fill" : "chevron.right.circle.fill",
+                                           label: isExpanded ? s.shelfCollapse : String(format: s.shelfTooltipItemsFormat, item.leafCount))
+            expand.setAccessibilityLabel(isExpanded ? s.shelfCollapse : String(format: s.shelfTooltipItemsFormat, item.leafCount))
             expand.isBordered = false
             expand.bezelStyle = .regularSquare
             expand.imagePosition = .imageOnly
+            expand.imageScaling = .scaleNone
             expand.contentTintColor = .secondaryLabelColor
             expand.target = self
             expand.action = #selector(toggleBatchExpansion)
@@ -440,7 +454,7 @@ final class ShelfTileView: NSView, NSDraggingSource {
             addSubview(expand)
         }
 
-        label.frame = NSRect(x: (ShelfTilesView.tileSize.width - labelWidth) / 2,
+        label.frame = NSRect(x: (tileWidth - labelWidth) / 2,
                              y: iconWell.frame.maxY + ShelfTilesView.wellToLabel,
                              width: labelWidth, height: labelHeight)
         addSubview(label)
@@ -449,29 +463,84 @@ final class ShelfTileView: NSView, NSDraggingSource {
             let badgeY: CGFloat = item.isBatch ? 22 : 4
             let badge = NSImageView(frame: NSRect(x: 4, y: badgeY, width: 16, height: 16))
             badge.image = NSImage(systemSymbolName: "checkmark.circle.fill", accessibilityDescription: nil)
+            badge.setAccessibilityElement(false)
             badge.contentTintColor = .controlAccentColor
             addSubview(badge)
         }
 
         // Shares the corner with the remove button, which takes over on hover.
         if isPinned {
-            let badge = NSImageView(frame: NSRect(x: ShelfTilesView.tileSize.width - 21, y: 4, width: 17, height: 17))
+            let badge = NSImageView(frame: NSRect(x: tileWidth - Self.glyphInset - Self.glyph, y: Self.glyphInset, width: Self.glyph, height: Self.glyph))
             badge.image = NSImage(systemSymbolName: "pin.circle.fill", accessibilityDescription: nil)
+            badge.setAccessibilityElement(false)
             badge.contentTintColor = .controlAccentColor
             pinBadge = badge
             addSubview(badge)
         }
 
-        closeButton = NSButton(frame: NSRect(x: ShelfTilesView.tileSize.width - 21, y: 4, width: 17, height: 17))
-        closeButton.image = NSImage(systemSymbolName: "xmark.circle.fill", accessibilityDescription: nil)
+        closeButton = NSButton(frame: hitFrame(centerX: tileWidth - Self.glyphInset - Self.glyph / 2))
+        closeButton.image = Self.glyphImage("xmark.circle.fill", label: L10n.shared.s.shelfRemoveSelected)
+        closeButton.setAccessibilityLabel(L10n.shared.s.shelfRemoveSelected)
         closeButton.isBordered = false
         closeButton.bezelStyle = .regularSquare
         closeButton.imagePosition = .imageOnly
+        closeButton.imageScaling = .scaleNone
         closeButton.contentTintColor = .secondaryLabelColor
         closeButton.target = self
         closeButton.action = #selector(removeSelf)
         closeButton.isHidden = true
         addSubview(closeButton)
+    }
+
+    /// The drawn glyph stays 17 pt; its button is NotchDesign.Control.minimumHit
+    /// square, centred where the glyph used to sit and clamped inside the tile.
+    private static let glyph: CGFloat = 17
+    private static let glyphInset: CGFloat = 4
+
+    private func hitFrame(centerX: CGFloat) -> NSRect {
+        let side = NotchDesign.Control.minimumHit
+        let x = min(max(0, centerX - side / 2), tileWidth - side)
+        return NSRect(x: x, y: Self.glyphInset + Self.glyph / 2 - side / 2, width: side, height: side)
+    }
+
+    private static func glyphImage(_ name: String, label: String) -> NSImage? {
+        NSImage(systemSymbolName: name, accessibilityDescription: label)?
+            .withSymbolConfiguration(.init(pointSize: glyph - 2, weight: .regular))
+    }
+
+    // MARK: Accessibility
+
+    override func isAccessibilityElement() -> Bool { true }
+    override func accessibilityRole() -> NSAccessibility.Role? { .button }
+    override func accessibilityLabel() -> String? { item.title }
+    override func accessibilityHelp() -> String? { Self.tooltipText(for: item) }
+    override func isAccessibilitySelected() -> Bool { isSelected }
+
+    override func accessibilityPerformPress() -> Bool {
+        ShelfService.shared.toggleSelection(item.id)
+        return true
+    }
+
+    override func accessibilityCustomActions() -> [NSAccessibilityCustomAction]? {
+        let s = L10n.shared.s
+        var actions: [NSAccessibilityCustomAction] = []
+        if !ShelfService.shared.fileURLsForActions(startingAt: item).isEmpty {
+            actions.append(NSAccessibilityCustomAction(name: s.shelfActionOpen) { [weak self] in
+                self?.openFiles(); return true
+            })
+        }
+        actions.append(NSAccessibilityCustomAction(name: isPinned ? s.shelfActionUnpin : s.shelfActionPin) { [weak self] in
+            self?.togglePin(); return true
+        })
+        if item.isBatch {
+            actions.append(NSAccessibilityCustomAction(name: isExpanded ? s.shelfCollapse : String(format: s.shelfTooltipItemsFormat, item.leafCount)) { [weak self] in
+                self?.toggleBatchExpansion(); return true
+            })
+        }
+        actions.append(NSAccessibilityCustomAction(name: s.shelfRemoveSelected) { [weak self] in
+            self?.removeSelf(); return true
+        })
+        return actions
     }
 
     private static func tooltipText(for item: ShelfService.Item) -> String {
