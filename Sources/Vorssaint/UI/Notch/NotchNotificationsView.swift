@@ -85,7 +85,7 @@ private struct NotchNotificationRow: View {
             HStack(spacing: NotchDesign.Spacing.xSmall) {
                 NotchNotificationAppIcon(app: item.content.app, size: 20)
                 Text(item.content.app.isEmpty ? text.title : item.content.app)
-                    .font(NotchDesign.Typography.title.font).foregroundStyle(NotchDesign.Ink.primary)
+                    .font(NotchDesign.Typography.caption.font).foregroundStyle(NotchDesign.Ink.secondary)
                     .lineLimit(1)
                 Spacer(minLength: NotchDesign.Spacing.xxSmall)
                 Text(item.received, format: .dateTime.hour().minute())
@@ -108,12 +108,16 @@ private struct NotchNotificationRow: View {
                 .disabled(service.openingID == item.id)
             }
             .frame(height: NotchDesign.Control.rowHeight)
+            // The 28 pt header row keeps its hit targets but its 4 pt of air above the 20 pt
+            // icon would make the top inset 16 against 12 on the sides; pull the row up so
+            // the icon sits cardPadding from the top and the two text lines centre on it.
+            .padding(.top, -(NotchDesign.Control.rowHeight - 20) / 2)
             Text(item.content.title).font(NotchDesign.Typography.title.font).foregroundStyle(NotchDesign.Ink.primary).lineLimit(2)
             if !item.content.subtitle.isEmpty {
                 Text(item.content.subtitle).font(NotchDesign.Typography.callout.font).foregroundStyle(NotchDesign.Ink.secondary).lineLimit(1)
             }
             if !item.content.body.isEmpty {
-                Text(item.content.body).font(NotchDesign.Typography.callout.font).foregroundStyle(NotchDesign.Ink.primary)
+                Text(item.content.body).font(NotchDesign.Typography.body.font).foregroundStyle(NotchDesign.Ink.primary)
                     .textSelection(.enabled)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             }
