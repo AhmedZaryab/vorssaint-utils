@@ -81,6 +81,8 @@ struct NotchCalendarViewSwitch: View {
     let week: () -> Void
     let month: () -> Void
     @Environment(\.colorSchemeContrast) private var contrast
+    /// Segmented choice: the chosen plate sits 2 pt inside the track (NOTCH-DESIGN 10).
+    private static let plateInset: CGFloat = 2
 
     var body: some View {
         HStack(spacing: 0) {
@@ -102,13 +104,16 @@ struct NotchCalendarViewSwitch: View {
             Image(systemName: symbol)
                 .font(NotchDesign.Icon.button.font)
                 .foregroundStyle(selected ? NotchDesign.Ink.primary : NotchDesign.Ink.secondary)
-                .frame(width: NotchDesign.Control.iconButton, height: NotchDesign.Control.iconButton)
+                .frame(width: NotchDesign.Control.iconButton - 2 * Self.plateInset,
+                       height: NotchDesign.Control.iconButton - 2 * Self.plateInset)
                 .background {
                     if selected {
-                        RoundedRectangle(cornerRadius: NotchDesign.Radius.control, style: .continuous)
+                        RoundedRectangle(cornerRadius: NotchDesign.Radius.concentric(NotchDesign.Radius.control, inset: Self.plateInset),
+                                         style: .continuous)
                             .fill(NotchDesign.Fill.selected)
                     }
                 }
+                .padding(Self.plateInset)
                 .contentShape(RoundedRectangle(cornerRadius: NotchDesign.Radius.control, style: .continuous))
         }
         .buttonStyle(NotchPressStyle(shape: .rounded(NotchDesign.Radius.control), lifts: false))

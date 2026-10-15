@@ -143,49 +143,83 @@ struct NotchTimerView: View {
         }
     }
 
+    /// Apple's Clock timer in the fixed canvas: the name and the countdown inside a ring that
+    /// drains, Cancel and Pause as equal round buttons under it, the group centred by the page.
     private var activeTimer: some View {
-        VStack(spacing: Design.Spacing.xxSmall) {
-            activeControls
-            if service.session.mode == .pomodoro {
-                Text(String(format: text.sessionProgress, service.session.sessionNumber, service.session.configuration.totalSessions))
-                    .font(Design.Typography.label.font).monospacedDigit()
-                    .foregroundStyle(Design.Ink.secondary)
+        let session = service.session
+        let extra: CGFloat = session.mode == .pomodoro ? 20 + Design.Spacing.xxSmall : 0
+        let room = size.height - roundSide - Design.Spacing.large - extra
+        let ring = min(NotchDesign.Timer.maxRing, max(NotchDesign.Timer.minRing, room))
+        return VStack(spacing: Design.Spacing.large) {
+            VStack(spacing: Design.Spacing.xxSmall) {
+                progressRing(diameter: ring)
+                if session.mode == .pomodoro {
+                    Text(String(format: text.sessionProgress, session.sessionNumber, session.configuration.totalSessions))
+                        .font(Design.Typography.label.font).monospacedDigit()
+                        .foregroundStyle(Design.Ink.secondary)
+                }
             }
+            activeControls.frame(width: ring)
         }
     }
 
-    /// Cancel on the left, the primary action beside it, the reading on the right.
-    /// Pause and resume is one commit on the accent plate whose glyph morphs.
+    /// Fraction of the ring still lit: what is left of a countdown, the current minute of a stopwatch.
+    private func remaining(at now: TimeInterval) -> Double {
+        let session = service.session
+        if session.completed { return 0 }
+        let value = session.reading(at: now)
+        if session.countsUp { return value.truncatingRemainder(dividingBy: 60) / 60 }
+        return session.duration > 0 ? min(1, max(0, value / session.duration)) : 0
+    }
+
+    @ViewBuilder private func progressRing(diameter: CGFloat) -> some View {
+        if service.session.isRunning {
+            TimelineView(.periodic(from: Date(timeIntervalSinceNow: NotchTimerSupport.tickScheduleOffset(
+                for: service.session, at: service.now)), by: 1)) { _ in ring(diameter) }
+        } else {
+            ring(diameter)
+        }
+    }
+
+    private func ring(_ diameter: CGFloat) -> some View {
+        let line = NotchDesign.Timer.ringLine
+        return ZStack {
+            Circle().stroke(Design.Fill.control, lineWidth: line)
+            Circle().trim(from: 0, to: remaining(at: service.now))
+                .stroke(Design.Palette.accent, style: StrokeStyle(lineWidth: line, lineCap: .round))
+                .rotationEffect(.degrees(-90))
+                .animation(reduceMotion ? nil : .linear(duration: 1), value: service.now)
+            reading
+                .padding(.horizontal, line + Design.Spacing.small)
+        }
+        .frame(width: diameter, height: diameter)
+        .padding(line / 2)
+    }
+
+    /// Cancel on the left, Pause or Resume on the right, one plate size.
     private var activeControls: some View {
         let session = service.session
-        return HStack(spacing: Design.Spacing.large) {
-            HStack(spacing: Design.Spacing.medium) {
-                if !session.completed {
-                    cancelButton
-                    // Pause and resume is one action that changes its name and glyph: a commit
-                    // that morphs, so VoiceOver reads the action ("Pause"), never a switch state.
-                    let title = session.isPaused ? text.resume : l10n.s.actionPause
-                    NotchCommitButton(title, symbol: session.isPaused ? "play.fill" : "pause.fill", kick: .morph,
-                                      size: roundSide, symbolSize: 20, launches: session.isPaused, action: service.pauseOrResume)
-                        .background(Design.Palette.accent, in: Circle())
-                } else {
-                    doneButton
-                    if session.canStartNext {
-                        NotchCommitButton(text.start + " " + text.phase(session.nextPhase), symbol: "play.fill",
-                                          kick: .up, size: roundSide, symbolSize: 20, filled: true,
-                                          tint: Design.Palette.accent) { service.startNext() }
-                    }
+        return HStack(spacing: Design.Spacing.medium) {
+            if !session.completed {
+                cancelButton
+                Spacer(minLength: 0)
+                // Pause and resume is one action that changes its name and glyph: a commit
+                // that morphs, so VoiceOver reads the action ("Pause"), never a switch state.
+                let title = session.isPaused ? text.resume : l10n.s.actionPause
+                NotchCommitButton(title, symbol: session.isPaused ? "play.fill" : "pause.fill", kick: .morph,
+                                  size: roundSide, symbolSize: 20, launches: session.isPaused, action: service.pauseOrResume)
+                    .background(Design.Palette.accent, in: Circle())
+            } else {
+                doneButton
+                Spacer(minLength: 0)
+                if session.canStartNext {
+                    NotchCommitButton(text.start + " " + text.phase(session.nextPhase), symbol: "play.fill",
+                                      kick: .up, size: roundSide, symbolSize: 20, filled: true,
+                                      tint: Design.Palette.accent) { service.startNext() }
                 }
             }
-            Spacer(minLength: 0)
-            if session.isRunning {
-                TimelineView(.periodic(from: Date(timeIntervalSinceNow: NotchTimerSupport.tickScheduleOffset(
-                    for: session, at: service.now)), by: 1)) { _ in reading }
-            } else {
-                reading
-            }
         }
-        .frame(height: 96)
+        .frame(height: roundSide)
     }
 
     private var roundSide: CGFloat { Design.Control.transport }
@@ -213,22 +247,20 @@ struct NotchTimerView: View {
         .help(l10n.s.supportIntroDoneButton)
     }
 
+    /// The name small above the countdown, both centred inside the ring.
     private var reading: some View {
         let value = NotchTimerSupport.clockText(for: service.session, at: service.now)
         let title = service.session.cycleFinished ? text.pomodoroFinished
             : service.session.completed ? text.finished : text.phase(service.session.phase)
         let countsDown = !service.session.countsUp
-        return ViewThatFits(in: .horizontal) {
-            HStack(alignment: .firstTextBaseline, spacing: Design.Spacing.small) {
-                Text(title).font(Design.Typography.title.font).foregroundStyle(Design.Ink.secondary)
-                clock(value).modifier(NotchRollingDigits(value: value, countsDown: countsDown))
-            }.fixedSize()
-            VStack(alignment: .trailing, spacing: Design.Spacing.line) {
-                Text(title).font(Design.Typography.label.font).foregroundStyle(Design.Ink.secondary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(max(0.7, Design.Typography.label.minimumScale))
-                clock(value).modifier(NotchRollingDigits(value: value, countsDown: countsDown))
-            }
+        return VStack(spacing: Design.Spacing.line) {
+            Text(title).font(Design.Typography.label.font).foregroundStyle(Design.Ink.secondary)
+                .lineLimit(1).minimumScaleFactor(0.7)
+            Text(value)
+                .font(NotchDesign.Timer.readout).monospacedDigit()
+                .foregroundStyle(Design.Ink.primary)
+                .lineLimit(1).minimumScaleFactor(0.5)
+                .modifier(NotchRollingDigits(value: value, countsDown: countsDown))
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(title)
@@ -321,5 +353,15 @@ struct NotchTimerView: View {
             .font(Design.Typography.display.font).monospacedDigit()
             .foregroundStyle(Design.Ink.primary)
             .lineLimit(1).minimumScaleFactor(0.5)
+    }
+}
+
+/// New page values for the running timer: the ring is a Clock-timer shape no shared token covers.
+extension NotchDesign {
+    enum Timer {
+        static let ringLine: CGFloat = 8
+        static let minRing: CGFloat = 112
+        static let maxRing: CGFloat = 200
+        static let readout = Font.system(size: 40, weight: .semibold, design: .rounded)
     }
 }
