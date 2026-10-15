@@ -18,7 +18,7 @@ struct NotchSongPeekBand: View {
     /// What the closed notch grows by while the peek shows.
     static var height: CGFloat { NotchDesign.Peek.bandHeight }
 
-    private var title: String { model.title.isEmpty ? "Unknown track" : model.title }
+    private var title: String { model.title.isEmpty ? SpotifyQueueStrings.current.unknownTrack : model.title }
     private var secondary: String { [upNext, model.artist].filter { !$0.isEmpty }.joined(separator: " · ") }
 
     var body: some View {
@@ -30,7 +30,7 @@ struct NotchSongPeekBand: View {
                 .accessibilityHidden(true)
         }
         .frame(height: Self.height)
-        .transition(.opacity.animation(reduceMotion ? nil : NotchDesign.Motion.fade))
+        .transition(.opacity.animation(NotchDesign.Motion.fade))
         .allowsHitTesting(false)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(upNext): \(model.title), \(model.artist)")
@@ -52,11 +52,13 @@ struct NotchSongPeekBand: View {
                     .transition(.opacity)
             }
         }
-        .animation(reduceMotion ? nil : NotchDesign.Motion.fade, value: model.artwork != nil)
+        .animation(NotchDesign.Motion.fade, value: model.artwork != nil)
         .frame(width: NotchDesign.Peek.artwork, height: NotchDesign.Peek.artwork)
         .clipShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: radius, style: .continuous)
-            .strokeBorder(NotchDesign.Stroke.artworkEdge, lineWidth: NotchDesign.Stroke.hairline))
+        .overlay {
+            RoundedRectangle(cornerRadius: radius, style: .continuous)
+                .strokeBorder(NotchDesign.Stroke.artworkEdge, lineWidth: NotchDesign.Stroke.hairline)
+        }
         .accessibilityHidden(true)
     }
 }

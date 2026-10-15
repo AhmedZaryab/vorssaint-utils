@@ -138,7 +138,7 @@ struct NotchMusicStrip: View {
                     .transition(.opacity)
             }
         }
-        .animation(reduceMotion ? nil : NotchDesign.Motion.fade, value: showsControl)
+        .animation(NotchDesign.Motion.fade, value: showsControl)
     }
 
     /// The song as the pointer asked for it: the title over the artist,
