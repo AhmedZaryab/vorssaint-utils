@@ -186,7 +186,7 @@ enum NotchDesign {
         /** Artwork's edge, so a dark cover stays apart from the island. */ static let artworkEdge = Color.white.opacity(0.12)
         /** Increase Contrast: every plate and card gets this 1 pt edge. */ static let increasedContrast = Color.white.opacity(0.5)
         /** Width of the Increase Contrast edge. */ static let increasedContrastWidth: CGFloat = 1
-        /** The library's keyboard focus ring: the system's own focus colour. NotchSectionsView draws the same ring from its own extension; the two merge when that file moves to the tokens. */ static let keyboardFocus = Color(nsColor: .keyboardFocusIndicatorColor)
+        /** The library's keyboard focus ring: the system focus colour; gallery tiles, clipboard cards and controls all read it. */ static let keyboardFocus = Color(nsColor: .keyboardFocusIndicatorColor)
         /** Width of the library's focus ring, the same 2 pt NotchSectionsView uses. */ static let keyboardFocusWidth: CGFloat = 2
         /** Gap between a control's edge and its focus ring. */ static let focusRingGap: CGFloat = 2.5
         /** Drop targets only. */ static let dropTarget = StrokeStyle(lineWidth: 1, dash: [5, 4])
