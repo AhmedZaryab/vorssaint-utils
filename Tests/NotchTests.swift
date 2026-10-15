@@ -307,9 +307,12 @@ enum NotchTests {
             result.headerTitleWidth = NotchLayout.headerTitleWidth(module.title(.enUS), button: false)
             return result
         }
-        suite.expect(titled(.camera).headerCameraGap == 0 && titled(.camera).headerTopInset == reported.safeContentTop
+        let reportedSide = (reported.contentWidth - reported.cameraWidth) / 2
+        let cameraFits = NotchLayout.headerTitleWidth(NotchModule.camera.title(.enUS), button: false) <= reportedSide
+        suite.expect((titled(.camera).headerCameraGap == 208) == cameraFits
+                     && titled(.camera).headerTopInset == (cameraFits ? 0 : reported.safeContentTop)
                      && titled(.controls).headerCameraGap == 208 && titled(.controls).headerTopInset == 0,
-                     "Camera mirror takes the row below a 208-point camera in the compact preset while Controls stays beside it")
+                     "beside a 208-point camera in the compact preset a title stays only where it fits whole, as Controls does")
         for silhouette in NotchSilhouette.allCases {
             let plain = NotchGeometry(screen: screen, safeAreaTop: 0, cameraWidth: 0, silhouette: silhouette)
             var titled = plain
@@ -516,7 +519,7 @@ enum NotchTests {
                            && geometry.cameraHeight == physical.cameraHeight
                            && geometry.safeContentTop == physical.safeContentTop,
                            "a simulated notch keeps the physical profile and content clearance without claiming hardware exists")
-                    suite.expect(geometry.restingSize(showsContent: false) == physical.restingSize(showsContent: false)
+                    suite.expect(geometry.restingSize(showsContent: false) == physical.bareCamera
                            && geometry.notice == physical.notice && geometry.expanded.width == physical.expanded.width
                            && geometry.contentSize(for: geometry.expanded) == physical.contentSize(for: physical.expanded),
                            "simulated and physical cutouts share compact proportions and the same usable page budget")
@@ -633,8 +636,12 @@ enum NotchTests {
             for barHeight: CGFloat in [24, 32, 33, 37, 38, 40, 64] {
                 let geometry = NotchGeometry(screen: screen, safeAreaTop: safeTop, cameraWidth: 179,
                                              menuBarHeight: barHeight, compactSideRoom: 100)
-                let strips = [geometry.restingSize(showsContent: false), geometry.restingSize(showsContent: true),
-                              geometry.collapsed, geometry.bareCutout, geometry.notice,
+                let bare = geometry.restingSize(showsContent: false)
+                suite.expect(bare.height == safeTop && geometry.bareCutout == bare
+                       && bare.width == 179 + NotchLayout.shoulder(height: safeTop) * 2,
+                       "the bare island is the housing's outline, its shoulders outside the camera, never the bar below it")
+                let strips = [geometry.restingSize(showsContent: true),
+                              geometry.collapsed, geometry.notice,
                               geometry.noticeSize(wingWidth: 190), geometry.compactMusicGeometry.compactActivitySize,
                               geometry.compactTimerGeometry(showsDownloads: true).compactActivitySize]
                 for size in strips {
@@ -685,12 +692,14 @@ enum NotchTests {
                "without a fit the island covers the housing and reaches the measured menu bar's bottom")
         suite.expect(fitted.cameraWidth == 181 && fitted.cameraHeight == 33.5,
                "a fit widens and lengthens the island after matching the menu bar")
-        let strips = [fitted.restingSize(showsContent: false), fitted.restingSize(showsContent: true), fitted.collapsed,
+        suite.expect(fitted.restingSize(showsContent: false).height == 32.5 && fitted.cutoutHeight == 32.5,
+               "the bare island follows the fitted housing, not the bar below it")
+        let strips = [fitted.restingSize(showsContent: true), fitted.collapsed,
                       fitted.notice, fitted.noticeSize(wingWidth: 190), fitted.compactMusicGeometry.compactActivitySize,
                       fitted.compactTimerGeometry(showsDownloads: true).compactActivitySize]
         suite.expect(strips.allSatisfy { $0.height == 33.5 && $0.height == fitted.stripHeight },
                "every strip beside the camera, the volume and brightness notice included, follows the fitted height")
-        suite.expect(fitted.restingSize(showsContent: false).width == 181
+        suite.expect(fitted.restingSize(showsContent: false).width == 181 + NotchLayout.shoulder(height: 32.5) * 2
                && fitted.noticeCameraGap == 181 && fitted.musicCameraGap == 181,
                "the closed island and the gap between wings follow the fitted width")
         suite.expect(fitted.notice.width == reported.notice.width + 2
@@ -751,7 +760,8 @@ enum NotchTests {
         let outlined = NotchGeometry(screen: screen, safeAreaTop: 32, cameraWidth: 179,
                                      menuBarHeight: 33, compactSideRoom: 100, outline: true)
         suite.expect(bare.outlineRoom == 0 && outlined.outlineRoom == room
-               && outlined.restingSize(showsContent: false) == CGSize(width: 179 + room * 2, height: 33 + room),
+               && outlined.restingSize(showsContent: false)
+                   == CGSize(width: 179 + room * 2 + NotchLayout.shoulder(height: 32 + room) * 2, height: 32 + room),
                "an outlined island reaches past the camera by the line's width, so the line shows around the notch")
         suite.expect([outlined.restingSize(showsContent: true), outlined.notice,
                       outlined.compactMusicGeometry.compactActivitySize].allSatisfy { $0.height == 33 + room },
@@ -1334,7 +1344,7 @@ enum NotchTests {
         let idleGeometry = NotchGeometry(screen: CGRect(x: 0, y: 0, width: 1470, height: 956),
                                         safeAreaTop: 32, cameraWidth: 180, compactSideRoom: 100)
         suite.expect(idleGeometry.restingSize(showsContent: NotchSupport.visibleIdleContent(isPlaying: false, in: defaults) != .none)
-               == CGSize(width: 180, height: 32),
+               == CGSize(width: 180 + NotchLayout.shoulder(height: 32) * 2, height: 32),
                "stopped idle music shrinks to the physical camera without reserving empty side space")
         defaults.set(NotchIdleContent.none.rawValue, forKey: DefaultsKey.notchIdleContent)
         defaults.set(true, forKey: DefaultsKey.notchShowPlayingMusic)
@@ -1949,7 +1959,8 @@ enum NotchTests {
                            + NotchLayout.musicControlsRowHeight + NotchLayout.rowSpacing,
                        "compact music is one artwork-high player row over its volume controls")
                 let quiet = geometry.restingSize(showsContent: false)
-                suite.expect(quiet.width == geometry.cameraWidth && quiet.height <= geometry.menuBarHeight,
+                let shoulders = geometry.isNotched ? NotchLayout.shoulder(height: quiet.height) * 2 : 0
+                suite.expect(quiet.width == geometry.cameraWidth + shoulders && quiet.height <= geometry.menuBarHeight,
                        "empty idle does not reserve wings or a footer for unsolicited widgets")
                 suite.expect(geometry.contentSize(for: geometry.expanded).height
                        == geometry.expanded.height - geometry.headerTopInset - geometry.headerRowHeight
@@ -2122,9 +2133,9 @@ enum NotchTests {
                "a long travel keeps its stretch within the room kept around the island")
         let drop = NotchMotion.frames(from: roomy.collapsed, to: roomy.expanded)
         let early = drop.sizes[drop.sizes.count / 8]
-        suite.expect((early.height - roomy.collapsed.height) / (roomy.expanded.height - roomy.collapsed.height)
-               > (early.width - roomy.collapsed.width) / (roomy.expanded.width - roomy.collapsed.width),
-               "an opening island drops a little ahead of widening")
+        suite.expect(abs((early.height - roomy.collapsed.height) / (roomy.expanded.height - roomy.collapsed.height)
+               - (early.width - roomy.collapsed.width) / (roomy.expanded.width - roomy.collapsed.width)) < 0.001,
+               "an opening island rides one spring, so its aspect changes along a straight line")
         let arrival = NotchMotion.arrivalTime(from: roomy.collapsed, to: roomy.expanded)
         let arrived = NotchMotion.size(at: arrival, from: roomy.collapsed, to: roomy.expanded)
         suite.expect(arrival > 0 && arrival < drop.duration

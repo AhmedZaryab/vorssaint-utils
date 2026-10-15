@@ -5,6 +5,7 @@ import AppKit
 import Combine
 import Foundation
 import CoreGraphics
+import SwiftUI
 
 enum NotchModule: String, CaseIterable, Identifiable {
     case controls, mixer, music, clipboard, captures, files, tools, calendar, notifications, timer, camera, downloads, scratchpad, agents, watch
@@ -181,13 +182,34 @@ struct NotchCapsuleFit: Equatable {
 /// Shared measurements keep the window's content budget and its SwiftUI
 /// layout in agreement, including small screens and custom sizes.
 enum NotchLayout {
-    static let shoulder: CGFloat = 14
-    static let horizontalInset: CGFloat = 28
+    // MARK: Silhouette, measured on the hardware
+    // The 14 inch MacBook Pro's housing, read from NSScreen's bezel path:
+    // 184.97 by 32.07 pt, shoulders 6.81 pt drawn as one cubic with handles
+    // 0.776 of their extent, bottom corners a continuous curve of radius
+    // 10.3 pt. As shares of the height they hold in every display mode.
+    // docs/design/notch-geometry.md has the measurements.
+
+    /// The shoulder, where the island meets the screen's top edge, as a share
+    /// of the island's height until it reaches `shoulder`.
+    static let shoulderRatio: CGFloat = NotchDesign.Geometry.shoulderRatio
+    /// The shoulder's Bezier handles as a share of its extent, as the cutout draws them.
+    static let shoulderHandle: CGFloat = NotchDesign.Geometry.shoulderHandle
+    /// The bottom corners' continuous radius as a share of the height until it
+    /// reaches `panelCornerRadius`.
+    static let cornerRatio: CGFloat = NotchDesign.Geometry.closedCornerRatio
+    /// The open island's bottom corners, and the cap for an island of any height.
+    static let panelCornerRadius: CGFloat = NotchDesign.Geometry.panelCornerRadius
+    /// The open island's shoulder, and the cap for an island of any height.
+    static let shoulder: CGFloat = NotchDesign.Geometry.shoulderRadius
+    /// The body margin on the sides and at the bottom of the open island.
+    static let margin: CGFloat = NotchDesign.Geometry.margin
+    /// Page content starts past the shoulder and the margin.
+    static let horizontalInset: CGFloat = shoulder + margin
     static let headerHeight: CGFloat = 36
     /// The open header's title, and a detail's beside its back button. The
     /// island is laid out from their widths and the header draws them.
-    static let headerTitleFont = NSFont.systemFont(ofSize: 16, weight: .semibold)
-    static let detailTitleFont = NSFont.systemFont(ofSize: 15, weight: .semibold)
+    static let headerTitleFont = NotchDesign.Typography.pageTitle.nsFont
+    static let detailTitleFont = NotchDesign.Typography.pageTitle.nsFont
     /// The island reads its geometry many times on every layout, so each
     /// title is measured once per font.
     private static var measuredHeaderTitles: [String: CGFloat] = [:]
@@ -200,8 +222,8 @@ enum NotchLayout {
         return width + (button ? 28 + 6 : 0)
     }
     static let navigationHeight: CGFloat = 36
-    static let spacing: CGFloat = 12
-    static let bottomInset: CGFloat = 16
+    static let spacing: CGFloat = NotchDesign.Spacing.section
+    static let bottomInset: CGFloat = margin
     static var chromeHeight: CGFloat { headerHeight + spacing + bottomInset }
     /// The island stays a wide strip: pages scroll within the preset's budget.
     static let compactContentHeight: CGFloat = 180
@@ -220,7 +242,8 @@ enum NotchLayout {
     static let toolSpacing: CGFloat = 6
     /// Three rows fit the gallery's page; two still fill a compact strip.
     static let sectionTileHeight: CGFloat = 86
-    static let sectionTileWidth: CGFloat = 92
+    /// Five fit a spacious island's row beside the indicator, four a compact one's.
+    static let sectionTileWidth: CGFloat = 91
     static let sectionSpacing: CGFloat = 8
     /// The gallery's row indicator beside the tiles, with its gap.
     static let sectionIndicatorWidth: CGFloat = 12
@@ -268,10 +291,63 @@ enum NotchLayout {
     }
     /// Corners of a surface of this height. A strip as tall as the camera
     /// keeps the cutout's own corners, so the closed island and the last
-    /// frames of a collapse sit inside the notch instead of outlining a
+    /// frames of a collapse are the notch's own outline instead of a
     /// rounder one; the open island reaches the full radius and shoulder.
-    static func surfaceRadius(height: CGFloat) -> CGFloat { min(28, height * 0.34) }
-    static func shoulder(height: CGFloat) -> CGFloat { min(shoulder, height * 0.19) }
+    static func surfaceRadius(height: CGFloat) -> CGFloat { min(panelCornerRadius, max(0, height) * cornerRatio) }
+    static func shoulder(height: CGFloat) -> CGFloat { min(shoulder, max(0, height) * shoulderRatio) }
+
+    /// How far a continuous corner of radius 1 reaches along each edge, and
+    /// its control points, as SwiftUI's `.continuous` style and the cutout draw it.
+    private static let continuousReach: CGFloat = 1.528_665
+    private static let continuousCorner: [(end: CGPoint, control1: CGPoint, control2: CGPoint)] = [
+        (CGPoint(x: 0.074_911, y: 0.631_494), CGPoint(x: 0, y: 1.088_493), CGPoint(x: 0, y: 0.868_407)),
+        (CGPoint(x: 0.631_494, y: 0.074_911), CGPoint(x: 0.169_060, y: 0.372_824), CGPoint(x: 0.372_824, y: 0.169_060)),
+        (CGPoint(x: 1.528_665, y: 0), CGPoint(x: 0.868_407, y: 0), CGPoint(x: 1.088_493, y: 0)),
+    ]
+
+    /// The hanging island's outline in `rect`, top edge at the screen's: the
+    /// shoulders flare out to the full width at the top, the body hangs
+    /// between them, and its bottom corners are continuous. Every size, down
+    /// to a line, has the same elements, so any two frames of a resize blend.
+    static func islandPath(in rect: CGRect, radius: CGFloat) -> CGPath {
+        let width = max(0, rect.width), height = max(0, rect.height)
+        let side = min(shoulder(height: height), width / 2)
+        // A corner reaches 1.53 times its radius along each edge; a short or
+        // narrow body takes a smaller corner rather than a broken one.
+        let room = min(max(0, height - side), max(0, width - side * 2) / 2)
+        let corner = min(max(0, radius), room / continuousReach)
+        let k = shoulderHandle
+        let (left, top) = (rect.minX, rect.minY)
+        func point(_ x: CGFloat, _ y: CGFloat) -> CGPoint { CGPoint(x: left + x, y: top + y) }
+        let path = CGMutablePath()
+        path.move(to: point(0, 0))
+        path.addLine(to: point(width, 0))
+        // Right shoulder, concave, from the top edge down onto the body.
+        path.addCurve(to: point(width - side, side), control1: point(width - side * k, 0),
+                      control2: point(width - side, side * (1 - k)))
+        path.addLine(to: point(width - side, height - corner * continuousReach))
+        // Bottom right: offsets measured from the corner, along the body's
+        // edge and then along the bottom.
+        let right = width - side
+        for segment in continuousCorner {
+            path.addCurve(to: point(right - segment.end.x * corner, height - segment.end.y * corner),
+                          control1: point(right - segment.control1.x * corner, height - segment.control1.y * corner),
+                          control2: point(right - segment.control2.x * corner, height - segment.control2.y * corner))
+        }
+        path.addLine(to: point(side + corner * continuousReach, height))
+        // Bottom left, the mirror image, walked from the bottom edge up.
+        for index in continuousCorner.indices.reversed() {
+            let end = index > 0 ? continuousCorner[index - 1].end : CGPoint(x: 0, y: continuousReach)
+            let c = continuousCorner[index]
+            path.addCurve(to: point(side + end.x * corner, height - end.y * corner),
+                          control1: point(side + c.control2.x * corner, height - c.control2.y * corner),
+                          control2: point(side + c.control1.x * corner, height - c.control1.y * corner))
+        }
+        path.addLine(to: point(side, side))
+        path.addCurve(to: point(0, 0), control1: point(side, side * (1 - k)), control2: point(side * k, 0))
+        path.closeSubpath()
+        return path
+    }
     /// The optional outline's stroke. Only its inner half, inside the island, shows.
     static let outlineWidth: CGFloat = 2
 
@@ -1886,6 +1962,9 @@ struct NotchGeometry: Equatable {
     /// The island's camera region, including optional menu-bar coverage,
     /// manual fit and outline clearance, rather than just the hardware inset.
     let cameraHeight: CGFloat
+    /// The housing itself, with the manual fit and outline clearance but
+    /// never the menu bar below it: what the bare island covers at rest.
+    let cutoutHeight: CGFloat
     let isNotched: Bool
     let layout: NotchSize
     let customWidth: CGFloat
@@ -1955,8 +2034,10 @@ struct NotchGeometry: Equatable {
             // Optionally cover its full height before applying a manual fit.
             let baseHeight = hideMenuBarGap ? max(safeAreaTop, barHeight) : safeAreaTop
             cameraHeight = min(max(0, baseHeight + fit.height + room), 64)
+            cutoutHeight = min(max(0, safeAreaTop + fit.height + room), cameraHeight)
         } else {
             cameraHeight = stripHeight
+            cutoutHeight = stripHeight
         }
         self.menuBarHeight = max(cameraHeight, barHeight)
         self.compactSideRoom = compactSideRoom
@@ -2004,8 +2085,10 @@ struct NotchGeometry: Equatable {
             return CGRect(x: (size.width - headerCameraGap) / 2, y: 0,
                           width: headerCameraGap, height: min(cameraHeight, size.height))
         }
-        // A capsule has no camera to toggle from: all of it opens the island.
-        let width = compactActivity && !floats ? cameraWidth : size.width
+        // A capsule has no camera to toggle from: all of it opens the island,
+        // and so does a bare cutout, shoulders included, with no wings beside it.
+        let wings = size.width > restingSize(showsContent: false).width + 0.5
+        let width = compactActivity && !floats && wings ? cameraWidth : size.width
         let height = hasHeader ? min(safeContentTop, size.height)
             : compactActivity && compactActivityUsesFooter ? compactActivityTopPadding : size.height
         return CGRect(x: (size.width - width) / 2, y: 0, width: width, height: height)
@@ -2023,6 +2106,13 @@ struct NotchGeometry: Equatable {
         // Bare, a capsule is shorter than the gap between an activity's
         // wings, closer to the phone's proportions, and on whole points,
         // as the window around it is.
+        // A physical camera's bare island is the housing's own outline: the
+        // body as wide as the camera, its shoulders outside it, as tall as
+        // the cutout and never the bar below it, so at rest it shows no lip
+        // and every frame that grows from it contains the whole housing.
+        if isNotched {
+            return CGSize(width: cameraWidth + NotchLayout.shoulder(height: cutoutHeight) * 2, height: cutoutHeight)
+        }
         guard floats else { return CGSize(width: cameraWidth, height: cameraHeight) }
         let shoulders = NotchLayout.shoulder(height: stripHeight) * 2
         let capsule = max(NotchLayout.capsuleRestingAspect * stripBodyHeight + capsuleWidthFit, stripBodyHeight * 2)
@@ -2030,9 +2120,17 @@ struct NotchGeometry: Equatable {
     }
     /// Full screen and the Lock Screen remove outline clearance while keeping
     /// the chosen menu-bar coverage and manual fit.
+    /// Beside a physical camera that is the housing's own outline.
     var bareCutout: CGSize {
-        let resting = restingSize(showsContent: false)
-        return CGSize(width: max(0, resting.width - outlineRoom * 2), height: max(0, resting.height - outlineRoom))
+        guard isNotched else { return restingSize(showsContent: false) }
+        let height = max(0, cutoutHeight - outlineRoom)
+        return CGSize(width: max(0, cameraWidth - outlineRoom * 2) + NotchLayout.shoulder(height: height) * 2,
+                      height: height)
+    }
+    /// The camera the Lock Screen's island is measured around: the housing's
+    /// body without outline clearance, at the strip's height.
+    var bareCamera: CGSize {
+        CGSize(width: max(0, cameraWidth - outlineRoom * 2), height: max(0, cameraHeight - outlineRoom))
     }
     /// Music remains one row high, with the physical camera between its wings.
     /// Insufficient menu space hides the wings instead of growing below the camera.
@@ -2255,6 +2353,23 @@ struct NotchGeometry: Equatable {
         let height = safeContentTop + max(0, contentHeight) + NotchLayout.bottomInset
         return CGSize(width: notificationPreviewWidth, height: min(height, screen.height - 48))
     }
+    /// The compact peek's wings beside the camera: the narrowest keeps its
+    /// curved end and some air, the widest is as far as a peek may reach.
+    static let compactPeekWing: ClosedRange<CGFloat> = NotchDesign.Peek.wingMinimum...NotchDesign.Peek.wingMaximum
+    /// The band a tall peek grows below the strip.
+    static let tallPeekBand: CGFloat = NotchDesign.Peek.bandHeight
+    /// How wide a tall peek's band may be, whatever its text.
+    static let tallPeekWidth: ClosedRange<CGFloat> = NotchDesign.Peek.bandMinimumWidth...NotchDesign.Peek.bandMaximumWidth
+    /// A tall peek: the strip as it rests, with a band below it as wide as
+    /// the resting island, within its range and short of the display's edge.
+    var tallPeek: CGSize {
+        let range = Self.tallPeekWidth
+        let width = min(range.upperBound, max(range.lowerBound, collapsed.width), screen.width - 24)
+        return CGSize(width: max(cameraWidth, width), height: stripHeight + Self.tallPeekBand)
+    }
+    /// The open island's one canvas for its pages: the preset's width and
+    /// its whole content budget, or the custom size, under the header.
+    var pageCanvas: CGSize { expandedSize(module: .calendar) }
     var peek: CGSize {
         CGSize(width: min(screen.width - 24, max(cameraWidth + 110, 340)), height: safeContentTop + 52)
     }
@@ -2395,6 +2510,82 @@ struct NotchGeometry: Equatable {
     }
 }
 
+/// The canvas the island presents, as every page, strip and peek reads it:
+/// `@Environment(\.notchCanvas) private var canvas`. NotchWindowHost
+/// publishes it with each presentation, already at the size a transition is
+/// heading to; docs/design/notch-geometry.md is the contract.
+struct NotchCanvas: Equatable {
+    /// The surface the island presents or is heading to.
+    var size: CGSize
+    /// The camera housing's body, the width the island never draws over in a
+    /// strip, and the cutout's height.
+    var camera: CGSize
+    /// One row beside the camera: the closed strip and the compact peek.
+    var stripHeight: CGFloat
+    /// Room left and right of the camera at `size`, shoulders included.
+    var leadingWing: CGFloat
+    var trailingWing: CGFloat
+    /// The silhouette's shoulder and its continuous bottom radius at `size`.
+    var shoulder: CGFloat
+    var cornerRadius: CGFloat
+    /// The open island's body margin on the sides and at the bottom.
+    var margin: CGFloat
+    /// The compact peek's wing, narrowest to widest.
+    var compactWing: ClosedRange<CGFloat>
+    /// The tall peek's band below the strip, and its whole surface.
+    var tallPeekBand: CGFloat
+    var tallPeek: CGSize
+    /// The open island's fixed canvas for pages, and the area a page draws in.
+    var page: CGSize
+    var pageContent: CGSize
+    /// From the island's edges to a page's content: the header's chrome on
+    /// top, the shoulder and margin at the sides, the margin at the bottom.
+    var contentInsets: EdgeInsets
+
+    init(geometry: NotchGeometry, size: CGSize) {
+        self.size = size
+        camera = CGSize(width: geometry.cameraWidth, height: geometry.cutoutHeight)
+        stripHeight = geometry.stripHeight
+        let half = size.width / 2 - geometry.cameraWidth / 2
+        leadingWing = max(0, half - geometry.surfaceShift)
+        trailingWing = max(0, half + geometry.surfaceShift)
+        shoulder = NotchLayout.shoulder(height: size.height)
+        cornerRadius = NotchLayout.surfaceRadius(height: size.height)
+        margin = NotchLayout.margin
+        compactWing = NotchGeometry.compactPeekWing
+        tallPeekBand = NotchGeometry.tallPeekBand
+        tallPeek = geometry.tallPeek
+        page = geometry.pageCanvas
+        pageContent = geometry.contentSize(for: page)
+        contentInsets = EdgeInsets(top: geometry.headerTopInset + geometry.headerRowHeight + NotchLayout.spacing,
+                                   leading: NotchLayout.horizontalInset, bottom: NotchLayout.bottomInset,
+                                   trailing: NotchLayout.horizontalInset)
+    }
+
+    /// The radius of a plate inset `inset` inside the island's bottom
+    /// corner, so the two curves run parallel.
+    func concentricRadius(inset: CGFloat) -> CGFloat { max(0, cornerRadius - max(0, inset)) }
+
+    /// A 14 inch MacBook Pro's closed island, for views drawn outside the island.
+    static let standard: NotchCanvas = {
+        let geometry = NotchGeometry(screen: CGRect(x: 0, y: 0, width: 1512, height: 982), safeAreaTop: 32,
+                                     cameraWidth: 185, menuBarHeight: 33, hideMenuBarGap: false)
+        return NotchCanvas(geometry: geometry, size: geometry.restingSize(showsContent: false))
+    }()
+}
+
+private struct NotchCanvasKey: EnvironmentKey {
+    static let defaultValue = NotchCanvas.standard
+}
+
+extension EnvironmentValues {
+    /// The island's canvas; see NotchCanvas.
+    var notchCanvas: NotchCanvas {
+        get { self[NotchCanvasKey.self] }
+        set { self[NotchCanvasKey.self] = newValue }
+    }
+}
+
 struct NotchSessionState {
     var locked = false
     var sleeping = false
@@ -2415,12 +2606,14 @@ struct NotchSessionState {
 /// Reserve enough backing space for both ends. The visible silhouette moves
 /// inside it; the native window only shrinks after the transition finishes.
 ///
-/// Each side follows its own spring, as the phone's island does. Growing, the
-/// island drops a little ahead of widening and passes its size before it
-/// settles; shrinking, it pulls up ahead of narrowing and never passes its
-/// target, which for a resting island is the camera it hugs.
+/// Both sides ride one spring, as the phone's island does, so the island's
+/// aspect changes along a straight line from where it is to where it goes.
+/// Growing, it passes its size by a few points before it settles; a side
+/// that shrinks never passes its target, which for a resting island is the
+/// housing it hugs. A new target starts from the size on screen and keeps
+/// the speed each side already had, so a reversal turns instead of stopping.
 enum NotchMotion {
-    /// Departing content has faded out by 0.16 s; the view then swaps it for
+    /// Departing content has faded out by 0.12 s; the view then swaps it for
     /// the next content, which fades in once the swap is on screen.
     static let departureHidden: TimeInterval = 0.2
 
@@ -2429,21 +2622,28 @@ enum NotchMotion {
         var duration: TimeInterval
         var bounce: Double
 
+        private var natural: Double { 2 * Double.pi / duration }
+        private var damping: Double { 1 - bounce }
+
         /// Progress from rest at 0 toward 1.
         func progress(at time: TimeInterval) -> Double {
-            guard time > 0 else { return 0 }
-            let natural = 2 * Double.pi / duration
-            let damping = 1 - bounce
-            if damping >= 1 { return 1 - exp(-natural * time) * (1 + natural * time) }
-            let damped = natural * (1 - damping * damping).squareRoot()
-            return 1 - exp(-damping * natural * time)
-                * (cos(damped * time) + damping * natural / damped * sin(damped * time))
+            value(at: time, from: 0, to: 1, velocity: 0)
         }
 
-        /// How far past the target the spring swings, as a share of its travel.
+        /// The position at `time` of a spring released at `from` with
+        /// `velocity` (points per second), heading for `to`.
+        func value(at time: TimeInterval, from: Double, to: Double, velocity: Double) -> Double {
+            guard time > 0 else { return from }
+            let natural = natural, damping = damping, offset = from - to
+            if damping >= 1 { return to + exp(-natural * time) * (offset + (velocity + natural * offset) * time) }
+            let damped = natural * (1 - damping * damping).squareRoot()
+            return to + exp(-damping * natural * time)
+                * (offset * cos(damped * time) + (velocity + damping * natural * offset) / damped * sin(damped * time))
+        }
+
+        /// How far past the target the spring swings from rest, as a share of its travel.
         var overshoot: Double {
             guard bounce > 0 else { return 0 }
-            let damping = 1 - bounce
             return exp(-Double.pi * damping / (1 - damping * damping).squareRoot())
         }
 
@@ -2453,70 +2653,115 @@ enum NotchMotion {
             let share = log(Double(max(limit, 0.01) / travel))
             return Spring(duration: duration, bounce: 1 + share / (Double.pi * Double.pi + share * share).squareRoot())
         }
+
+        /// The fastest a side may already head for its target and still
+        /// settle without passing it, on a spring that does not bounce.
+        func arrivingSpeedLimit(travel: CGFloat) -> CGFloat { CGFloat(natural) * abs(travel) }
     }
 
-    static let growingWidth = Spring(duration: 0.44, bounce: 0.25)
-    static let growingHeight = Spring(duration: 0.38, bounce: 0.22)
-    static let shrinkingWidth = Spring(duration: 0.30, bounce: 0)
-    static let shrinkingHeight = Spring(duration: 0.26, bounce: 0)
+    /// Geometry.growSpring: response 0.40 s, damping 0.85.
+    static let growing = Spring(duration: NotchDesign.Geometry.growSpring.response,
+                                bounce: NotchDesign.Geometry.growSpring.bounce)
+    /// Geometry.shrinkSpring: response 0.30 s, no bounce.
+    static let shrinking = Spring(duration: NotchDesign.Geometry.shrinkSpring.response,
+                                  bounce: NotchDesign.Geometry.shrinkSpring.bounce)
     /// A strip that stays on screen and only fits a new reading, as a level
     /// passing 99% or 9%, eases to its width without a swing, either way.
     static let steadyWidth = Spring(duration: 0.5, bounce: 0)
     /// The farthest a side may pass its target. The display always keeps at
     /// least this much free around the island and its floating controls.
-    static let overshootLimit: CGFloat = 12
+    static let overshootLimit: CGFloat = NotchDesign.Geometry.overshootLimit
     /// Sides closer than this to their targets read as settled.
     static let settledDistance: CGFloat = 0.5
 
-    static func spring(from: CGFloat, to: CGFloat, width: Bool, steady: Bool = false) -> Spring {
-        if steady && width { return steadyWidth }
-        let spring = to > from ? (width ? growingWidth : growingHeight) : (width ? shrinkingWidth : shrinkingHeight)
-        return spring.limited(travel: abs(to - from), limit: overshootLimit)
+    /// The one spring a resize rides: growing when either side grows, with
+    /// no more bounce than keeps the longer travel within the limit.
+    static func spring(from: CGSize, to: CGSize) -> Spring {
+        let grows = to.width > from.width || to.height > from.height
+        guard grows else { return shrinking }
+        let travel = max(max(0, to.width - from.width), max(0, to.height - from.height))
+        return growing.limited(travel: travel, limit: overshootLimit)
+    }
+
+    static func spring(from: CGSize, to: CGSize, width: Bool, steady: Bool) -> Spring {
+        steady && width ? steadyWidth : spring(from: from, to: to)
     }
 
     /// The spring carrying the island's sides, for controls that ride along them.
-    static func sideSpring(from: CGSize, to: CGSize) -> Spring {
-        from.width != to.width ? spring(from: from.width, to: to.width, width: true)
-            : spring(from: from.height, to: to.height, width: false)
-    }
+    static func sideSpring(from: CGSize, to: CGSize) -> Spring { spring(from: from, to: to) }
 
-    /// The perceptual duration of the slower side that moves.
+    /// The perceptual duration of the spring that moves the island.
     static func duration(from: CGSize, to: CGSize) -> TimeInterval {
-        var durations: [TimeInterval] = []
-        if from.width != to.width { durations.append(spring(from: from.width, to: to.width, width: true).duration) }
-        if from.height != to.height { durations.append(spring(from: from.height, to: to.height, width: false).duration) }
-        return durations.max() ?? growingWidth.duration
+        from == to ? growing.duration : spring(from: from, to: to).duration
     }
 
-    static func size(at time: TimeInterval, from: CGSize, to: CGSize, steady: Bool = false) -> CGSize {
-        func side(_ start: CGFloat, _ end: CGFloat, width: Bool) -> CGFloat {
-            guard start != end else { return end }
-            let spring = spring(from: start, to: end, width: width, steady: steady)
-            return max(0, start + (end - start) * CGFloat(spring.progress(at: time)))
+    /// The speed the sides may carry into a resize toward `to`: a side
+    /// heading for a target it must not pass keeps no more speed than lets
+    /// it settle there, and a growing side no more than keeps its swing
+    /// within the overshoot limit.
+    static func carriedVelocity(_ velocity: CGSize, from: CGSize, to: CGSize, steady: Bool = false) -> CGSize {
+        func side(_ speed: CGFloat, _ start: CGFloat, _ end: CGFloat, width: Bool) -> CGFloat {
+            guard speed.isFinite, speed != 0 else { return 0 }
+            let spring = spring(from: from, to: to, width: width, steady: steady)
+            let travel = end - start
+            // Heading for the target: limited so it lands, or swings no farther than allowed.
+            if travel == 0 || speed.sign == travel.sign {
+                if end <= start || spring.bounce == 0 {
+                    return speed.sign == .minus ? max(speed, -spring.arrivingSpeedLimit(travel: travel))
+                        : min(speed, spring.arrivingSpeedLimit(travel: travel))
+                }
+                var carried = speed
+                for _ in 0..<6 {
+                    let peak = stride(from: 1.0 / 240, through: 1.2, by: 1.0 / 240).map {
+                        CGFloat(spring.value(at: $0, from: Double(start), to: Double(end), velocity: Double(carried)))
+                    }.max() ?? end
+                    if peak <= end + overshootLimit { return carried }
+                    carried /= 2
+                }
+                return 0
+            }
+            // Turning away from where it was heading: the speed carries it a
+            // little further before it comes back, which is the point.
+            return speed
         }
-        return CGSize(width: side(from.width, to.width, width: true), height: side(from.height, to.height, width: false))
+        return CGSize(width: side(velocity.width, from.width, to.width, width: true),
+                      height: side(velocity.height, from.height, to.height, width: false))
+    }
+
+    static func size(at time: TimeInterval, from: CGSize, to: CGSize, steady: Bool = false,
+                     velocity: CGSize = .zero) -> CGSize {
+        func side(_ start: CGFloat, _ end: CGFloat, _ speed: CGFloat, width: Bool) -> CGFloat {
+            guard start != end || speed != 0 else { return end }
+            let spring = spring(from: from, to: to, width: width, steady: steady)
+            let value = CGFloat(spring.value(at: time, from: Double(start), to: Double(end), velocity: Double(speed)))
+            // A side that shrinks never passes its target, even when the
+            // other side's growth gives the shared spring its bounce.
+            return max(0, end < start ? max(end, value) : value)
+        }
+        return CGSize(width: side(from.width, to.width, velocity.width, width: true),
+                      height: side(from.height, to.height, velocity.height, width: false))
     }
 
     /// When every side that moves first comes within 1% of its travel from
     /// its target: the island has arrived, though it may still swing.
     static func arrivalTime(from: CGSize, to: CGSize) -> TimeInterval {
-        let sides = [(from.width, to.width, true), (from.height, to.height, false)].filter { $0.0 != $0.1 }
+        guard from != to else { return 0 }
+        let spring = spring(from: from, to: to)
         let step = 1.0 / 240
         var time = step
-        while time < 2, !sides.allSatisfy({ spring(from: $0.0, to: $0.1, width: $0.2).progress(at: time) >= 0.99 }) {
-            time += step
-        }
-        return sides.isEmpty ? 0 : time
+        while time < 2, spring.progress(at: time) < 0.99 { time += step }
+        return time
     }
 
     /// When the size and centre stay within `settledDistance` of their targets for good.
-    static func settlingTime(from: CGSize, to: CGSize, steady: Bool = false, offset startOffset: CGFloat = 0) -> TimeInterval {
+    static func settlingTime(from: CGSize, to: CGSize, steady: Bool = false, offset startOffset: CGFloat = 0,
+                             velocity: CGSize = .zero, offsetVelocity: CGFloat = 0) -> TimeInterval {
         let step = 1.0 / 240
         var settled = step
         var time = step
         while time < 2 {
-            let size = size(at: time, from: from, to: to, steady: steady)
-            let offset = offset(at: time, from: from, to: to, start: startOffset, steady: steady)
+            let size = size(at: time, from: from, to: to, steady: steady, velocity: velocity)
+            let offset = offset(at: time, from: from, to: to, start: startOffset, steady: steady, velocity: offsetVelocity)
             if abs(size.width - to.width) > settledDistance || abs(size.height - to.height) > settledDistance
                 || abs(offset) > settledDistance {
                 settled = time + step
@@ -2529,20 +2774,25 @@ enum NotchMotion {
     /// How far a moving island's centre still sits from its new one. It
     /// travels with the width's spring, or eases on its own when two notices
     /// have the same total width but different sides.
-    static func offset(at time: TimeInterval, from: CGSize, to: CGSize, start: CGFloat, steady: Bool = false) -> CGFloat {
-        guard start != 0 else { return 0 }
-        let spring = from.width == to.width ? steadyWidth : spring(from: from.width, to: to.width, width: true, steady: steady)
-        return start * CGFloat(1 - spring.progress(at: time))
+    static func offset(at time: TimeInterval, from: CGSize, to: CGSize, start: CGFloat, steady: Bool = false,
+                       velocity: CGFloat = 0) -> CGFloat {
+        guard start != 0 || velocity != 0 else { return 0 }
+        let spring = from.width == to.width ? steadyWidth : spring(from: from, to: to, width: true, steady: steady)
+        return CGFloat(spring.value(at: time, from: Double(start), to: 0, velocity: Double(velocity)))
     }
 
     /// Sizes at a steady rate, ending exactly at `to`, and where each falls
     /// within the duration, including a centre still on its way there.
-    static func frames(from: CGSize, to: CGSize,
-                       steady: Bool = false, offset: CGFloat = 0) -> (sizes: [CGSize], keyTimes: [Double], duration: TimeInterval) {
-        let duration = settlingTime(from: from, to: to, steady: steady, offset: offset)
+    static func frames(from: CGSize, to: CGSize, steady: Bool = false, offset: CGFloat = 0,
+                       velocity: CGSize = .zero, offsetVelocity: CGFloat = 0)
+        -> (sizes: [CGSize], keyTimes: [Double], duration: TimeInterval) {
+        let duration = settlingTime(from: from, to: to, steady: steady, offset: offset,
+                                    velocity: velocity, offsetVelocity: offsetVelocity)
         let count = max(1, Int((duration * 120).rounded(.up)))
         let keyTimes = (0...count).map { Double($0) / Double(count) }
-        let sizes = keyTimes.map { $0 == 1 ? to : size(at: duration * $0, from: from, to: to, steady: steady) }
+        let sizes = keyTimes.map {
+            $0 == 1 ? to : size(at: duration * $0, from: from, to: to, steady: steady, velocity: velocity)
+        }
         return (sizes, keyTimes, duration)
     }
 
@@ -2555,12 +2805,12 @@ enum NotchMotion {
     }
 
     static func envelope(from: CGSize, to: CGSize) -> CGSize {
-        func side(_ start: CGFloat, _ end: CGFloat, width: Bool) -> CGFloat {
-            let swing = end > start ? spring(from: start, to: end, width: width).overshoot : 0
-            guard swing > 0 else { return max(start, end) }
+        let swing = spring(from: from, to: to).overshoot
+        func side(_ start: CGFloat, _ end: CGFloat) -> CGFloat {
+            guard end > start, swing > 0 else { return max(start, end) }
             return (end + (end - start) * CGFloat(swing)).rounded(.up)
         }
-        return CGSize(width: side(from.width, to.width, width: true), height: side(from.height, to.height, width: false))
+        return CGSize(width: side(from.width, to.width), height: side(from.height, to.height))
     }
 }
 

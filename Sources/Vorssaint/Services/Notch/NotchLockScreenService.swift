@@ -87,7 +87,7 @@ final class NotchLockScreenService {
         let geometry = NotchService.shared.geometry
         if geometry.isNotched, NSScreen.screens.contains(where: { $0.frame == geometry.screen && $0.safeAreaInsets.top > 0 }) {
             let surface = NotchLockScreenLayout.islandSurface(
-                in: geometry.screen, cameraWidth: geometry.bareCutout.width, cameraHeight: geometry.bareCutout.height,
+                in: geometry.screen, cameraWidth: geometry.bareCamera.width, cameraHeight: geometry.bareCamera.height,
                 wing: geometry.lockScreenMusicGeometry.compactActivityWingWidth)
             frames.islandSurface = surface
             frames.island = surface.map(NotchLockScreenLayout.islandFrame(around:))
@@ -123,7 +123,7 @@ final class NotchLockScreenService {
         let island = frames.island.flatMap { frame in
             frames.islandSurface.map { surface in
                 Self.makePanel(frame: frame, content: NotchLockScreenIsland(
-                    model: model, size: surface.size, cameraWidth: NotchService.shared.geometry.bareCutout.width,
+                    model: model, size: surface.size, cameraWidth: NotchService.shared.geometry.bareCamera.width,
                     geometry: NotchService.shared.geometry.lockScreenMusicGeometry,
                     window: frame.size, origin: CGPoint(x: surface.minX - frame.minX, y: frame.maxY - surface.maxY)))
             }

@@ -550,8 +550,8 @@ enum NotchPresentationProbe {
         if !reduceMotion, !host.contentProbeAnimating {
             failures.append("opening content has no reveal transition")
         }
-        if !reduceMotion, !host.contentProbeGrowing || !host.contentProbeBlurred {
-            failures.append("opening content arrived without growing into focus")
+        if !reduceMotion, host.contentProbeGrowing || !host.contentProbeBlurred {
+            failures.append("opening content scaled, or arrived without coming into focus")
         }
         if !reduceMotion, host.backdropProbeOpenness > 0.01 {
             failures.append("glass opened at full strength over the black strip it grows out of")

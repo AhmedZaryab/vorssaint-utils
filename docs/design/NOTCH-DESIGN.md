@@ -58,10 +58,10 @@ The silhouette numbers live in `NotchDesign.Geometry`. NotchLayout and NotchMoti
 
 | Property | Rule | Token |
 | --- | --- | --- |
-| Width | The camera housing macOS reports (`NSScreen` auxiliary top areas) plus the per-Mac `NotchCameraFit` correction. Not one point wider at rest. | NotchGeometry.cameraWidth |
-| Height | The safe area top (the menu bar on a notched panel). | NotchGeometry.stripHeight |
-| Bottom corners | `islandCornerRadius(height:)`: 0.34 of the height, 10.9 pt on a 32 pt notch, drawn as **continuous** corners like the cutout. | Geometry.closedCornerRatio |
-| Shoulders | Where the island meets the screen's top edge: 0.19 of the height up to 14 pt, so 6 pt on a 32 pt notch. | Geometry.shoulderRatio, shoulderRadius |
+| Width | The body is the camera housing macOS reports (`NSScreen` auxiliary top areas) plus the per-Mac `NotchCameraFit` correction; the shoulders sit outside it, as the cutout's do, so the bare island is the housing's outline (198.6 pt across the top on a 14 inch MacBook Pro). Not one point wider at rest. | NotchGeometry.cameraWidth, restingSize |
+| Height | The cutout: the safe area top plus the fit, never the menu bar below it. Strips beside the camera may cover the bar. | NotchGeometry.cutoutHeight, stripHeight |
+| Bottom corners | `islandCornerRadius(height:)`: 0.322 of the height, 10.3 pt on a 32 pt notch (the measured cutout, within 0.05 pt), drawn as **continuous** corners like the cutout. | Geometry.closedCornerRatio |
+| Shoulders | Where the island meets the screen's top edge: 0.2129 of the height up to 14 pt, so 6.8 pt on a 32 pt notch, one cubic with handles 0.776 of its extent, as measured. | Geometry.shoulderRatio, shoulderHandle, shoulderRadius |
 | Edge | No stroke at rest. Open, a 0.5 pt key line at 0.14 white; the optional outline is 1 pt at most. | Stroke.keyLine, Stroke.hairline |
 | Seam | None. Between hardware and software there must be no grey fringe and no step. | |
 
@@ -109,7 +109,7 @@ plate in a card       6  Radius.control    = 12 - 6   (icon button, chip, field,
 keycap, badge         4  Radius.small
 pill, round button       Capsule(), Circle()
 artwork hugging no corner: Radius.artwork(side:) = side x 0.2, at most 12
-closed island     10.9  Geometry.islandCornerRadius(height: 32)
+closed island     10.3  Geometry.islandCornerRadius(height: 32)
   cover in a strip: concentric with the strip at its inset (NotchMusicStripLayout already does this)
 peek band            28  at its height (32 + 60 = 92 pt), so its 32 pt cover at 16 pt inset is 12
 ```
