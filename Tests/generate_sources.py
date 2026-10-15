@@ -81,7 +81,8 @@ def main():
           + declaration("Sources/Vorssaint/UI/Notch/NotchComponents.swift", "struct NotchMenuItem")
           + declaration("Sources/Vorssaint/UI/Notch/NotchComponents.swift", "final class NotchMenuAnchor:")
           + declaration("Sources/Vorssaint/UI/Notch/NotchComponents.swift", "private struct NotchMenuAnchorView:")
-          + declaration("Sources/Vorssaint/UI/Notch/NotchComponents.swift", "struct NotchMenuButton<"))
+          + declaration("Sources/Vorssaint/UI/Notch/NotchComponents.swift", "struct NotchMenuButton<")
+          + declaration("Sources/Vorssaint/UI/Notch/NotchComponents.swift", "struct NotchPullDownFace:"))
     write("NotchModuleTitle.swift", "import Foundation\nextension NotchModule {\n"
           + declaration("Sources/Vorssaint/UI/Notch/NotchView.swift", "    func title(_ language: AppLanguage)",
                         scope="extension NotchModule: PanelOrderItem {")

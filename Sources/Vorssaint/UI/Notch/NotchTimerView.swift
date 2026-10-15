@@ -290,26 +290,23 @@ struct NotchTimerView: View {
         let value = binding(option)
         let title = title(option)
         let current = value.wrappedValue
-        return NotchMenuButton(title: title, items: option.range.map { choice in
-            NotchMenuItem(title: display(option, choice), checked: choice == current) { value.wrappedValue = choice }
-        }, cornerRadius: Design.Radius.control) {
-            VStack(alignment: .leading, spacing: Design.Spacing.line) {
-                Text(title)
-                    .font(Design.Typography.caption.font).foregroundStyle(Design.Ink.secondary)
-                    .lineLimit(1).truncationMode(.tail)
-                HStack(spacing: Design.Spacing.xxSmall) {
-                    Text(display(option, current))
-                        .font(Design.Typography.readout.font).monospacedDigit().foregroundStyle(Design.Ink.primary)
-                    Image(systemName: "chevron.down").font(Design.Icon.strip.font)
-                        .foregroundStyle(Design.Ink.secondary)
-                }
+        // A plain label, then the shared pull down face: the row is one 28 pt
+        // line, so the label sits beside the face rather than above it.
+        return HStack(spacing: Design.Spacing.xxSmall) {
+            Text(title)
+                .font(Design.Typography.caption.font).foregroundStyle(Design.Ink.secondary)
+                .lineLimit(1).truncationMode(.tail)
+                .accessibilityHidden(true)
+            NotchMenuButton(title: title, items: option.range.map { choice in
+                NotchMenuItem(title: display(option, choice), checked: choice == current) { value.wrappedValue = choice }
+            }, cornerRadius: Design.Radius.control) {
+                NotchPullDownFace(text: display(option, current))
+                    .monospacedDigit()
             }
-            .padding(.horizontal, Design.Spacing.xxSmall)
-            .frame(height: NotchLayout.timerSettingsRowHeight)
-            .contentShape(RoundedRectangle(cornerRadius: Design.Radius.control, style: .continuous))
+            .help(title)
+            .accessibilityValue(display(option, current))
         }
-        .help(title)
-        .accessibilityValue(display(option, current))
+        .frame(height: NotchLayout.timerSettingsRowHeight)
     }
 
     private var timerMinutes: Binding<Int> {

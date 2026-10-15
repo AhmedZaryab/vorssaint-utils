@@ -461,12 +461,19 @@ struct NotchView: View {
             items.append(NotchMenuItem(title: text.customizeTools, checked: launcher.isEditing,
                                        symbol: "slider.horizontal.3") { launcher.isEditing.toggle() })
         }
+        if !items.isEmpty { items.append(.separator) }
+        items.append(NotchMenuItem(title: service.pinned ? text.unpin : text.pin,
+                                   symbol: service.pinned ? "pin.slash" : "pin") { service.pinned.toggle() })
+        items.append(NotchMenuItem(title: l10n.s.menuSettings, symbol: "gearshape", action: service.openSettings))
+        items.append(NotchMenuItem(title: text.collapse, symbol: "chevron.up", action: service.collapse))
+        // Destructive entries go last, after a line, in red.
+        if clear || clearNotifications { items.append(.separator) }
         if clear {
             // As the header draws, the pointer on its way to this menu included,
             // and again when chosen: this view does not observe the history.
             let empty = { RecentCapturesView.visible(RecentCaptureService.shared.entries).isEmpty }
             items.append(NotchMenuItem(title: FeatureStrings.recentCaptures(l10n.language).clear, symbol: "trash",
-                                       enabled: !empty(), action: {
+                                       enabled: !empty(), destructive: true, action: {
                 guard !empty() else { return }
                 RecentCapturesView.confirmClearAboveIsland()
             }))
@@ -477,24 +484,18 @@ struct NotchView: View {
             let notifications = NotchNotificationService.shared
             let unavailable = { notifications.items.isEmpty || notifications.openingID != nil }
             items.append(NotchMenuItem(title: FeatureStrings.notchNotifications(l10n.language).clearAll, symbol: "trash",
-                                       enabled: !unavailable(), action: {
+                                       enabled: !unavailable(), destructive: true, action: {
                 guard !unavailable() else { return }
                 NotchClearNotificationsButton.confirmClearAboveIsland()
             }))
         }
-        if !items.isEmpty { items.append(.separator) }
-        items.append(NotchMenuItem(title: service.pinned ? text.unpin : text.pin,
-                                   symbol: service.pinned ? "pin.slash" : "pin") { service.pinned.toggle() })
-        items.append(NotchMenuItem(title: l10n.s.menuSettings, symbol: "gearshape", action: service.openSettings))
-        items.append(NotchMenuItem(title: text.collapse, symbol: "chevron.up", action: service.collapse))
         return items
     }
 
     /// A native menu drawn in the island's dark appearance, so it reads as part
     /// of it, and each entry carries its glyph.
-    private func overflowMenu(items: [NotchMenuItem]) -> some View {
-        NotchMoreMenu(title: text.title, symbol: service.pinned ? "pin.fill" : "ellipsis",
-                      tint: NotchDesign.Ink.primary, items: items)
+    private func overflowMenu(items: @autoclosure @escaping () -> [NotchMenuItem]) -> some View {
+        NotchMoreMenu(title: text.title, items: items())
     }
 
     /// The header's actions keep their room but stay out of sight until the
@@ -898,12 +899,8 @@ struct NotchActivityPicker: View {
                     NotchMenuItem(title: pair.title(language), checked: combination == pair,
                                   symbol: pair.companion.symbol) { combine(pair) }
                 }) {
-                    Label(combination?.title(language) ?? FeatureStrings.notch(language).combineActivities,
-                          systemImage: combination == nil ? "plus" : "checkmark")
-                        .font(NotchDesign.Typography.label.font)
-                        .foregroundStyle(combination == nil ? NotchDesign.Ink.secondary : NotchDesign.Ink.primary)
+                    NotchPullDownFace(text: combination?.title(language) ?? FeatureStrings.notch(language).combineActivities)
                         .frame(height: NotchActivityPickerLayout.combinationHeight)
-                        .contentShape(Rectangle())
                 }
                 .fixedSize()
                 .accessibilityIdentifier("notch.activity.combine")

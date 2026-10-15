@@ -639,6 +639,8 @@ struct NotchMenuItem {
     var enabled = true
     /// Marked red; goes last in its menu.
     var destructive = false
+    /// Entries of a submenu; the item then only opens it and `action` is unused.
+    var submenu: [NotchMenuItem]? = nil
     var action: () -> Void = {}
 
     /// A line between groups of entries.
@@ -653,13 +655,22 @@ struct NotchMenuItem {
 /// Every menu and pull down in the island goes through this one path.
 struct NotchMenuButton<Label: View>: View {
     let title: String
-    let items: [NotchMenuItem]
+    /// Built when the menu pops up, never while the view draws.
+    let items: () -> [NotchMenuItem]
     var cornerRadius: CGFloat = NotchDesign.Radius.control
     @ViewBuilder let label: () -> Label
     @State private var anchor = NotchMenuAnchor()
 
+    init(title: String, items: @autoclosure @escaping () -> [NotchMenuItem],
+         cornerRadius: CGFloat = NotchDesign.Radius.control, @ViewBuilder label: @escaping () -> Label) {
+        self.title = title
+        self.items = items
+        self.cornerRadius = cornerRadius
+        self.label = label
+    }
+
     var body: some View {
-        Button { anchor.popUp(items) } label: { label() }
+        Button { anchor.popUp(items()) } label: { label() }
             .buttonStyle(NotchPressStyle(shape: .rounded(cornerRadius), lifts: false))
             .background(NotchMenuAnchorView(anchor: anchor))
             .accessibilityLabel(title)
@@ -692,10 +703,19 @@ struct NotchPullDown: View {
     let current: String
     var maxWidth: CGFloat? = nil
     var truncation: Text.TruncationMode = .tail
-    let items: [NotchMenuItem]
+    let items: () -> [NotchMenuItem]
+
+    init(title: String, current: String, maxWidth: CGFloat? = nil, truncation: Text.TruncationMode = .tail,
+         items: @autoclosure @escaping () -> [NotchMenuItem]) {
+        self.title = title
+        self.current = current
+        self.maxWidth = maxWidth
+        self.truncation = truncation
+        self.items = items
+    }
 
     var body: some View {
-        NotchMenuButton(title: title, items: items) {
+        NotchMenuButton(title: title, items: items()) {
             NotchPullDownFace(text: current, maxWidth: maxWidth, truncation: truncation)
         }
         .help(current)
@@ -703,18 +723,25 @@ struct NotchPullDown: View {
     }
 }
 
-/// The plain "···" of a more menu, at the icon button size.
+/// The plain "···" of a more menu, at the icon button size. One look on
+/// every page: Ink.secondary, and the glyph is "ellipsis" unless a page gives
+/// its menu a glyph that says which actions it holds (the pad's).
 struct NotchMoreMenu: View {
     let title: String
     var symbol = "ellipsis"
-    var tint: Color = NotchDesign.Ink.secondary
-    let items: [NotchMenuItem]
+    let items: () -> [NotchMenuItem]
+
+    init(title: String, symbol: String = "ellipsis", items: @autoclosure @escaping () -> [NotchMenuItem]) {
+        self.title = title
+        self.symbol = symbol
+        self.items = items
+    }
 
     var body: some View {
-        NotchMenuButton(title: title, items: items) {
+        NotchMenuButton(title: title, items: items()) {
             Image(systemName: symbol)
                 .font(NotchDesign.Icon.button.font)
-                .foregroundStyle(tint)
+                .foregroundStyle(NotchDesign.Ink.secondary)
                 .frame(width: NotchDesign.Control.iconButton, height: NotchDesign.Control.iconButton)
                 .contentShape(RoundedRectangle(cornerRadius: NotchDesign.Radius.control, style: .continuous))
         }
@@ -730,10 +757,20 @@ struct NotchDeviceMenu: View {
     var width: CGFloat = 100
     var lines = 2
     var alignment: TextAlignment = .center
-    let items: [NotchMenuItem]
+    let items: () -> [NotchMenuItem]
+
+    init(title: String, current: String, width: CGFloat = 100, lines: Int = 2,
+         alignment: TextAlignment = .center, items: @autoclosure @escaping () -> [NotchMenuItem]) {
+        self.title = title
+        self.current = current
+        self.width = width
+        self.lines = lines
+        self.alignment = alignment
+        self.items = items
+    }
 
     var body: some View {
-        NotchPullDown(title: title, current: current, maxWidth: width, truncation: .middle, items: items)
+        NotchPullDown(title: title, current: current, maxWidth: width, truncation: .middle, items: items())
     }
 }
 
@@ -745,44 +782,24 @@ final class NotchMenuAnchor: NSObject {
 
     /// The app's own icon at menu size, nil when the app cannot be found.
     static func icon(bundleIdentifier: String?) -> NSImage? {
-        guard let id = bundleIdentifier,
-              let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: id) else { return nil }
+        guard let id = bundleIdentifier else { return nil }
+        if let cached = iconCache[id] { return cached }
+        guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: id) else { return nil }
         let image = NSWorkspace.shared.icon(forFile: url.path)
         image.size = NSSize(width: 16, height: 16)
+        iconCache[id] = image
         return image
     }
+
+    private static var iconCache: [String: NSImage] = [:]
 
     /// The menu hangs under the control with its leading edge on the control's,
     /// and swings to the trailing edge when the control sits in the island's
     /// right half, so it never leaves the island.
     func popUp(_ items: [NotchMenuItem]) {
         guard let view else { return }
-        actions = items.map(\.action)
-        let menu = NSMenu()
-        menu.autoenablesItems = false
-        menu.font = .systemFont(ofSize: 13)
-        // The island is dark whatever the system is, so its menus are too.
-        menu.appearance = NSAppearance(named: .darkAqua)
-        let symbolConfig = NSImage.SymbolConfiguration(pointSize: 13, weight: .regular)
-        for (index, item) in items.enumerated() {
-            guard !item.isSeparator else { menu.addItem(.separator()); continue }
-            let entry = NSMenuItem(title: item.title, action: #selector(choose(_:)), keyEquivalent: "")
-            entry.target = self
-            entry.tag = index
-            entry.state = item.checked ? .on : .off
-            entry.isEnabled = item.enabled
-            if let icon = item.icon {
-                entry.image = icon
-            } else if let symbol = item.symbol {
-                entry.image = NSImage(systemSymbolName: symbol, accessibilityDescription: nil)?
-                    .withSymbolConfiguration(symbolConfig)
-            }
-            if item.destructive {
-                entry.attributedTitle = NSAttributedString(string: item.title, attributes: [
-                    .foregroundColor: NSColor.systemRed, .font: NSFont.systemFont(ofSize: 13)])
-            }
-            menu.addItem(entry)
-        }
+        actions = []
+        let menu = makeMenu(items)
         var location = NSPoint(x: 0, y: view.isFlipped ? view.bounds.height : 0)
         if let window = view.window {
             let centre = view.convert(NSPoint(x: view.bounds.midX, y: 0), to: nil).x
@@ -798,9 +815,104 @@ final class NotchMenuAnchor: NSObject {
         menu.popUp(positioning: nil, at: location, in: view)
     }
 
+    /// The same menu at the pointer, for a right click on the view.
+    func popUp(_ items: [NotchMenuItem], at event: NSEvent) {
+        guard let view else { return }
+        actions = []
+        let menu = makeMenu(items)
+        menu.popUp(positioning: nil, at: view.convert(event.locationInWindow, from: nil), in: view)
+    }
+
+    /// Builds the menu, flattening every action into `actions` by tag so a
+    /// submenu's entries dispatch through the same target.
+    private func makeMenu(_ items: [NotchMenuItem]) -> NSMenu {
+        let menu = NSMenu()
+        menu.autoenablesItems = false
+        menu.font = .systemFont(ofSize: 13)
+        // The island is dark whatever the system is, so its menus are too.
+        menu.appearance = NSAppearance(named: .darkAqua)
+        let symbolConfig = NSImage.SymbolConfiguration(pointSize: 13, weight: .regular)
+        for item in items {
+            guard !item.isSeparator else { menu.addItem(.separator()); continue }
+            let entry = NSMenuItem(title: item.title, action: #selector(choose(_:)), keyEquivalent: "")
+            entry.target = self
+            entry.state = item.checked ? .on : .off
+            entry.isEnabled = item.enabled
+            if let icon = item.icon {
+                entry.image = icon
+            } else if let symbol = item.symbol {
+                entry.image = NSImage(systemSymbolName: symbol, accessibilityDescription: nil)?
+                    .withSymbolConfiguration(symbolConfig)
+            }
+            if item.destructive {
+                entry.attributedTitle = NSAttributedString(string: item.title, attributes: [
+                    .foregroundColor: NSColor.systemRed, .font: NSFont.systemFont(ofSize: 13)])
+            }
+            if let submenu = item.submenu {
+                entry.action = nil
+                entry.submenu = makeMenu(submenu)
+            } else {
+                entry.tag = actions.count
+                actions.append(item.action)
+            }
+            menu.addItem(entry)
+        }
+        return menu
+    }
+
     @objc private func choose(_ sender: NSMenuItem) {
         guard actions.indices.contains(sender.tag) else { return }
         actions[sender.tag]()
+    }
+}
+
+/// Catches only a right click (or control click) and pops the menu at the
+/// pointer; every other event falls through to the control underneath.
+struct NotchContextMenu: ViewModifier {
+    let items: () -> [NotchMenuItem]
+    @State private var anchor = NotchMenuAnchor()
+
+    func body(content: Content) -> some View {
+        content.overlay(NotchRightClickView(anchor: anchor, items: items))
+    }
+}
+
+extension View {
+    /// A right click menu on the island's native menu path, so it shares its
+    /// items with the "···" button instead of a second SwiftUI menu.
+    func notchContextMenu(_ items: @autoclosure @escaping () -> [NotchMenuItem]) -> some View {
+        modifier(NotchContextMenu(items: items))
+    }
+}
+
+private struct NotchRightClickView: NSViewRepresentable {
+    let anchor: NotchMenuAnchor
+    let items: () -> [NotchMenuItem]
+
+    final class Catcher: NSView {
+        var onRightClick: ((NSEvent) -> Void)?
+        override func hitTest(_ point: NSPoint) -> NSView? {
+            guard let event = NSApp.currentEvent else { return nil }
+            let control = event.type == .leftMouseDown && event.modifierFlags.contains(.control)
+            guard event.type == .rightMouseDown || control else { return nil }
+            return super.hitTest(point)
+        }
+        override func rightMouseDown(with event: NSEvent) { onRightClick?(event) }
+        override func mouseDown(with event: NSEvent) {
+            if event.modifierFlags.contains(.control) { onRightClick?(event) } else { super.mouseDown(with: event) }
+        }
+    }
+
+    func makeNSView(context: Context) -> Catcher {
+        let view = Catcher()
+        anchor.view = view
+        view.onRightClick = { [anchor, items] event in anchor.popUp(items(), at: event) }
+        return view
+    }
+
+    func updateNSView(_ nsView: Catcher, context: Context) {
+        anchor.view = nsView
+        nsView.onRightClick = { [anchor, items] event in anchor.popUp(items(), at: event) }
     }
 }
 
