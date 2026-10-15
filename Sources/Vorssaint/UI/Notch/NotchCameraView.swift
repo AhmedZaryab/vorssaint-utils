@@ -16,19 +16,17 @@ struct NotchCameraView: View {
                 CameraPreviewView(size: NotchLayout.cameraPreviewSize(in: size), showsCameraMenu: true,
                                   onStop: service.hideEmbedded)
             } else {
-                HStack(spacing: 16) {
-                    Image(systemName: "web.camera").font(.system(size: 30, weight: .light))
-                        .foregroundStyle(.secondary).accessibilityHidden(true)
-                        .frame(width: 56, height: 56)
-                        .background(.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(text.cameraHint).font(.callout).foregroundStyle(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                        Button(text.startCamera, action: service.showEmbedded)
-                            .buttonStyle(.borderedProminent)
+                // Off after Stop, or before the first frame: the empty-state shape, one next step.
+                NotchEmptyView(symbol: "web.camera", message: text.cameraHint) {
+                    Button(action: service.showEmbedded) {
+                        Text(text.startCamera).font(NotchDesign.Typography.label.font)
+                            .foregroundStyle(NotchDesign.Ink.primary)
+                            .padding(.horizontal, NotchDesign.Spacing.large)
+                            .frame(height: NotchDesign.Control.rowHeight)
+                            .background(NotchDesign.Palette.accent, in: Capsule())
                     }
+                    .buttonStyle(NotchPressStyle(shape: .capsule, washes: false))
                 }
-                .padding(.horizontal, 12)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

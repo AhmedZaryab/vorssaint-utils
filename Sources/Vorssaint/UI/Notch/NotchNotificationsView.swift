@@ -14,28 +14,19 @@ struct NotchNotificationsView: View {
     var body: some View {
         Group {
             if !permissions.accessibility {
-                VStack(alignment: .leading, spacing: 10) {
+                VStack(alignment: .leading, spacing: NotchDesign.Spacing.small) {
                     PermissionRow(kind: .accessibility)
-                    Text(text.privacy).font(.callout).foregroundStyle(.white.opacity(0.7))
+                    Text(text.privacy).font(NotchDesign.Typography.callout.font).foregroundStyle(NotchDesign.Ink.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             } else if service.items.isEmpty {
-                HStack(spacing: 14) {
-                    Image(systemName: "bell").font(.system(size: 26, weight: .light)).foregroundStyle(.white.opacity(0.6))
-                        .frame(width: 56, height: 56)
-                        .background(.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(service.monitoring ? text.empty : text.waiting).font(.headline)
-                        Text(text.privacy).font(.caption).foregroundStyle(.white.opacity(0.65))
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                NotchEmptyView(symbol: "bell", message: (service.monitoring ? text.empty : text.waiting) + "\n" + text.privacy)
             } else {
+                let gutter = NotchDesign.Spacing.gutter
                 let rows = NotchLayout.railRows(count: service.items.count,
-                                                perRow: NotchLayout.railCapacity(width: size.width, itemWidth: 240, spacing: 8),
-                                                rowHeight: 120, spacing: 8, height: size.height)
-                let cardHeight = (size.height - CGFloat(rows - 1) * 8) / CGFloat(rows)
+                                                perRow: NotchLayout.railCapacity(width: size.width, itemWidth: 240, spacing: gutter),
+                                                rowHeight: 120, spacing: gutter, height: size.height)
+                let cardHeight = (size.height - CGFloat(rows - 1) * gutter) / CGFloat(rows)
                 NotchRail(items: service.items, rows: rows, itemWidth: 240, width: size.width) { item in
                     NotchNotificationRow(item: item, service: service, text: text)
                         .frame(height: cardHeight)
@@ -55,8 +46,11 @@ struct NotchClearNotificationsButton: View {
     @ObservedObject private var l10n = L10n.shared
 
     var body: some View {
-        NotchIconButton(symbol: "trash", title: FeatureStrings.notchNotifications(l10n.language).clearAll,
-                        action: Self.confirmClearAboveIsland)
+        // A fuse: a press lights it, the control becomes Undo while it burns, and
+        // the inbox clears when it burns down. The confirm alert stays for the
+        // keyboard path in NotchView.
+        let title = FeatureStrings.notchNotifications(l10n.language).clearAll
+        NotchFuseButton(title, symbol: "trash") { NotchNotificationService.shared.clearAll() }
             .disabled(notifications.items.isEmpty || notifications.openingID != nil)
     }
 
@@ -81,19 +75,26 @@ private struct NotchNotificationRow: View {
     @ObservedObject var service: NotchNotificationService
     let text: NotchNotificationStrings
     @State private var feedback: String?
+    @State private var hovered = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.colorSchemeContrast) private var contrast
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 6) {
-                NotchNotificationAppIcon(app: item.content.app, size: 18)
+        let shape = RoundedRectangle(cornerRadius: NotchDesign.Radius.card, style: .continuous)
+        VStack(alignment: .leading, spacing: NotchDesign.Spacing.xSmall) {
+            HStack(spacing: NotchDesign.Spacing.xSmall) {
+                NotchNotificationAppIcon(app: item.content.app, size: 20)
                 Text(item.content.app.isEmpty ? text.title : item.content.app)
+                    .font(NotchDesign.Typography.title.font).foregroundStyle(NotchDesign.Ink.primary)
                     .lineLimit(1)
-                Spacer(minLength: 4)
-                Text(item.received, format: .dateTime.hour().minute()).monospacedDigit()
+                Spacer(minLength: NotchDesign.Spacing.xxSmall)
+                Text(item.received, format: .dateTime.hour().minute())
+                    .font(NotchDesign.Typography.caption.font).monospacedDigit().foregroundStyle(NotchDesign.Ink.secondary)
                 if service.openingID == item.id {
                     ProgressView().controlSize(.mini)
                 } else if service.canOpen(item) {
-                    NotchIconButton(symbol: "arrow.up.forward.app", title: text.open) {
+                    NotchCommitButton(text.open, symbol: "arrow.up.forward.app", kick: .up,
+                                      size: NotchDesign.Control.iconButton, symbolSize: 13) {
                         feedback = nil
                         service.open(item.id) { result in
                             if result == .unavailable || result == .uncertain { feedback = text.unavailable }
@@ -101,27 +102,57 @@ private struct NotchNotificationRow: View {
                     }
                     .disabled(service.openingID != nil)
                 }
-                NotchIconButton(symbol: "xmark", title: text.dismiss) { service.dismiss(item.id) }
-                    .disabled(service.openingID == item.id)
+                NotchNotificationDismissButton(title: text.dismiss) {
+                    withAnimation(reduceMotion ? NotchDesign.Motion.fade : NotchDesign.Motion.exit) { service.dismiss(item.id) }
+                }
+                .disabled(service.openingID == item.id)
             }
-            .font(.system(size: 11)).foregroundStyle(.white.opacity(0.6))
-            .frame(height: 22)
-            Text(item.content.title).font(.system(size: 13, weight: .semibold)).lineLimit(2)
-            if !item.content.subtitle.isEmpty { Text(item.content.subtitle).font(.system(size: 12)).lineLimit(1) }
+            .frame(height: NotchDesign.Control.rowHeight)
+            Text(item.content.title).font(NotchDesign.Typography.title.font).foregroundStyle(NotchDesign.Ink.primary).lineLimit(2)
+            if !item.content.subtitle.isEmpty {
+                Text(item.content.subtitle).font(NotchDesign.Typography.callout.font).foregroundStyle(NotchDesign.Ink.secondary).lineLimit(1)
+            }
             if !item.content.body.isEmpty {
-                Text(item.content.body).font(.system(size: 12)).foregroundStyle(.white.opacity(0.8))
+                Text(item.content.body).font(NotchDesign.Typography.callout.font).foregroundStyle(NotchDesign.Ink.primary)
                     .textSelection(.enabled)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             }
             if let message = feedback ?? (service.unavailableID == item.id ? text.unavailable : nil) {
-                Text(message).font(.caption).foregroundStyle(.orange).lineLimit(1)
+                Text(message).font(NotchDesign.Typography.caption.font).foregroundStyle(NotchDesign.Palette.warning).lineLimit(1)
             }
         }
-        .padding(12)
+        .padding(NotchDesign.Spacing.cardPadding)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 14))
-        .clipped()
+        .background(NotchDesign.Fill.card, in: shape)
+        .overlay { shape.fill(NotchDesign.Fill.hover.opacity(hovered ? 1 : 0)).allowsHitTesting(false) }
+        .overlay {
+            if contrast == .increased {
+                shape.strokeBorder(NotchDesign.Stroke.increasedContrast, lineWidth: NotchDesign.Stroke.increasedContrastWidth)
+                    .allowsHitTesting(false)
+            }
+        }
+        .onHover { hovered = $0 }
+        .animation(NotchDesign.Motion.fade, value: hovered)
+        .clipShape(shape)
+        .transition(.opacity)
         .accessibilityElement(children: .contain)
+    }
+}
+
+/// Dismisses one message: a tap that answers on press and leaves on an exit.
+private struct NotchNotificationDismissButton: View {
+    let title: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: "xmark").font(NotchDesign.Icon.button.font)
+                .foregroundStyle(NotchDesign.Ink.secondary)
+                .frame(width: NotchDesign.Control.iconButton, height: NotchDesign.Control.iconButton)
+        }
+        .buttonStyle(NotchPressStyle())
+        .help(title)
+        .accessibilityLabel(title)
     }
 }
 
@@ -140,19 +171,19 @@ struct NotchNotificationPreviewView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: NotchNotificationPreviewLayout.spacing) {
-            HStack(spacing: 8) {
+            HStack(spacing: NotchDesign.Spacing.small) {
                 NotchNotificationAppIcon(app: content.app, size: NotchNotificationPreviewLayout.iconSize)
                 Text(content.app.isEmpty ? text.title : content.app)
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.7))
+                    .font(NotchDesign.Typography.stripPrimary.font)
+                    .foregroundStyle(NotchDesign.Ink.secondary)
                     .lineLimit(1)
-                Spacer(minLength: 8)
+                Spacer(minLength: NotchDesign.Spacing.small)
                 if let item {
                     Text(item.received, format: .dateTime.hour().minute())
-                        .font(.system(size: 11)).monospacedDigit()
-                        .foregroundStyle(.white.opacity(0.45))
+                        .font(NotchDesign.Typography.caption.font).monospacedDigit()
+                        .foregroundStyle(NotchDesign.Ink.secondary)
                 }
-                NotchIconButton(symbol: "xmark", title: text.dismiss) { service.dismissNotification(notice) }
+                NotchNotificationDismissButton(title: text.dismiss) { service.dismissNotification(notice) }
             }
             .frame(height: NotchNotificationPreviewLayout.headerHeight)
             if !content.title.isEmpty {
@@ -163,38 +194,36 @@ struct NotchNotificationPreviewView: View {
             if !content.subtitle.isEmpty {
                 Text(content.subtitle)
                     .font(Font(NotchNotificationPreviewLayout.subtitleFont as CTFont))
-                    .foregroundStyle(.white.opacity(0.9))
+                    .foregroundStyle(NotchDesign.Ink.secondary)
                     .lineLimit(NotchNotificationPreviewLayout.subtitleLines)
             }
             if !content.body.isEmpty {
                 Text(content.body)
                     .font(Font(NotchNotificationPreviewLayout.bodyFont as CTFont))
-                    .foregroundStyle(.white.opacity(0.82))
+                    .foregroundStyle(NotchDesign.Ink.primary)
                     .lineLimit(NotchNotificationPreviewLayout.bodyLines)
                     .textSelection(.enabled)
             }
-            HStack(spacing: 8) {
+            HStack(spacing: NotchDesign.Spacing.small) {
                 if let item, notifications.canOpen(item) {
-                    Button(text.open) { service.activateNotice(notice) }
-                        .buttonStyle(.bordered).controlSize(.small)
+                    NotchCommitButton(text.open, symbol: "arrow.up.forward.app", kick: .up,
+                                      size: NotchDesign.Control.iconButton, symbolSize: 13) { service.activateNotice(notice) }
                         .disabled(notifications.openingID != nil)
                 }
                 if notifications.openingID == notice.notificationID { ProgressView().controlSize(.small) }
-                Spacer(minLength: 8)
+                Spacer(minLength: NotchDesign.Spacing.small)
                 if notifications.items.count > 1 {
                     Button { service.open(.notifications) } label: {
-                        HStack(spacing: 5) {
-                            Image(systemName: "tray.full").font(.system(size: 11, weight: .medium))
+                        HStack(spacing: NotchDesign.Spacing.xxSmall) {
+                            Image(systemName: "tray.full").font(NotchDesign.Icon.button.font)
                             Text(notifications.items.count, format: .number)
-                                .font(.system(size: 11, weight: .semibold)).monospacedDigit()
+                                .font(NotchDesign.Typography.readout.font).monospacedDigit()
                         }
-                        .foregroundStyle(.white.opacity(0.8))
-                        .padding(.horizontal, 10)
-                        .frame(height: 24)
-                        .contentShape(Capsule())
+                        .foregroundStyle(NotchDesign.Ink.secondary)
+                        .padding(.horizontal, NotchDesign.Spacing.medium)
+                        .frame(height: NotchDesign.Control.rowHeight)
                     }
-                    .buttonStyle(NotchButtonStyle(cornerRadius: 12))
-                    .modifier(NotchControlSurface(cornerRadius: 12))
+                    .buttonStyle(NotchPressStyle(shape: .capsule))
                     .help(text.title)
                     .accessibilityLabel(text.title)
                     .accessibilityValue(Text(notifications.items.count, format: .number))
@@ -218,15 +247,17 @@ struct NotchNotificationAppIcon: View {
     @ObservedObject private var service = NotchNotificationService.shared
 
     var body: some View {
+        // Apple's icon corner is about 22 percent of the side, continuous.
+        let shape = RoundedRectangle(cornerRadius: size * 0.22, style: .continuous)
         Group {
             if let icon = service.icon(for: app) {
                 Image(nsImage: icon).resizable().scaledToFit()
             } else {
                 Image(systemName: "bell.badge.fill")
                     .font(.system(size: size * 0.48, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.85))
+                    .foregroundStyle(NotchDesign.Ink.secondary)
                     .frame(width: size, height: size)
-                    .background(.white.opacity(0.09), in: RoundedRectangle(cornerRadius: size * 0.24))
+                    .background(NotchDesign.Fill.control, in: shape)
             }
         }
         .frame(width: size, height: size)

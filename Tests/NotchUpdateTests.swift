@@ -12,6 +12,25 @@ enum NotchUpdateTests {
         var previews = 0
         func showUpdatePreview() { previews += 1 }
     }
+    enum NotchCommitKick { case forward, backward, up, morph }
+    struct NotchCommitButton: View {
+        let title: String
+        let symbol: String
+        var kick: NotchCommitKick = .morph
+        var hint: String?
+        var size: CGFloat = 32
+        var symbolSize: CGFloat?
+        var tint: Color = .white
+        let action: () -> Void
+        init(_ title: String, symbol: String, kick: NotchCommitKick = .morph, hint: String? = nil,
+             size: CGFloat = 32, symbolSize: CGFloat? = nil, tint: Color = .white, action: @escaping () -> Void) {
+            self.title = title; self.symbol = symbol; self.kick = kick; self.hint = hint
+            self.size = size; self.symbolSize = symbolSize; self.tint = tint; self.action = action
+        }
+        var body: some View {
+            Button(action: action) { Image(systemName: symbol).frame(width: size, height: size) }
+        }
+    }
     class State {
         var running = true
         var suspended = false

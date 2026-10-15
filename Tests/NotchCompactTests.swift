@@ -76,11 +76,19 @@ enum NotchCompactTests {
         func show(allowsIsland: Bool = true) {}
         func exportText(suggestedName: String, from window: NSWindow? = nil) {}
     }
-    struct NotchEmptyView: View {
+    struct NotchEmptyView<Actions: View>: View {
         let symbol: String
         let message: String
-        var body: some View { Text(message) }
+        @ViewBuilder var actions: () -> Actions
+        var body: some View { VStack { Text(message); actions() } }
     }
+    struct NotchPressStyle: ButtonStyle {
+        var shape: NotchPressShape = .capsule
+        var lifts = true
+        var washes = true
+        func makeBody(configuration: Configuration) -> some View { configuration.label }
+    }
+    enum NotchPressShape { case capsule, rounded(CGFloat) }
     struct NotchControlSurface: ViewModifier {
         let cornerRadius: CGFloat
         var interactive = true
@@ -454,5 +462,11 @@ enum NotchCompactTests {
         suite.expect(page.pageSize == page.service.contentSize, "a single home card does not introduce unnecessary scrolling")
         page.showsDetail = true
         suite.expect(page.pageSize == page.service.contentSize, "vertical detail pages preserve their existing layout")
+    }
+}
+
+extension NotchCompactTests.NotchEmptyView where Actions == EmptyView {
+    init(symbol: String, message: String) {
+        self.init(symbol: symbol, message: message) { EmptyView() }
     }
 }
