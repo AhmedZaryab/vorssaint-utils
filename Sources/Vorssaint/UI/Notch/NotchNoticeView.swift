@@ -61,10 +61,20 @@ struct NotchNoticeView: View {
         } else if notice.event == .track {
             NotchTrackArtwork(size: NotchDesign.Peek.artwork)
                 .clipShape(RoundedRectangle(cornerRadius: NotchDesign.Radius.card, style: .continuous))
+        } else if let file = notice.fileURL {
+            Image(nsImage: NSWorkspace.shared.icon(forFile: file.path))
+                .resizable()
+                .interpolation(.high)
+                .scaledToFit()
         } else {
-            Image(systemName: notice.symbol)
-                .font(.system(size: NotchDesign.Peek.artwork * 0.6, weight: .medium))
-                .foregroundStyle(NotchDesign.Ink.primary)
+            // One plate for every glyph-only mark, as the song band's no-cover fallback.
+            ZStack {
+                RoundedRectangle(cornerRadius: NotchDesign.Radius.card, style: .continuous)
+                    .fill(NotchDesign.Fill.card)
+                Image(systemName: notice.symbol)
+                    .font(NotchDesign.Icon.wing.font)
+                    .foregroundStyle(NotchDesign.Ink.primary)
+            }
         }
     }
 
@@ -227,9 +237,10 @@ struct NotchTallPeekRow<Mark: View, Live: View>: View {
                 live.frame(width: NotchDesign.Peek.trailingSide, height: NotchDesign.Peek.trailingSide)
             }
         }
-        // Equal insets from the band's two edges, so the row sits centred on
-        // the island and the camera (the anatomy's 16 pt, Geometry.margin).
-        .padding(.horizontal, NotchDesign.Geometry.margin)
+        // The island's body starts a shoulder in from the surface edge, so the row
+        // insets by shoulder plus margin: the 32 pt mark's corner is concentric
+        // with the island's bottom corner (notch-geometry.md contentInsets).
+        .padding(.horizontal, NotchLayout.horizontalInset)
         .padding(.top, NotchDesign.Peek.bandTop)
         .frame(height: NotchDesign.Peek.bandHeight, alignment: .top)
     }
