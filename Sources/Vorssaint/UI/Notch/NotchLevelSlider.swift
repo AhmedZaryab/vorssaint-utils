@@ -4,13 +4,41 @@
 import AppKit
 import SwiftUI
 
-/// AppKit owns tracking, keyboard input and accessibility; the cell only
-/// draws the larger filled track used by the notch's level controls. The same
-/// control carries the playback position, so every bar in the panel matches.
-/// A vertical one is a fader filling from the bottom; the orientation is set
-/// outright because AppKit fixes it from the frame it first sees, which under
-/// SwiftUI is empty.
-struct NotchLevelSlider: NSViewRepresentable {
+/// The level control of the notch: volume, brightness, keyboard light and the
+/// playback position. Horizontal levels are the shared `NotchSlider` (a track
+/// that follows the pointer 1:1, rubberband at the ends, a value read while
+/// dragging); a marker becomes its detent. A vertical one is the mixer's
+/// fader. The public surface is unchanged.
+struct NotchLevelSlider: View {
+    @Binding var value: Double
+    let label: String
+    var range: ClosedRange<Double> = 0...1
+    var tint: Color = .white
+    var vertical = false
+    /// Only the vertical fader draws a thicker track; a horizontal level uses the token track.
+    var trackThickness: CGFloat?
+    /// A value worth a snap on the track, such as unity on a fader that boosts.
+    var marker: Double?
+    var valueLabel: String?
+    var onEditingChanged: ((Bool) -> Void)?
+
+    var body: some View {
+        if vertical {
+            NotchFader(value: $value, label: label, range: range, tint: tint, vertical: true,
+                       trackThickness: trackThickness, marker: marker, valueLabel: valueLabel,
+                       onEditingChanged: onEditingChanged)
+        } else {
+            NotchSlider(value: $value, label: label, range: range, detents: marker.map { [$0] } ?? [],
+                        tint: tint, valueText: valueLabel, onEditingChanged: onEditingChanged)
+        }
+    }
+}
+
+/// The vertical fader, which NotchSlider does not cover: AppKit owns tracking,
+/// keyboard input and accessibility, the cell only draws the filled track. The
+/// orientation is set outright because AppKit fixes it from the frame it first
+/// sees, which under SwiftUI is empty.
+private struct NotchFader: NSViewRepresentable {
     @Binding var value: Double
     let label: String
     var range: ClosedRange<Double> = 0...1
@@ -68,9 +96,9 @@ struct NotchLevelSlider: NSViewRepresentable {
     }
 
     final class Coordinator: NSObject {
-        var parent: NotchLevelSlider
+        var parent: NotchFader
         private var editing = NotchSliderEditing()
-        init(_ parent: NotchLevelSlider) { self.parent = parent }
+        init(_ parent: NotchFader) { self.parent = parent }
         func trackingChanged(_ value: Bool) {
             editing.trackingChanged(value, onEditingChanged: parent.onEditingChanged)
         }
@@ -120,7 +148,7 @@ private final class NotchLevelCell: NSSliderCell {
         let outline = NSBezierPath(roundedRect: track, xRadius: radius, yRadius: radius)
         NSGraphicsContext.saveGraphicsState()
         outline.addClip()
-        NSColor.white.withAlphaComponent(0.14).setFill()
+        NSColor(NotchDesign.Fill.track).setFill()
         track.fill()
         let span = maxValue - minValue
         let fraction = span > 0 ? min(1, max(0, (doubleValue - minValue) / span)) : 0

@@ -4,6 +4,19 @@
 import AppKit
 import SwiftUI
 
+private typealias Design = NotchDesign
+
+/// Values the level cards share, so volume, brightness and the keyboard light
+/// start and end their sliders on the same lines. The row is the 28 pt level
+/// row; the glyph column is the hit target of the mute button.
+private enum NotchLevelMetrics {
+    /** A level row, and the glyph column every level leads with. */ static let row = Design.Control.rowHeight
+    /** The card's title row; the 28 pt mute button overflows it into the card's padding. */ static let titleRow: CGFloat = 20
+    /** The width reserved for "100%" in the readout, so sliders end on one line. */ static let readoutWidth: CGFloat = 36
+    /** Card padding when the device row is shown: the three lines fit the 96 pt card. */ static let detailPadding = Design.Spacing.small
+    /** Card padding on a folded card: title row, slider and the 68 pt minimum height. */ static let foldedPadding = Design.Spacing.xxSmall
+}
+
 /// How a level control draws: a full card with its device menu, one slim row
 /// inside a shared card, or the inline strip under the player.
 enum NotchLevelStyle {
@@ -62,9 +75,9 @@ struct NotchControlsView: View {
                 NotchMusicControlsView(notch: service, height: height)
                 if levels.count > 1 {
                     levelRows(levels, height: height)
-                        .padding(.horizontal, 12)
+                        .padding(.horizontal, Design.Spacing.cardPadding)
                         .frame(width: 160, height: height)
-                        .modifier(NotchControlSurface(cornerRadius: 18))
+                        .modifier(NotchControlSurface(cornerRadius: Design.Radius.card))
                 } else if let single = levels.first {
                     level(single, style: .card, showsDevice: height >= 88).frame(width: 160, height: height)
                 }
@@ -81,10 +94,10 @@ struct NotchControlsView: View {
     /// Three rows need the card's full height; a shortened card scrolls
     /// them rather than letting the last one spill out of it.
     @ViewBuilder private func levelRows(_ levels: [NotchControlItem], height: CGFloat) -> some View {
-        let rows = VStack(spacing: 6) {
+        let rows = VStack(spacing: Design.Spacing.xSmall) {
             ForEach(levels) { level($0, style: .row, showsDevice: false) }
         }
-        if CGFloat(levels.count) * 28 + CGFloat(levels.count - 1) * 6 > height {
+        if CGFloat(levels.count) * NotchLevelMetrics.row + CGFloat(levels.count - 1) * Design.Spacing.xSmall > height {
             ScrollView { rows }.scrollIndicators(.never)
         } else {
             rows
@@ -109,25 +122,27 @@ struct NotchControlsView: View {
                 SettingsRouter.shared.request(AppFeature.brightness.settingsDestination)
                 (NSApp.delegate as? AppDelegate)?.openSettingsWindow()
             }
-        }.buttonStyle(.plain).foregroundStyle(.secondary).font(.system(size: 11))
+        }.buttonStyle(NotchPressStyle()).foregroundStyle(Design.Ink.secondary).font(Design.Typography.label.font)
         return Group {
             if style == .row {
-                HStack(spacing: 8) {
-                    Image(systemName: "sun.max.fill").font(.system(size: 12, weight: .medium)).frame(width: 18)
-                    Text(FeatureStrings.notch(l10n.language).brightness).font(.system(size: 12, weight: .semibold)).lineLimit(1)
-                    Spacer(minLength: 4)
+                HStack(spacing: Design.Spacing.xxSmall) {
+                    Image(systemName: "sun.max.fill").font(Design.Icon.button.font)
+                        .frame(width: NotchLevelMetrics.row)
+                        .accessibilityHidden(true)
+                    Text(FeatureStrings.notch(l10n.language).brightness).font(Design.Typography.title.font).lineLimit(1)
+                    Spacer(minLength: Design.Spacing.xxSmall)
                     settings
                 }
-                .frame(height: 28)
+                .frame(height: NotchLevelMetrics.row)
             } else {
-                VStack(alignment: .leading, spacing: 12) {
+                VStack(alignment: .leading, spacing: Design.Spacing.medium) {
                     Label(FeatureStrings.notch(l10n.language).brightness, systemImage: "sun.max.fill")
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(Design.Typography.title.font)
                     settings
                 }
-                .padding(12)
+                .padding(Design.Spacing.cardPadding)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-                .modifier(NotchControlSurface(cornerRadius: 18))
+                .modifier(NotchControlSurface(cornerRadius: Design.Radius.card))
             }
         }
     }
@@ -184,7 +199,7 @@ struct NotchAudioControls: View {
     var body: some View {
         switch style {
         case .inline:
-            HStack(spacing: 10) {
+            HStack(spacing: Design.Spacing.small) {
                 mute
                 slider
                 inlineOutputMenu
@@ -192,16 +207,16 @@ struct NotchAudioControls: View {
             .frame(height: NotchLayout.musicControlsRowHeight)
             .help(mixer.outputSwitchError ?? deviceName)
         case .row:
-            HStack(spacing: 8) {
+            HStack(spacing: Design.Spacing.xxSmall) {
                 mute
                 slider
                 readoutMenu
             }
-            .frame(height: 28)
+            .frame(height: NotchLevelMetrics.row)
             .help(mixer.outputSwitchError ?? deviceName)
         case .card:
-            VStack(spacing: 6) {
-                HStack(spacing: 7) {
+            VStack(spacing: Design.Spacing.xSmall) {
+                HStack(spacing: Design.Spacing.xxSmall) {
                     mute
                     if showsDevice {
                         Text(FeatureStrings.notch(l10n.language).volume).lineLimit(1)
@@ -212,12 +227,13 @@ struct NotchAudioControls: View {
                         readoutMenu
                     }
                 }
-                .font(.system(size: 12, weight: .semibold))
+                .font(Design.Typography.title.font)
+                .frame(height: NotchLevelMetrics.titleRow)
                 slider
                 if showsDevice {
                     Group {
                         if let error = mixer.outputSwitchError {
-                            Text(error).font(.system(size: 10)).foregroundStyle(.orange).lineLimit(1).help(error)
+                            Text(error).font(Design.Typography.caption.font).foregroundStyle(Design.Palette.warning).lineLimit(1).help(error)
                         } else {
                             NotchDeviceMenu(title: l10n.s.mixerSystemOutputTitle, current: deviceName,
                                             width: 154, lines: 1, alignment: .leading, items: outputItems)
@@ -226,22 +242,22 @@ struct NotchAudioControls: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
-            .padding(.horizontal, 12)
-            // A short card folds its padding so the readout row, the slider and
+            .padding(.horizontal, Design.Spacing.cardPadding)
+            // A short card folds its padding so the title row, the slider and
             // their gap fit NotchLayout.minimumCardHeight without spilling past the surface.
-            .padding(.vertical, showsDevice ? 10 : 5)
+            .padding(.vertical, showsDevice ? NotchLevelMetrics.detailPadding : NotchLevelMetrics.foldedPadding)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .modifier(NotchControlSurface(cornerRadius: 18))
+            .modifier(NotchControlSurface(cornerRadius: Design.Radius.card))
         }
     }
 
     @ViewBuilder private var percent: some View {
         if let level {
             Text("\(Int((level * 100).rounded()))%")
-                .font(.system(size: 12, weight: .semibold))
+                .font(Design.Typography.readout.font)
                 .monospacedDigit()
                 .contentTransition(.numericText())
-                .animation(reduceMotion ? nil : .smooth(duration: 0.2), value: level)
+                .animation(Design.Motion.animation(Design.Motion.snappy, reduceMotion: reduceMotion), value: level)
         }
     }
 
@@ -252,21 +268,16 @@ struct NotchAudioControls: View {
         mixer.requestOutputAdjustment(volume: volume, muted: muted)
     }
 
+    /// The mute toggle: on means muted, so the plate fills with the accent and the glyph morphs.
     private var mute: some View {
-        Button {
-            if let muted = mixer.systemOutputMuted { adjustOutput(muted: !muted) }
-        } label: {
-            Image(systemName: mixer.systemOutputMuted == true ? "speaker.slash.fill" : "speaker.wave.2.fill")
-                .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(mixer.systemOutputMuted == true ? Color.red : Color.white)
-                .contentTransition(.symbolEffect(.replace))
-                .animation(reduceMotion ? nil : .smooth(duration: 0.24), value: mixer.systemOutputMuted)
-                .frame(width: 18, height: 18)
-                .contentShape(Rectangle())
+        Toggle(isOn: Binding(get: { mixer.systemOutputMuted == true },
+                             set: { adjustOutput(muted: $0) })) {
+            Text(l10n.s.actionMute)
         }
-        .buttonStyle(NotchButtonStyle(cornerRadius: 6))
+        .toggleStyle(NotchToggleStyle(on: "speaker.slash.fill", off: "speaker.wave.2.fill"))
+        .labelsHidden()
         .disabled(mixer.systemOutputMuted == nil)
-        .accessibilityLabel(mixer.systemOutputMuted == true ? l10n.s.actionUnmute : l10n.s.actionMute)
+        .help(mixer.systemOutputMuted == true ? l10n.s.actionUnmute : l10n.s.actionMute)
     }
 
     @ViewBuilder private var slider: some View {
@@ -275,12 +286,12 @@ struct NotchAudioControls: View {
             // bar, keeping the full height to grab it by.
             NotchLevelSlider(value: Binding(get: { level }, set: { adjustOutput(volume: $0) }),
                              label: FeatureStrings.notch(l10n.language).volume,
-                             trackThickness: style == .inline ? 8 : nil)
-                .frame(height: style == .card ? 28 : 24)
+                             tint: Design.Ink.primary)
+                .frame(height: NotchLevelMetrics.row)
         } else {
-            Text(l10n.s.mixerOutputUnavailable).font(.system(size: 10)).foregroundStyle(.secondary)
+            Text(l10n.s.mixerOutputUnavailable).font(Design.Typography.caption.font).foregroundStyle(Design.Ink.secondary)
                 .lineLimit(1)
-                .frame(maxWidth: .infinity, minHeight: style == .card ? 28 : 24, alignment: .leading)
+                .frame(maxWidth: .infinity, minHeight: NotchLevelMetrics.row, alignment: .leading)
         }
     }
 
@@ -307,11 +318,11 @@ struct NotchAudioControls: View {
     private var inlineOutputMenu: some View {
         NotchMenuButton(title: l10n.s.mixerSystemOutputTitle, items: outputItems) {
             Image(systemName: "airplay.audio")
-                .font(.system(size: 14))
-                .foregroundStyle(.secondary)
-                .padding(.horizontal, 4)
-                .frame(height: 24)
-                .contentShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                .font(Design.Icon.button.font)
+                .foregroundStyle(Design.Ink.secondary)
+                .padding(.horizontal, Design.Spacing.xxSmall)
+                .frame(height: NotchLevelMetrics.row)
+                .contentShape(RoundedRectangle(cornerRadius: Design.Radius.control, style: .continuous))
         }
         .help(deviceName)
         .accessibilityValue(deviceName)
@@ -328,14 +339,14 @@ private struct NotchLevelReadoutMenu<Readout: View>: View {
 
     var body: some View {
         NotchMenuButton(title: title, items: items) {
-            HStack(spacing: 5) {
-                readout().frame(width: 36, alignment: .trailing)
-                Image(systemName: "chevron.down").font(.system(size: 8, weight: .semibold))
-                    .foregroundStyle(.secondary)
+            HStack(spacing: Design.Spacing.xxSmall) {
+                readout().frame(width: NotchLevelMetrics.readoutWidth, alignment: .trailing)
+                Image(systemName: "chevron.down").font(Design.Typography.caption.font)
+                    .foregroundStyle(Design.Ink.secondary)
             }
-            .padding(.horizontal, 4)
-            .frame(height: 24)
-            .contentShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+            .padding(.horizontal, Design.Spacing.xxSmall)
+            .frame(height: NotchLevelMetrics.row)
+            .contentShape(RoundedRectangle(cornerRadius: Design.Radius.control, style: .continuous))
         }
     }
 }
@@ -355,16 +366,16 @@ private struct NotchBrightnessControls: View {
     var body: some View {
         Group {
             if style == .row {
-                HStack(spacing: 8) {
+                HStack(spacing: Design.Spacing.xxSmall) {
                     glyph
                     slider
                     readoutMenu
                 }
-                .frame(height: 28)
+                .frame(height: NotchLevelMetrics.row)
                 .help(display?.name ?? FeatureStrings.brightness(l10n.language).noDisplays)
             } else {
-                VStack(spacing: 6) {
-                    HStack(spacing: 7) {
+                VStack(spacing: Design.Spacing.xSmall) {
+                    HStack(spacing: Design.Spacing.xxSmall) {
                         glyph
                         if showsDevice {
                             Text(FeatureStrings.notch(l10n.language).brightness).lineLimit(1)
@@ -375,7 +386,8 @@ private struct NotchBrightnessControls: View {
                             readoutMenu
                         }
                     }
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(Design.Typography.title.font)
+                    .frame(height: NotchLevelMetrics.titleRow)
                     slider
                     if showsDevice, let display {
                         NotchDeviceMenu(title: FeatureStrings.notch(l10n.language).brightness, current: display.name,
@@ -383,11 +395,11 @@ private struct NotchBrightnessControls: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }
-                .padding(.horizontal, 12)
+                .padding(.horizontal, Design.Spacing.cardPadding)
                 // Folds like the audio card above, for the same minimum card height.
-                .padding(.vertical, showsDevice ? 10 : 5)
+                .padding(.vertical, showsDevice ? NotchLevelMetrics.detailPadding : NotchLevelMetrics.foldedPadding)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .modifier(NotchControlSurface(cornerRadius: 18))
+                .modifier(NotchControlSurface(cornerRadius: Design.Radius.card))
             }
         }
         .onAppear { service.refresh() }
@@ -396,7 +408,10 @@ private struct NotchBrightnessControls: View {
     /// Volume leads with its mute button; the sun keeps that button's width
     /// so both sliders start on the same line.
     private var glyph: some View {
-        Image(systemName: "sun.max.fill").font(.system(size: 12, weight: .medium)).frame(width: 18)
+        Image(systemName: "sun.max.fill").font(Design.Icon.button.font)
+            .foregroundStyle(Design.Ink.primary)
+            .frame(width: NotchLevelMetrics.row, height: NotchLevelMetrics.row)
+            .accessibilityHidden(true)
     }
 
     private func displayItems(current: BrightnessDisplay) -> [NotchMenuItem] {
@@ -417,10 +432,10 @@ private struct NotchBrightnessControls: View {
     @ViewBuilder private var percent: some View {
         if let display {
             Text("\(BrightnessSupport.wholePercent(display.brightness))%")
-                .font(.system(size: 12, weight: .semibold))
+                .font(Design.Typography.readout.font)
                 .monospacedDigit()
                 .contentTransition(.numericText())
-                .animation(reduceMotion ? nil : .smooth(duration: 0.2), value: display.brightness)
+                .animation(Design.Motion.animation(Design.Motion.snappy, reduceMotion: reduceMotion), value: display.brightness)
         }
     }
 
@@ -429,11 +444,11 @@ private struct NotchBrightnessControls: View {
             NotchLevelSlider(value: Binding(get: { display.brightness }, set: {
                 service.setBrightness($0, for: display.id, showOSD: true)
             }), label: FeatureStrings.notch(l10n.language).brightness)
-                .frame(height: style == .card ? 28 : 24)
+                .frame(height: NotchLevelMetrics.row)
         } else {
             Text(FeatureStrings.brightness(l10n.language).noDisplays)
-                .font(.system(size: 10)).foregroundStyle(.secondary).lineLimit(2)
-                .frame(maxWidth: .infinity, minHeight: style == .card ? 28 : 24, alignment: .leading)
+                .font(Design.Typography.caption.font).foregroundStyle(Design.Ink.secondary).lineLimit(2)
+                .frame(maxWidth: .infinity, minHeight: NotchLevelMetrics.row, alignment: .leading)
         }
     }
 }
@@ -452,16 +467,16 @@ private struct NotchKeyboardLightControls: View {
     var body: some View {
         Group {
             if style == .row {
-                HStack(spacing: 8) {
+                HStack(spacing: Design.Spacing.xxSmall) {
                     glyph
                     slider
                     readout
                 }
-                .frame(height: 28)
+                .frame(height: NotchLevelMetrics.row)
                 .help(title)
             } else {
-                VStack(spacing: 6) {
-                    HStack(spacing: 7) {
+                VStack(spacing: Design.Spacing.xSmall) {
+                    HStack(spacing: Design.Spacing.xxSmall) {
                         glyph
                         if showsTitle {
                             Text(title).lineLimit(1)
@@ -472,13 +487,14 @@ private struct NotchKeyboardLightControls: View {
                             readout
                         }
                     }
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(Design.Typography.title.font)
+                    .frame(height: NotchLevelMetrics.titleRow)
                     slider
                 }
-                .padding(.horizontal, 12)
-                .padding(.vertical, showsTitle ? 10 : 5)
+                .padding(.horizontal, Design.Spacing.cardPadding)
+                .padding(.vertical, showsTitle ? NotchLevelMetrics.detailPadding : NotchLevelMetrics.foldedPadding)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .modifier(NotchControlSurface(cornerRadius: 18))
+                .modifier(NotchControlSurface(cornerRadius: Design.Radius.card))
             }
         }
         .onAppear { service.refreshKeyboardLight() }
@@ -487,39 +503,34 @@ private struct NotchKeyboardLightControls: View {
     /// The switch the panel has, where volume keeps its mute button: off,
     /// or back on at the level the light last had.
     private var glyph: some View {
-        Button {
-            if let enabled = service.keyboardLightEnabled { service.setKeyboardLightEnabled(!enabled) }
-        } label: {
-            Image(systemName: service.keyboardLightEnabled == false ? "light.min" : "light.max")
-                .font(.system(size: 12, weight: .medium))
-                .contentTransition(.symbolEffect(.replace))
-                .animation(reduceMotion ? nil : .smooth(duration: 0.24), value: service.keyboardLightEnabled)
-                .frame(width: 18, height: 18)
-                .contentShape(Rectangle())
+        Toggle(isOn: Binding(get: { service.keyboardLightEnabled != false },
+                             set: { service.setKeyboardLightEnabled($0) })) {
+            Text(title)
         }
-        .buttonStyle(NotchButtonStyle(cornerRadius: 6))
+        .toggleStyle(NotchToggleStyle(on: "light.max", off: "light.min", tint: Design.Fill.selected))
+        .labelsHidden()
         .disabled(service.keyboardLightEnabled == nil)
-        .accessibilityLabel(title)
+        .help(title)
     }
 
     /// The readout menu's layout with its chevron hidden, so this slider
     /// starts and ends where the volume and brightness ones do.
     private var readout: some View {
-        HStack(spacing: 5) {
-            percent.frame(width: 36, alignment: .trailing)
-            Image(systemName: "chevron.down").font(.system(size: 8, weight: .semibold)).hidden()
+        HStack(spacing: Design.Spacing.xxSmall) {
+            percent.frame(width: NotchLevelMetrics.readoutWidth, alignment: .trailing)
+            Image(systemName: "chevron.down").font(Design.Typography.caption.font).hidden()
         }
-        .padding(.horizontal, 4)
-        .frame(height: 24)
+        .padding(.horizontal, Design.Spacing.xxSmall)
+        .frame(height: NotchLevelMetrics.row)
     }
 
     @ViewBuilder private var percent: some View {
         if let level = service.keyboardLightLevel {
             Text("\(BrightnessSupport.wholePercent(Double(level)))%")
-                .font(.system(size: 12, weight: .semibold))
+                .font(Design.Typography.readout.font)
                 .monospacedDigit()
                 .contentTransition(.numericText())
-                .animation(reduceMotion ? nil : .smooth(duration: 0.2), value: level)
+                .animation(Design.Motion.animation(Design.Motion.snappy, reduceMotion: reduceMotion), value: level)
         }
     }
 
@@ -528,41 +539,38 @@ private struct NotchKeyboardLightControls: View {
             NotchLevelSlider(value: Binding(get: { Double(level) }, set: {
                 service.setKeyboardLightLevel(Float($0))
             }), label: title, onEditingChanged: service.keyboardLightDragChanged)
-                .frame(height: style == .card ? 28 : 24)
+                .frame(height: NotchLevelMetrics.row)
         } else {
             Text(FeatureStrings.notchEditor(l10n.language).keyboardLightUnavailable)
-                .font(.system(size: 10)).foregroundStyle(.secondary).lineLimit(2)
-                .frame(maxWidth: .infinity, minHeight: style == .card ? 28 : 24, alignment: .leading)
+                .font(Design.Typography.caption.font).foregroundStyle(Design.Ink.secondary).lineLimit(2)
+                .frame(maxWidth: .infinity, minHeight: NotchLevelMetrics.row, alignment: .leading)
         }
     }
 }
 
 /// How an active tile reads. Recording and a muted microphone are states the
-/// person has to notice, so they carry their own colour instead of the neutral
-/// selection fill. A timer keeps the orange it has across the island.
+/// person has to notice, so they take the critical signal; every other active
+/// tile, the timer and keep awake included, fills with the one accent, as
+/// Control Center's tiles do. `awake` and `timer` stay so callers compile and
+/// resolve to the same accent as `selection`.
 enum NotchTileAccent {
     case selection, alert, awake, timer
 
     var fill: Color {
         switch self {
-        case .selection: return .white
-        case .alert: return .red
-        case .awake: return .yellow
-        case .timer: return .orange
+        case .selection, .awake, .timer: return Design.Palette.accent
+        case .alert: return Design.Palette.critical
         }
     }
 
-    var glyph: Color {
-        switch self {
-        case .selection, .awake, .timer: return .black
-        case .alert: return .white
-        }
-    }
+    var glyph: Color { Design.Ink.primary }
 }
 
 /// A glyph in its own circle over a two-line label, the shape every shortcut
 /// rail in the island shares. A live reading, such as a running timer's
 /// clock, takes the first line and leaves the title one line below it.
+/// The whole tile presses (`NotchPressStyle`); a tile that holds a state
+/// fills its circle on `Motion.snappy` and pulses once, as `NotchToggleStyle` does.
 struct NotchActionTile: View {
     let symbol: String
     let title: String
@@ -578,24 +586,30 @@ struct NotchActionTile: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 6) {
-                Image(systemName: symbol).font(.system(size: 17, weight: .medium))
-                    .foregroundStyle(active ? accent.glyph : .white.opacity(0.85))
-                    .contentTransition(.symbolEffect(.replace))
-                    .frame(width: 40, height: 40)
-                    .background(active ? accent.fill : Color.white.opacity(0.075), in: Circle())
-                    .animation(reduceMotion ? nil : .smooth(duration: 0.26), value: symbol)
+            VStack(spacing: Design.Spacing.xSmall) {
+                Image(systemName: symbol).font(Design.Icon.tile.font)
+                    .foregroundStyle(active ? accent.glyph : Design.Ink.primary.opacity(0.85))
+                    .notchSymbolReplace(reduceMotion: reduceMotion)
+                    .animation(reduceMotion ? Design.Motion.fade : Design.Motion.snappy.animation, value: symbol)
+                    .frame(width: Design.Control.tileGlyph, height: Design.Control.tileGlyph)
+                    .background(active ? accent.fill : Design.Fill.control, in: Circle())
+                    .animation(reduceMotion ? Design.Motion.fade : Design.Motion.snappy.animation, value: active)
+                    .keyframeAnimator(initialValue: CGFloat(1), trigger: reduceMotion ? false : active) { view, scale in
+                        view.scaleEffect(scale)
+                    } keyframes: { _ in
+                        SpringKeyframe(NotchInteractionMetrics.togglePulse, duration: 0.09, spring: Spring(duration: 0.09, bounce: 0))
+                        SpringKeyframe(1, duration: 0.18, spring: Spring(duration: 0.18, bounce: 0))
+                    }
                 label
                     .frame(maxWidth: .infinity)
                     .frame(height: 28, alignment: .top)
             }
-            .padding(.horizontal, 4)
+            .padding(.horizontal, Design.Spacing.xxSmall)
             .frame(maxWidth: .infinity)
             .frame(height: NotchLayout.shortcutHeight)
-            .animation(reduceMotion ? nil : .smooth(duration: 0.26), value: active)
-            .contentShape(RoundedRectangle(cornerRadius: 14))
+            .contentShape(RoundedRectangle(cornerRadius: Design.Radius.card, style: .continuous))
         }
-        .buttonStyle(NotchButtonStyle(cornerRadius: 14))
+        .buttonStyle(NotchPressStyle(shape: .rounded(Design.Radius.card)))
         .accessibilityLabel(title)
         .accessibilityValue(reading ?? "")
         .accessibilityAddTraits(active ? .isSelected : [])
@@ -604,13 +618,13 @@ struct NotchActionTile: View {
 
     @ViewBuilder private var label: some View {
         if let reading {
-            VStack(spacing: 1) {
+            VStack(spacing: Design.Spacing.line) {
                 // A later day's start with a 12-hour clock, such as Spanish
                 // "dom, 10:45 p. m.", needs up to 91 pt on a 68 pt line. The
                 // smaller optical size spaces its letters wider, so scaling
                 // alone would still cut it off.
-                Text(reading).font(.system(size: 11, weight: .semibold)).monospacedDigit()
-                    .foregroundStyle(.white)
+                Text(reading).font(Design.Typography.readout.font).monospacedDigit()
+                    .foregroundStyle(Design.Ink.primary)
                     .allowsTightening(true)
                     .minimumScaleFactor(0.7)
                     .modifier(NotchRollingDigits(value: reading, countsDown: readingCountsDown))
@@ -622,8 +636,8 @@ struct NotchActionTile: View {
             .lineLimit(1)
             .minimumScaleFactor(0.85)
         } else {
-            Text(title).font(.system(size: 11, weight: .medium))
-                .foregroundStyle(.white)
+            Text(title).font(Design.Typography.label.font)
+                .foregroundStyle(Design.Ink.primary)
                 .lineLimit(2).multilineTextAlignment(.center)
                 .minimumScaleFactor(0.85)
                 .fixedSize(horizontal: false, vertical: true)
@@ -631,8 +645,8 @@ struct NotchActionTile: View {
     }
 
     private func readingTitle(_ text: String) -> some View {
-        Text(text).font(.system(size: 11, weight: .medium))
-            .foregroundStyle(.white.opacity(0.7))
+        Text(text).font(Design.Typography.label.font)
+            .foregroundStyle(Design.Ink.secondary)
     }
 }
 
