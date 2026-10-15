@@ -15,15 +15,23 @@ struct NotchFilesView: View {
     @State private var actionInputs: [URL] = []
     @State private var outputPanel: NSSavePanel?
     @Environment(\.notchSettingsPreview) private var preview
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     private var text: NotchFilesStrings { FeatureStrings.notchFiles(l10n.language) }
 
     var body: some View {
         VStack(spacing: NotchLayout.rowSpacing) {
             if shelf.items.isEmpty {
+                let targeted = shelf.dropTargeted
+                let zone = RoundedRectangle(cornerRadius: NotchDesign.Radius.card, style: .continuous)
                 NotchEmptyView(symbol: "tray.and.arrow.down", message: FeatureStrings.notch(l10n.language).dropHint)
                     .frame(maxHeight: .infinity)
-                    .overlay { RoundedRectangle(cornerRadius: 20, style: .continuous)
-                        .strokeBorder(.white.opacity(0.18), style: StrokeStyle(lineWidth: 0.75, dash: [4, 5])) }
+                    .background(targeted ? NotchDesign.Fill.hover : .clear, in: zone)
+                    .overlay {
+                        zone.strokeBorder(targeted ? NotchDesign.Palette.accent : NotchDesign.Ink.tertiary,
+                                          style: NotchDesign.Stroke.dropTarget)
+                            .allowsHitTesting(false)
+                    }
+                    .animation(NotchDesign.Motion.fade, value: targeted)
             } else {
                 ShelfTilesView(items: shelf.visibleItems,
                                contentRevision: shelf.contentRevision,
@@ -34,27 +42,36 @@ struct NotchFilesView: View {
                                revealSerial: shelf.addSerial,
                                sideways: true)
                     .frame(maxHeight: .infinity)
-                HStack {
+                HStack(spacing: NotchDesign.Spacing.xSmall) {
                     Text(shelf.selection.isEmpty ? l10n.s.shelfHint
                          : String(format: l10n.s.shelfSelectedFormat, shelf.selection.count))
-                        .font(.system(size: 10)).foregroundStyle(.secondary).lineLimit(2)
+                        .font(NotchDesign.Typography.caption.font)
+                        .foregroundStyle(NotchDesign.Ink.secondary).lineLimit(2)
+                        .contentTransition(.numericText())
+                        .animation(NotchDesign.Motion.animation(NotchDesign.Motion.snappy, reduceMotion: reduceMotion),
+                                   value: shelf.selection.count)
                     Spacer()
-                    NotchIconButton(symbol: "doc.zipper", title: text.archive) {
+                    NotchPlainIconButton(symbol: "doc.zipper", title: text.archive) {
                         actionInputs = shelf.fileURLsForActions()
                         chooseArchiveDestination()
                     }
                     .disabled(!shelf.hasFilesForActions || archives.isRunning)
-                    NotchIconButton(symbol: "square.and.arrow.up", title: l10n.s.shelfActionShare) {
+                    NotchPlainIconButton(symbol: "square.and.arrow.up", title: l10n.s.shelfActionShare) {
                         shareAnchor.present(shelf.fileURLsForActions())
                     }
                     .background(ShelfSharePickerAnchor(anchor: shareAnchor))
                     .disabled(!shelf.hasFilesForActions)
                     // The shelf's trash takes the selection first, the whole
-                    // shelf only when nothing is selected.
+                    // shelf only when nothing is selected. Both burn down on a
+                    // fuse, so a slip is one press from undone.
                     if shelf.selection.isEmpty {
-                        clearMenu
+                        NotchFuseButton(l10n.s.shelfClearAll, symbol: "trash", doneAnnouncement: l10n.s.shelfClearAll,
+                                        shape: .rounded(NotchDesign.Radius.control)) { shelf.clear() }
+                            .disabled(archives.isRunning)
                     } else {
-                        NotchIconButton(symbol: "trash.fill", title: l10n.s.shelfRemoveSelected) {
+                        NotchFuseButton(l10n.s.shelfRemoveSelected, symbol: "trash.fill",
+                                        doneAnnouncement: l10n.s.shelfRemoveSelected,
+                                        shape: .rounded(NotchDesign.Radius.control)) {
                             shelf.removeItems(Array(shelf.selection))
                         }
                         .disabled(archives.isRunning)
@@ -79,50 +96,45 @@ struct NotchFilesView: View {
         }
     }
 
-    // A sheet dims the window's transparent margins. A native menu keeps the
-    // explicit confirmation beside its trigger and uses the existing menu tracking.
-    private var clearMenu: some View {
-        Menu {
-            Button(l10n.s.shelfClearAll, role: .destructive) { shelf.clear() }
-            Button(l10n.s.uninstallerCancel, role: .cancel) {}
-        } label: {
-            Image(systemName: "trash")
-                .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(.white.opacity(0.55))
-                .frame(width: 28, height: 28)
-                .contentShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
-        }
-        .menuStyle(.borderlessButton)
-        .menuIndicator(.hidden)
-        .fixedSize()
-        .disabled(archives.isRunning)
-        .help(l10n.s.shelfClearAll)
-        .accessibilityLabel(l10n.s.shelfClearAll)
-    }
-
     @ViewBuilder private var archiveStatus: some View {
         if archives.isRunning {
-            HStack(spacing: 10) {
+            HStack(spacing: NotchDesign.Spacing.small) {
                 ProgressView().controlSize(.small)
                 Text("\(text.archive) · \(archives.completed)/\(archives.total)")
-                    .font(.caption).monospacedDigit()
+                    .font(NotchDesign.Typography.caption.font).monospacedDigit()
+                    .foregroundStyle(NotchDesign.Ink.secondary)
                 Spacer()
-                Button(l10n.s.uninstallerCancel, action: archives.cancel)
-                    .controlSize(.small).disabled(archives.wasCancelled)
+                statusButton(l10n.s.uninstallerCancel, action: archives.cancel)
+                    .disabled(archives.wasCancelled)
             }
         } else if let failure = archives.failure {
-            Text(failure).font(.caption).foregroundStyle(.orange).lineLimit(3)
+            Text(failure).font(NotchDesign.Typography.caption.font)
+                .foregroundStyle(NotchDesign.Palette.warning).lineLimit(3)
         } else if !archives.outputURLs.isEmpty {
-            HStack {
-                Label(text.saved, systemImage: "checkmark.circle.fill").foregroundStyle(.green)
+            HStack(spacing: NotchDesign.Spacing.small) {
+                Label(text.saved, systemImage: "checkmark.circle.fill").foregroundStyle(NotchDesign.Palette.positive)
                 Spacer()
-                Button(l10n.s.mediaOpenInFinder) {
+                statusButton(l10n.s.mediaOpenInFinder) {
                     NSWorkspace.shared.activateFileViewerSelecting(archives.outputURLs)
                 }
-            }.font(.caption).controlSize(.small)
+            }.font(NotchDesign.Typography.caption.font)
         } else if archives.wasCancelled {
-            Text(l10n.s.mediaCancelled).font(.caption).foregroundStyle(.secondary)
+            Text(l10n.s.mediaCancelled).font(NotchDesign.Typography.caption.font)
+                .foregroundStyle(NotchDesign.Ink.secondary)
         }
+    }
+
+    /// A text button in the status row: a capsule plate on the tap class.
+    private func statusButton(_ title: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(title)
+                .font(NotchDesign.Typography.caption.font)
+                .foregroundStyle(NotchDesign.Ink.primary)
+                .padding(.horizontal, NotchDesign.Spacing.small)
+                .frame(minHeight: NotchDesign.Control.minimumHit)
+                .contentShape(Capsule(style: .continuous))
+        }
+        .buttonStyle(NotchPressStyle(shape: .capsule))
     }
 
     private func chooseArchiveDestination() {
