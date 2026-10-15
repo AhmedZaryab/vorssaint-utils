@@ -49,12 +49,76 @@ private struct NotchCalendarDots: View {
             if result.count < 3 && !result.contains(event.color) { result.append(event.color) }
         }
         HStack(spacing: NotchDesign.Spacing.line) {
-            ForEach(Array(colors.enumerated()), id: \.offset) { _, color in
+            ForEach(colors, id: \.key) { color in
                 Circle().fill(color.color).frame(width: Self.side, height: Self.side)
             }
         }
         .frame(height: Self.side)
         .accessibilityHidden(true)
+    }
+}
+
+extension NotchDesign {
+    /// The calendar, timer and watch pages: one value no token carries.
+    enum SpecTime {
+        /// A `minimumScaleFactor` that never lets a style shrink under the 10 pt floor.
+        static func scale(_ style: TypeStyle, preferred: CGFloat) -> CGFloat {
+            max(preferred, 10 / style.nsFont.pointSize)
+        }
+    }
+}
+
+extension NotchCalendarColor {
+    /// A stable identity for the deduplicated dots; the colour itself is the key.
+    var key: String { "\(red)-\(green)-\(blue)" }
+}
+
+/// Week and Month as one segmented control, the same two segments in the same
+/// place on both views: the chosen plate slides between the icons.
+struct NotchCalendarViewSwitch: View {
+    let monthSelected: Bool
+    let text: NotchCalendarStrings
+    let week: () -> Void
+    let month: () -> Void
+    @Namespace private var plate
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.colorSchemeContrast) private var contrast
+
+    var body: some View {
+        HStack(spacing: 0) {
+            segment("calendar.badge.clock", text.week, selected: !monthSelected, action: week)
+            segment("calendar", text.month, selected: monthSelected, action: month)
+        }
+        .background(NotchDesign.Fill.control, in: RoundedRectangle(cornerRadius: NotchDesign.Radius.control, style: .continuous))
+        .overlay {
+            if contrast == .increased {
+                RoundedRectangle(cornerRadius: NotchDesign.Radius.control, style: .continuous)
+                    .strokeBorder(NotchDesign.Stroke.increasedContrast, lineWidth: NotchDesign.Stroke.increasedContrastWidth)
+            }
+        }
+        .animation(NotchDesign.Motion.animation(NotchDesign.Motion.snappy, reduceMotion: reduceMotion), value: monthSelected)
+        .accessibilityElement(children: .contain)
+    }
+
+    private func segment(_ symbol: String, _ title: String, selected: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .font(NotchDesign.Icon.button.font)
+                .foregroundStyle(selected ? NotchDesign.Ink.primary : NotchDesign.Ink.secondary)
+                .frame(width: NotchDesign.Control.iconButton, height: NotchDesign.Control.iconButton)
+                .background {
+                    if selected {
+                        RoundedRectangle(cornerRadius: NotchDesign.Radius.control, style: .continuous)
+                            .fill(NotchDesign.Fill.selected)
+                            .matchedGeometryEffect(id: "selection", in: plate)
+                    }
+                }
+                .contentShape(RoundedRectangle(cornerRadius: NotchDesign.Radius.control, style: .continuous))
+        }
+        .buttonStyle(NotchPressStyle(shape: .rounded(NotchDesign.Radius.control), lifts: false))
+        .help(title)
+        .accessibilityLabel(title)
+        .accessibilityAddTraits(selected ? .isSelected : [])
     }
 }
 
@@ -104,7 +168,8 @@ struct NotchCalendarMonthView: View {
             HStack(spacing: NotchDesign.Spacing.line) {
                 VStack(alignment: .leading, spacing: NotchDesign.Spacing.line) {
                     Text(month, format: .dateTime.month(.wide))
-                        .font(NotchDesign.Typography.pageTitle.font).lineLimit(1).minimumScaleFactor(0.8)
+                        .font(NotchDesign.Typography.pageTitle.font).lineLimit(1)
+                        .minimumScaleFactor(NotchDesign.SpecTime.scale(NotchDesign.Typography.pageTitle, preferred: 0.8))
                     Text(month, format: .dateTime.year())
                         .font(NotchDesign.Typography.label.font).foregroundStyle(NotchDesign.Ink.secondary)
                 }
@@ -131,7 +196,7 @@ struct NotchCalendarMonthView: View {
             }
             HStack {
                 NotchCalendarPill(title: text.today, action: today)
-                Spacer(minLength: NotchDesign.Spacing.xxSmall)
+                Spacer(minLength: NotchDesign.Spacing.xSmall)
                 NotchIconButton(symbol: "arrow.up.forward.app", title: text.openCalendar, action: open)
             }
         }
@@ -188,21 +253,20 @@ struct NotchCalendarWeekStrip: View {
     @Environment(\.locale) private var locale
 
     var body: some View {
-        HStack(spacing: NotchDesign.Spacing.xxSmall) {
+        HStack(spacing: NotchDesign.Spacing.xSmall) {
             NotchIconButton(symbol: "chevron.left", title: text.previousWeek) { move(-1) }
             ForEach(NotchCalendarSupport.weekDays(containing: focus), id: \.self) { date in
                 dayButton(date)
             }
             NotchIconButton(symbol: "chevron.right", title: text.nextWeek) { move(1) }
-            // The month grid keeps Today and Calendar in its own header, so
-            // the narrowest island keeps every day tappable and drops the
-            // extras: a second tap on the selected day still returns to the
-            // coming week, and every appointment card opens Calendar.
-            NotchIconButton(symbol: "calendar", title: text.month, action: month)
+            // The same order as the month grid's header: Today, Week and Month,
+            // Open. The narrowest island drops Today and Open and keeps every
+            // day tappable: a second tap on the selected day still returns to
+            // the coming week, and every appointment card opens Calendar.
             if width >= 400 {
                 NotchIconButton(symbol: "circle.circle", title: text.today, action: today)
-                NotchIconButton(symbol: "calendar.badge.clock", title: text.week, selected: selectedDay == nil, action: week)
             }
+            NotchCalendarViewSwitch(monthSelected: false, text: text, week: week, month: month)
             if width >= 340 {
                 NotchIconButton(symbol: "arrow.up.forward.app", title: text.openCalendar, action: open)
             }
@@ -270,15 +334,17 @@ struct NotchCalendarMonthGrid: View {
 
     var body: some View {
         VStack(spacing: NotchLayout.calendarMonthSpacing) {
-            HStack(spacing: NotchDesign.Spacing.xxSmall) {
+            HStack(spacing: NotchDesign.Spacing.xSmall) {
                 NotchIconButton(symbol: "chevron.left", title: text.previousMonth) { move(-1) }
                 Text(month, format: .dateTime.month(.wide).year())
-                    .font(NotchDesign.Typography.title.font).lineLimit(1).minimumScaleFactor(0.8)
+                    .font(NotchDesign.Typography.title.font).lineLimit(1)
+                    .minimumScaleFactor(NotchDesign.SpecTime.scale(NotchDesign.Typography.title, preferred: 0.8))
                     .frame(maxWidth: .infinity, alignment: .leading)
                 NotchIconButton(symbol: "chevron.right", title: text.nextMonth) { move(1) }
+                // The fixed order on both views: Today, Week and Month, Open.
                 NotchIconButton(symbol: "circle.circle", title: text.today, action: today)
+                NotchCalendarViewSwitch(monthSelected: true, text: text, week: week, month: {})
                 NotchIconButton(symbol: "arrow.up.forward.app", title: text.openCalendar, action: open)
-                NotchIconButton(symbol: "calendar", title: text.month, selected: true, action: week)
             }
             .frame(height: NotchLayout.calendarMonthHeaderHeight)
             LazyVGrid(columns: columns, spacing: 0) {
@@ -321,16 +387,13 @@ struct NotchCalendarMonthGrid: View {
             VStack(spacing: 0) {
                 Text(calendar.component(.day, from: date), format: .number)
                     .modifier(NotchCalendarDayMark(isToday: isToday, selected: selected, inMonth: inMonth, size: circle))
-                    .minimumScaleFactor(0.7)
+                    .minimumScaleFactor(NotchDesign.SpecTime.scale(NotchDesign.Typography.label, preferred: 0.7))
                 NotchCalendarDots(events: dayEvents)
             }
             .frame(maxWidth: .infinity).frame(height: rowHeight)
         }
         .buttonStyle(NotchPressStyle(shape: .rounded(NotchDesign.Radius.control), lifts: false))
-        // A row can be shorter than the 28 pt a press face keeps; the cell
-        // clips to its row so neither the wash nor the hit area reaches a neighbour.
         .frame(height: rowHeight)
-        .clipped()
         .help(date.formatted(.dateTime.weekday(.wide).day().month(.wide).year().locale(locale)))
         .accessibilityLabel(Text(date, format: .dateTime.weekday(.wide).day().month(.wide).year()))
         .accessibilityValue([isToday ? text.today : "", dayEvents.isEmpty ? "" : text.hasEvents]

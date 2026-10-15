@@ -35,7 +35,8 @@ struct NotchCalendarView: View {
                         if showsMonth {
                             HStack(alignment: .top, spacing: NotchDesign.Spacing.large) {
                                 ScrollView { monthView(now: context.date) }
-                                    .scrollIndicators(.automatic)
+                                    .scrollIndicators(.never)
+                                    .notchScrollEdgeFade()
                                     .frame(width: 196)
                                 Rectangle().fill(NotchDesign.Fill.control).frame(width: NotchDesign.Stroke.hairline)
                                     .accessibilityHidden(true)
@@ -188,7 +189,8 @@ struct NotchCalendarView: View {
     private func agenda(now: Date) -> some View {
         ScrollViewReader { proxy in
             ScrollView { appointmentList(now: now) }
-                .scrollIndicators(.automatic)
+                .scrollIndicators(.never)
+                .notchScrollEdgeFade()
                 .id(selectedDay)
                 .onChange(of: calendar.loading ? nil : calendar.revealing, initial: true) { _, target in
                     guard !preview, let target else { return }
@@ -395,10 +397,18 @@ private struct NotchCalendarEventRow: View {
     private var details: some View {
         VStack(alignment: .leading, spacing: NotchDesign.Spacing.line) {
             if ongoing || isNext {
-                Text(ongoing ? text.ongoing : text.next)
-                    .font(NotchDesign.Typography.caption.font)
-                    .foregroundStyle(ongoing ? NotchDesign.Palette.accent : NotchDesign.Ink.secondary)
-                    .lineLimit(1)
+                // The word stays Ink: accent type on Fill.control is 4.33 to 1.
+                // An ongoing event marks itself with an accent dot beside it.
+                HStack(spacing: NotchDesign.Spacing.xxSmall) {
+                    if ongoing {
+                        Circle().fill(NotchDesign.Palette.accent).frame(width: 6, height: 6)
+                            .accessibilityHidden(true)
+                    }
+                    Text(ongoing ? text.ongoing : text.next)
+                        .font(NotchDesign.Typography.caption.font)
+                        .foregroundStyle(ongoing ? NotchDesign.Ink.primary : NotchDesign.Ink.secondary)
+                        .lineLimit(1)
+                }
             }
             Text(event.title.isEmpty ? text.untitled : event.title)
                 .font(NotchDesign.Typography.title.font).foregroundStyle(NotchDesign.Ink.primary)

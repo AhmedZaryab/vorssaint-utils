@@ -23,9 +23,14 @@ struct NotchUpdateControl: View {
                                   hint: l10n.s.updateBannerAction, size: NotchDesign.Control.iconButton,
                                   symbolSize: 15, tint: tint, action: action)
                 if !compact {
-                    Text(l10n.s.updateBannerAction).font(NotchDesign.Typography.label.font)
-                        .foregroundStyle(tint).lineLimit(1)
-                        .accessibilityHidden(true)
+                    // The word opens the update too; the glyph's button is the one VoiceOver reads.
+                    Button(action: action) {
+                        Text(l10n.s.updateBannerAction).font(NotchDesign.Typography.label.font)
+                            .foregroundStyle(tint).lineLimit(1)
+                            .padding(.horizontal, NotchDesign.Spacing.xxSmall)
+                    }
+                    .buttonStyle(NotchPressStyle(shape: .rounded(NotchDesign.Radius.control), lifts: false))
+                    .accessibilityHidden(true)
                 }
             }
             .fixedSize()

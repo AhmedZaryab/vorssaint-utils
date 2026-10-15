@@ -154,20 +154,19 @@ struct NotchTimerView: View {
     }
 
     /// Cancel on the left, the primary action beside it, the reading on the right.
-    /// Pause and resume is a toggle: running is the accent plate, paused the bare play glyph.
+    /// Pause and resume is one commit on the accent plate whose glyph morphs.
     private var activeControls: some View {
         let session = service.session
-        let running = Binding(get: { !service.session.isPaused }, set: { _ in service.pauseOrResume() })
         return HStack(spacing: Design.Spacing.large) {
             HStack(spacing: Design.Spacing.medium) {
                 if !session.completed {
                     cancelButton
-                    Toggle(session.isPaused ? text.resume : l10n.s.actionPause, isOn: running)
-                        .toggleStyle(NotchToggleStyle(on: "pause.fill", off: "play.fill", shape: .capsule,
-                                                      size: roundSide, symbolSize: 20))
-                        .labelsHidden()
-                        .accessibilityLabel(session.isPaused ? text.resume : l10n.s.actionPause)
-                        .help(session.isPaused ? text.resume : l10n.s.actionPause)
+                    // Pause and resume is one action that changes its name and glyph: a commit
+                    // that morphs, so VoiceOver reads the action ("Pause"), never a switch state.
+                    let title = session.isPaused ? text.resume : l10n.s.actionPause
+                    NotchCommitButton(title, symbol: session.isPaused ? "play.fill" : "pause.fill", kick: .morph,
+                                      size: roundSide, symbolSize: 20, action: service.pauseOrResume)
+                        .background(Design.Palette.accent, in: Circle())
                 } else {
                     doneButton
                     if session.canStartNext {
@@ -192,8 +191,11 @@ struct NotchTimerView: View {
 
     /// A destructive cancel: the fuse burns for its 2.5 s and Escape or a click undoes it.
     private var cancelButton: some View {
+        // Same plate and size as Pause beside it, so the pair reads as two round buttons
+        // and only style tells the primary one apart.
         NotchFuseButton(l10n.s.mediaCancel, symbol: "xmark", shape: .capsule, onCommit: service.cancel)
             .frame(width: roundSide, height: roundSide)
+            .background(Design.Fill.control, in: Circle())
     }
 
     private var doneButton: some View {
@@ -222,7 +224,8 @@ struct NotchTimerView: View {
             }.fixedSize()
             VStack(alignment: .trailing, spacing: Design.Spacing.line) {
                 Text(title).font(Design.Typography.label.font).foregroundStyle(Design.Ink.secondary)
-                    .lineLimit(1).minimumScaleFactor(0.7)
+                    .lineLimit(1)
+                    .minimumScaleFactor(NotchDesign.SpecTime.scale(Design.Typography.label, preferred: 0.7))
                 clock(value).modifier(NotchRollingDigits(value: value, countsDown: countsDown))
             }
         }

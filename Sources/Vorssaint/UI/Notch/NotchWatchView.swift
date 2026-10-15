@@ -105,10 +105,17 @@ private struct NotchWatchCommitRow: View {
     let action: () -> Void
 
     var body: some View {
-        HStack(spacing: NotchDesign.Spacing.small) {
+        HStack(spacing: NotchDesign.Spacing.xxSmall) {
             NotchCommitButton(title, symbol: symbol, kick: .up, filled: true, action: action)
-            Text(title).font(NotchDesign.Typography.callout.font).foregroundStyle(NotchDesign.Ink.secondary)
-                .lineLimit(1)
+            // The word is part of the control: clicking it does what the glyph does.
+            // VoiceOver already has the glyph's button under the same name, so the word is hidden from it.
+            Button(action: action) {
+                Text(title).font(NotchDesign.Typography.callout.font).foregroundStyle(NotchDesign.Ink.secondary)
+                    .lineLimit(1)
+                    .padding(.horizontal, NotchDesign.Spacing.xxSmall)
+            }
+            .buttonStyle(NotchPressStyle(shape: .rounded(NotchDesign.Radius.control), lifts: false))
+            .accessibilityHidden(true)
         }
     }
 }
@@ -174,6 +181,9 @@ private struct NotchWatchAreaCard: View {
                 } else if lines.isEmpty {
                     Text(text.noText).font(NotchDesign.Typography.title.font).foregroundStyle(NotchDesign.Ink.secondary)
                 } else {
+                    // What the menu controls, in words, as the Tell me row below has.
+                    Text(text.inIsland).font(NotchDesign.Typography.callout.font)
+                        .foregroundStyle(NotchDesign.Ink.secondary).lineLimit(1)
                     headlineMenu
                 }
                 Spacer(minLength: 0)
@@ -325,7 +335,13 @@ private struct NotchWatchSetupView: View {
                         .labelsHidden()
                         .accessibilityLabel(text.title)
                         .onChange(of: enabled) { NotchService.shared.syncWithPreferences() }
-                    Text(text.title).font(NotchDesign.Typography.callout.font).foregroundStyle(NotchDesign.Ink.secondary)
+                    Button { enabled.toggle() } label: {
+                        Text(text.title).font(NotchDesign.Typography.callout.font)
+                            .foregroundStyle(NotchDesign.Ink.secondary)
+                            .padding(.horizontal, NotchDesign.Spacing.xxSmall)
+                    }
+                    .buttonStyle(NotchPressStyle(shape: .rounded(NotchDesign.Radius.control), lifts: false))
+                    .accessibilityHidden(true)
                 }
             }
         } else if !permissions.screenRecording {
@@ -446,7 +462,9 @@ struct NotchWatchStrip: View {
             Text(watch.headline)
                 .font(NotchDesign.Typography.stripPrimary.font).monospacedDigit()
                 .foregroundStyle(Self.tint)
-                .lineLimit(1).minimumScaleFactor(0.7).truncationMode(.tail)
+                .lineLimit(1)
+                .minimumScaleFactor(NotchDesign.SpecTime.scale(NotchDesign.Typography.stripPrimary, preferred: 0.7))
+                .truncationMode(.tail)
         }
     }
 }
