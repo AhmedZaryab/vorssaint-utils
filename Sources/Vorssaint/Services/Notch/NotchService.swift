@@ -19,18 +19,50 @@ struct NotchNotice: Equatable {
     /// A banner that replaces one still on screen keeps at least its wings,
     /// so a burst of messages does not resize the island with each one.
     var minimumWings = NotchNoticeWings.zero
+    /// The tall peek (docs/design/NOTCH-DESIGN.md 11.2): the strip as it rests
+    /// and a band grown below it, for an agent finishing or nearing a limit.
+    /// The wings beside the camera never change for it.
+    var tall = false
 
-    /// Each side as wide as what it shows, so neither ends in a band of
-    /// empty black: the island reaches further toward its wider side.
+    /// A compact peek keeps both wings the same width, within the compact
+    /// range, and never widens for text. Battery, accessory and microphone
+    /// notices (disabled for the owner) keep their own widths.
+    var clampsWings: Bool { !tall && ![.battery, .accessory, .microphone].contains(event) }
+
+    /// The compact anatomy: a glyph or cover in one wing, one word in the
+    /// other. Levels and banners keep their own anatomy inside the same wings.
+    var showsGlyphAndWord: Bool { clampsWings && level == nil && notification == nil }
+
+    /// Both sides the same width, so the island stays centred on the camera.
     var preferredWings: NotchNoticeWings { preferredWings(wrapsMessage: false) }
 
     /// The sides this notice takes beside a camera, as its strip draws them.
     func wings(in geometry: NotchGeometry) -> NotchNoticeWings {
-        geometry.noticeWings(preferredWings(
+        if tall {
+            let wing = max(0, (geometry.tallPeek.width - geometry.noticeCameraGap) / 2)
+            return NotchNoticeWings(leading: wing, trailing: wing)
+        }
+        return geometry.noticeWings(preferredWings(
             wrapsMessage: NotchNotificationBannerLayout.messageLines(stripHeight: geometry.stripHeight) > 1))
     }
 
     func preferredWings(wrapsMessage: Bool) -> NotchNoticeWings {
+        let raw = rawWings(wrapsMessage: wrapsMessage)
+        guard clampsWings else { return raw }
+        let range = NotchGeometry.compactPeekWing
+        let wing: CGFloat
+        if showsGlyphAndWord {
+            // The glyph's side holds the glyph; the word's side holds the word.
+            let word = (title as NSString).size(withAttributes: [.font: NotchDesign.Typography.stripPrimary.nsFont]).width
+            wing = ceil(word) + NotchNotificationBannerLayout.inset + cameraGap
+        } else {
+            wing = raw.widest
+        }
+        let clamped = min(range.upperBound, max(range.lowerBound, wing))
+        return NotchNoticeWings(leading: clamped, trailing: clamped)
+    }
+
+    private func rawWings(wrapsMessage: Bool) -> NotchNoticeWings {
         if let notification {
             let fitted = NotchNotificationBannerLayout.wings(for: notification, wrapsMessage: wrapsMessage)
             return NotchNoticeWings(leading: max(minimumWings.leading, fitted.leading),
@@ -57,7 +89,20 @@ struct NotchNotice: Equatable {
     var preferredWingWidth: CGFloat { preferredWings.widest }
 
     /// The narrowest side a text notice keeps: its curved end and some air.
-    static let minimumWing: CGFloat = 36
+    static let minimumWing: CGFloat = NotchGeometry.compactPeekWing.lowerBound
+
+    /// How long an agent took, for a tall peek's second line: "42 sec",
+    /// "4 min", "1 hr, 5 min".
+    static func wrapUpDuration(_ seconds: TimeInterval, locale: Locale) -> String {
+        let value = max(0, seconds.isFinite ? seconds : 0)
+        let formatter = DateComponentsFormatter()
+        formatter.unitsStyle = .short
+        formatter.allowedUnits = value >= 3600 ? [.hour, .minute] : value >= 60 ? [.minute] : [.second]
+        var calendar = Calendar.current
+        calendar.locale = locale
+        formatter.calendar = calendar
+        return formatter.string(from: value) ?? ""
+    }
 
     /// Room a level keeps inside its curved ends, as wide as its wings had
     /// when they were a fixed 80 pt.
@@ -782,9 +827,10 @@ final class NotchService: ObservableObject {
     var surfaceSize: CGSize {
         var size = baseSurfaceSize
         if songPeekBandActive {
-            let closedShoulder = NotchLayout.shoulder(height: size.height)
+            // The tall peek: the strip as it rests with a band below it, as
+            // wide as the resting island within the tall peek's range.
             size.height += NotchSongPeekBand.height
-            size.width += (NotchLayout.shoulder(height: size.height) - closedShoulder) * 2
+            size.width = max(size.width, geometry.tallPeek.width)
         }
         return size
     }
@@ -802,6 +848,7 @@ final class NotchService: ObservableObject {
         if expanded { return expandedSize }
         if dragPlaceholder { return CGSize(width: geometry.peek.width, height: geometry.safeContentTop + 66) }
         if let notice {
+            if notice.tall, !noticeExpanded { return geometry.tallPeek }
             guard noticeExpanded else { return geometry.noticeSize(wings: notice.wings(in: geometry)) }
             return geometry.notificationPreviewSize(
                 contentHeight: notice.previewContentHeight(width: geometry.notificationPreviewContentWidth))
@@ -861,6 +908,7 @@ final class NotchService: ObservableObject {
     /// A notice's own capsule, which it keeps while the island closes around it.
     func capsuleNoticeSurface(_ notice: NotchNotice) -> CGSize {
         let layout = NotchCapsuleLayout.self
+        if notice.tall { return geometry.tallPeek }
         guard let content = notice.notification else {
             return layout.surface(content: layout.noticeContent(title: notice.title, detail: notice.detail,
                                                                 level: notice.level != nil),
@@ -3649,18 +3697,21 @@ final class NotchService: ObservableObject {
         }
         switch event {
         case .finished(let provider, let duration, let cost, _, _):
+            // "4 min · $0.42": whole minutes from one minute up, seconds below;
+            // the cost only when it is at least one cent.
             show(NotchNotice(event: .agents, title: text.finished(provider.displayName),
-                             detail: [AgentFormat.duration(duration, locale: locale), cost > 0 ? AgentFormat.cost(cost) : ""]
+                             detail: [NotchNotice.wrapUpDuration(duration, locale: locale),
+                                      cost >= 0.01 ? AgentFormat.cost(cost) : ""]
                                 .filter { !$0.isEmpty }.joined(separator: " · "),
-                             symbol: provider.symbol, agent: provider))
+                             symbol: provider.symbol, agent: provider, tall: true))
         case .limitWarning(let provider, let limit):
             let share = AgentFormat.percent(remaining ? limit.remainingFraction : limit.usedFraction)
             show(NotchNotice(event: .agents, title: "\(provider.displayName) · \(window(limit))",
                              detail: remaining ? text.left(share) : text.usedShare(share),
-                             symbol: "exclamationmark.triangle.fill", agent: provider))
+                             symbol: "exclamationmark.triangle.fill", agent: provider, tall: true))
         case .limitReset(let provider, let limit):
             show(NotchNotice(event: .agents, title: "\(provider.displayName) · \(window(limit))",
-                             detail: text.limitRenewed, symbol: "arrow.clockwise", agent: provider))
+                             detail: text.limitRenewed, symbol: "arrow.clockwise", agent: provider, tall: true))
         case .budgetReached(let spent, _):
             show(NotchNotice(event: .agents, title: text.budgetTitle, detail: AgentFormat.cost(spent),
                              symbol: "dollarsign.circle.fill"))
