@@ -30,7 +30,7 @@ struct NotchLiveEqualizerBars: View {
     var isPlaying = true
     var bars = 4
     var barWidth: CGFloat = 2.5
-    var height: CGFloat = 14
+    var height: CGFloat = 16
     var tint: Color = .white
     @ObservedObject private var audio = NotchAudioLevelService.shared
 
