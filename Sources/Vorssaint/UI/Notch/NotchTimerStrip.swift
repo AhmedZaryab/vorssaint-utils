@@ -24,16 +24,14 @@ struct NotchTimerStrip: View {
     private var geometry: NotchGeometry { displayGeometry ?? service.compactActivityGeometry }
     private var companion: NotchCompactActivity? { service.compactCompanion }
     private var iconSize: CGFloat { NotchTimerSupport.stripIconSize(height: geometry.compactActivityContentHeight) }
-    /// The reading's digits have no descenders, so their ink is the face's cap height, applied once.
-    private var textBox: CGFloat { NotchDesign.Typography.stripPrimary.nsFont.capHeight }
     private var iconInset: CGFloat {
         guard !geometry.compactActivityUsesFooter else { return 0 }
         if let companion { return NotchCompanionMark.inset(companion, geometry: geometry) }
-        return geometry.compactActivityEdgeInset(boxHeight: iconSize, radius: iconSize / 2)
+        return geometry.compactWingInset
     }
     private var textInset: CGFloat {
         guard !geometry.compactActivityUsesFooter else { return 0 }
-        return geometry.compactActivityEdgeInset(boxHeight: textBox, radius: 0)
+        return geometry.compactWingInset
     }
 
     var body: some View {
@@ -49,7 +47,7 @@ struct NotchTimerStrip: View {
                         } else {
                             Image(systemName: timer.session.completed ? "checkmark.circle"
                                   : timer.session.isPaused ? "pause.circle" : timer.session.countsUp ? "stopwatch" : "timer")
-                                .font(.system(size: iconSize, weight: .medium))
+                                .font(NotchDesign.Strip.markFont)
                                 .foregroundStyle(NotchDesign.Palette.accent)
                         }
                     }
@@ -106,6 +104,14 @@ struct NotchTimerStrip: View {
     }
 }
 
+extension NotchDesign {
+    /// Closed strips. The wing mark is a fixed 20 pt face: Icon.wing is a text style (title2, 17 pt) and
+    /// inks short of Peek.wingArtwork, so a strip's mark and a notice's glyph would differ in size.
+    enum Strip {
+        static let markFont = Font.system(size: Peek.wingArtwork, weight: .medium)
+    }
+}
+
 /// What shares a strip with a timer or an event, drawn at the strip's left
 /// end: a download's progress, the working agents' marks, the event's dot
 /// and clock or the playing track's cover.
@@ -143,7 +149,7 @@ struct NotchCompanionMark: View {
 
     private var downloadIndicator: some View {
         HStack(spacing: 5) {
-            Image(systemName: "arrow.down.circle.fill").font(.system(size: 13))
+            Image(systemName: "arrow.down.circle.fill").font(NotchDesign.Strip.markFont)
             if geometry.compactActivityWingWidth >= 80,
                let fraction = downloads.items.first(where: { $0.active && !$0.completed })?.fraction {
                 Text(fraction, format: .percent.precision(.fractionLength(0)))
@@ -169,15 +175,11 @@ struct NotchCompanionMark: View {
     static func inset(_ companion: NotchCompactActivity, geometry: NotchGeometry) -> CGFloat {
         switch companion {
         case .agents:
-            let side = agentMarkSize(working.count, geometry)
-            return geometry.compactActivityEdgeInset(boxHeight: side + 4, radius: (side + 4) / 2)
+            return geometry.compactWingInset
         case .music:
             return geometry.compactMusicArtworkInset
-        case .calendar:
-            return geometry.compactActivityEdgeInset(boxHeight: 9, radius: 0)
-        case .downloads, .timer, .keepAwake, .watch:
-            let side = min(13, NotchTimerSupport.stripIconSize(height: geometry.compactActivityContentHeight))
-            return geometry.compactActivityEdgeInset(boxHeight: side, radius: side / 2)
+        case .calendar, .downloads, .timer, .keepAwake, .watch:
+            return geometry.compactWingInset
         }
     }
 

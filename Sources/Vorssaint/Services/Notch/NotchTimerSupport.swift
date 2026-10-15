@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (C) 2026 Vorssaint
 
+import AppKit
 import CoreGraphics
 import Foundation
 
@@ -314,10 +315,33 @@ enum NotchTimerSupport {
     /// Air between the camera and what sits beside it.
     static let stripCameraGap: CGFloat = 6
 
-    static func stripTextSize(height: CGFloat) -> CGFloat { min(16, height - 6) }
-    /// The mark takes the strip's height less an even gap above and below.
-    static func stripIconSize(height: CGFloat) -> CGFloat { min(20, height - NotchLayout.compactEdgeGap * 2) }
+    /// The size a strip draws its reading at: stripPrimary, so the face that is measured is the face that is drawn.
+    static func stripTextSize(height: CGFloat) -> CGFloat { NotchDesign.Typography.stripPrimary.pointSize }
+    /// The strip's reading face with monospaced digits, as `.monospacedDigit()` draws stripPrimary.
+    static var stripFont: NSFont {
+        NSFont.monospacedDigitSystemFont(ofSize: NotchDesign.Typography.stripPrimary.pointSize,
+                                         weight: NotchDesign.Typography.stripPrimary.weight.appKit)
+    }
+    /// The strip's second line with monospaced digits.
+    static var stripSecondaryFont: NSFont {
+        NSFont.monospacedDigitSystemFont(ofSize: NotchDesign.Typography.stripSecondary.pointSize,
+                                         weight: NotchDesign.Typography.stripSecondary.weight.appKit)
+    }
+    /// The width of a reading in the face the strip draws it in.
+    static func stripWidth(_ text: String, font: NSFont = stripFont) -> CGFloat {
+        (text as NSString).size(withAttributes: [.font: font]).width.rounded(.up)
+    }
+    /// A strip's mark is the peek's one wing artwork, whatever the strip's height.
+    static func stripIconSize(height: CGFloat) -> CGFloat { NotchDesign.Peek.wingArtwork }
     static func stripAgentMarkSize(height: CGFloat, working: Int) -> CGFloat {
-        min(working > 1 ? 11 : 14, max(8, height - NotchLayout.compactEdgeGap * 2 - 4))
+        min(working > 1 ? 14 : NotchDesign.Peek.wingArtwork, max(8, height - NotchLayout.compactEdgeGap * 2))
+    }
+}
+
+extension NotchGeometry {
+    /// The one distance a strip keeps between a 20 pt mark or a reading and the island's outer end, so both
+    /// ends of a strip match and a notice can read it too.
+    var compactWingInset: CGFloat {
+        compactActivityEdgeInset(boxHeight: NotchDesign.Peek.wingArtwork, radius: NotchDesign.Peek.wingArtwork / 2)
     }
 }

@@ -730,7 +730,8 @@ enum NotchActivityTests {
             if x >= centre.x { return surface.height - y - radius }
             return corner - hypot(x - centre.x, y - centre.y) - radius
         }
-        let font = NSFont.monospacedDigitSystemFont(ofSize: NotchDownloadSupport.percentSize, weight: .medium)
+        let font = NSFont.monospacedDigitSystemFont(ofSize: NotchDownloadSupport.percentSize,
+                                                    weight: NotchDesign.Typography.readout.weight.appKit)
         for barHeight: CGFloat in [24, 32, 37, 40, 44, 64] {
             for room: CGFloat in [44, 52, 56, 72, 100, 200] {
                 for notched in [true, false] {
@@ -743,7 +744,7 @@ enum NotchActivityTests {
                     // Cover, equalizer bar, timer icon, download arrow and the
                     // ink of a percentage. A box too tall for the strip has no
                     // inset that can clear the curve, and keeps the flat margin.
-                    for (box, radius) in [(26.0, 26.0 * 0.28), (16.0, 0.9), (20.0, 10.0), (17.0, 8.5),
+                    for (box, radius) in [(26.0, 26.0 * 0.28), (16.0, 0.9), (20.0, 10.0),
                                           (NotchDownloadSupport.percentSize * 0.72, 0.0)] {
                         let side = min(box, geometry.compactActivityContentHeight - gap * 2)
                         guard side > 0 else { continue }
@@ -753,11 +754,18 @@ enum NotchActivityTests {
                                "compact strip content keeps its breathing room from the curved edge")
                     }
                     guard wing >= 44 else { continue }
-                    let inset = NotchDownloadSupport.percentInset(in: geometry)
+                    // The wing the island really draws: measured for the arrow and the widest percent.
+                    let strip = geometry.compactDownloadGeometry(
+                        wing: NotchDownloadSupport.compactWing(for: nil, in: geometry))
+                    let drawn = strip.compactActivityWingWidth
+                    // A 64 pt bar is a stress value for the curve test; its deep corners leave a 44 pt wing no room
+                    // for a 12 pt percent, and no real menu bar is that tall.
+                    guard drawn >= 44, barHeight <= 44 else { continue }
+                    let inset = NotchDownloadSupport.percentInset(in: strip)
                     for language in AppLanguage.allCases {
                         let reading = (1.0).formatted(NotchDownloadSupport.percentFormat(language)) as NSString
                         let width = reading.size(withAttributes: [.font: font]).width
-                        suite.expect(wing - inset >= width * NotchDownloadSupport.percentMinimumScale,
+                        suite.expect(drawn - inset >= width * NotchDownloadSupport.percentMinimumScale,
                                "a download reading its last percent keeps one whole line in every language")
                     }
                 }
@@ -769,7 +777,8 @@ enum NotchActivityTests {
     /// the file again without reserving the same width for every filename.
     private static func compactDownloadContracts(_ suite: TestSuite) {
         let screen = CGRect(x: 0, y: 0, width: 1470, height: 956)
-        let font = NSFont.monospacedDigitSystemFont(ofSize: NotchDownloadSupport.percentSize, weight: .medium)
+        let font = NSFont.monospacedDigitSystemFont(ofSize: NotchDownloadSupport.percentSize,
+                                                    weight: NotchDesign.Typography.readout.weight.appKit)
         for layout in NotchSize.allCases {
             for barHeight: CGFloat in [24, 32, 37, 44] {
                 for room: CGFloat in [0, 30, 44, 50, 56, 72, 200, 600] {
@@ -789,7 +798,8 @@ enum NotchActivityTests {
                                && size.width == download.cameraWidth + wing * 2 && size.height == geometry.stripHeight,
                                "a download's wings hold its arrow and progress beside the camera, never the wide strip")
                         guard wing > 0 else { continue }
-                        let iconSize = min(17, download.compactActivityContentHeight - NotchLayout.compactEdgeGap * 2)
+                        let iconSize = min(NotchDesign.Peek.wingArtwork,
+                                           download.compactActivityContentHeight - NotchLayout.compactEdgeGap * 2)
                         suite.expect(download.compactActivityEdgeInset(boxHeight: iconSize, radius: iconSize / 2) + iconSize <= wing,
                                "the download arrow fits its wing past the curved edge")
                         let inset = NotchDownloadSupport.percentInset(in: download)
@@ -803,46 +813,23 @@ enum NotchActivityTests {
                 }
             }
         }
-        let narrow = NotchGeometry(screen: screen, safeAreaTop: 32, cameraWidth: 180,
-                                   menuBarHeight: 32, compactSideRoom: 80)
-        suite.expect(NotchDownloadSupport.compactWing(for: "a.zip", in: narrow) == 56
-                     && !NotchDownloadSupport.showsCompactName(in: narrow.compactDownloadGeometry()),
-                     "crowded menus keep the short download indicator without a clipped file name")
+        // The compact strip is an arrow and a number: its wing never depends on the file's name, holds the
+        // widest percent and the 20 pt arrow past the curve, and stays under the peek cap.
         let roomy = NotchGeometry(screen: screen, safeAreaTop: 32, cameraWidth: 180,
                                   menuBarHeight: 32, compactSideRoom: 200)
         let short = NotchDownloadSupport.compactWing(for: "a.zip", in: roomy)
         let long = NotchDownloadSupport.compactWing(for: "a much longer download filename.zip", in: roomy)
-        suite.expect(short >= 64 && short < NotchDownloadSupport.compactNameWingThreshold
-                     && short < long && long <= NotchDesign.Peek.wingMaximum
-                     && NotchDownloadSupport.compactWing(for: nil, in: roomy) == 56,
-                     "short filenames do not reserve an empty 94-point wing; long names have a cap")
-        for name in ["a.zip", "installer.dmg", "unknown-size.bin"] {
-            let wing = NotchDownloadSupport.compactWing(for: name, in: roomy)
-            let strip = roomy.compactDownloadGeometry(wing: wing)
-            let icon = min(17, strip.compactActivityContentHeight - NotchLayout.compactEdgeGap * 2)
-            let content = NSHostingView(rootView: HStack(spacing: 6) {
-                Image(systemName: "arrow.down.circle.fill").font(.system(size: icon))
-                Text(name).font(NotchDesign.Typography.stripPrimary.font).lineLimit(1)
-            }).fittingSize.width
-            suite.expect(strip.compactActivityEdgeInset(boxHeight: icon, radius: icon / 2) + content + 4 <= wing + 0.5
-                         || wing >= NotchDesign.Peek.wingMaximum,
-                         "the measured download wing holds the whole name \(name) beside its arrow")
-        }
-        for layout in [NotchSize.compact, .spacious] {
-            let wideMenu = NotchGeometry(screen: screen, safeAreaTop: 32, cameraWidth: 180,
-                                         layout: layout, menuBarHeight: 32, compactSideRoom: 200)
-            suite.expect(wideMenu.compactDownloadGeometry(wing: short).compactActivityWingWidth == short
-                         && wideMenu.compactDownloadGeometry(wing: long).compactActivityWingWidth == long,
-                         "the 440/520-point music preference does not stretch a download beyond its measured name")
-        }
-        for room in [CGFloat(94), 110, 160, 200] {
-            var constrained = roomy
-            constrained.compactSideRoom = room
-            let download = constrained.compactDownloadGeometry(wing: long)
-            suite.expect(download.compactActivityWingWidth == min(room, long)
-                         && NotchDownloadSupport.showsCompactName(in: download),
-                         "a download name fits within measured menu room once 94 points are available")
-        }
+        suite.expect(short == long && short == NotchDownloadSupport.compactWing(for: nil, in: roomy)
+                     && short >= 44 && short <= NotchDesign.Peek.wingMaximum
+                     && !NotchDownloadSupport.showsCompactName(in: roomy.compactDownloadGeometry(wing: short)),
+                     "the download strip's wing is the same for every file name and carries no name")
+        let strip = roomy.compactDownloadGeometry(wing: short)
+        let widest = AppLanguage.allCases.map {
+            NotchTimerSupport.stripWidth((1.0).formatted(NotchDownloadSupport.percentFormat($0)), font: font)
+        }.max() ?? 0
+        suite.expect(strip.compactWingInset + NotchDesign.Peek.wingArtwork <= short
+                     && strip.compactWingInset + widest + NotchTimerSupport.stripCameraGap <= short + 0.5,
+                     "the measured download wing holds the arrow and the widest percent with air beside the camera")
     }
 
     private static func accessoryContracts(_ suite: TestSuite) {

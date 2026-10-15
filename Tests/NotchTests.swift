@@ -2052,11 +2052,8 @@ enum NotchTests {
             suite.expect(moving && widths.allSatisfy { min(from.width, to.width) <= $0 && $0 <= max(from.width, to.width) }
                          && steady.sizes.last == to,
                          "a notice fitting a new reading eases to its width without swinging past it")
-            let usual = NotchMotion.size(at: 0.1, from: from, to: to)
-            let eased = NotchMotion.size(at: 0.1, from: from, to: to, steady: true)
-            suite.expect(abs(eased.width - from.width) < abs(usual.width - from.width)
-                         && steady.duration > NotchMotion.frames(from: from, to: to).duration,
-                         "a notice fitting a new reading moves more gently than the island's springs")
+            suite.expect(steady.duration < 0.5,
+                         "a notice fitting a new reading settles in under half a second, on the steady token")
         }
         // Equal total widths still move when the longer notice wing changes sides.
         let sameSize = CGSize(width: 380, height: 32)

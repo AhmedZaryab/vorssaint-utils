@@ -81,10 +81,11 @@ struct NotchCalendarStrip: View {
         .padding(.horizontal, rowInset)
     }
 
-    private var rowInset: CGFloat { max(10, geometry.compactActivityEdgeInset(boxHeight: 9, radius: 0)) }
+    private var rowInset: CGFloat { max(10, geometry.compactWingInset) }
 
     private func wings(_ countdown: NotchCalendarCountdown, title: String, remaining: String) -> some View {
-        let inset = geometry.compactActivityEdgeInset(boxHeight: 9, radius: 0)
+        let inset = geometry.compactWingInset
+        let gap = NotchTimerSupport.stripCameraGap
         return HStack(spacing: 0) {
             HStack(spacing: NotchCalendarSupport.stripTitleSpacing) {
                 Self.dot(countdown.event)
@@ -94,6 +95,7 @@ struct NotchCalendarStrip: View {
                     .lineLimit(1).truncationMode(.tail)
             }
             .padding(.leading, inset)
+            .padding(.trailing, gap)
             .frame(width: geometry.compactActivityWingWidth, alignment: .trailing)
             .clipped()
             Color.clear.frame(width: geometry.compactActivityCameraGap)
@@ -110,6 +112,7 @@ struct NotchCalendarStrip: View {
                 Self.clock(remaining, ongoing: countdown.ongoing)
             }
             .padding(.trailing, inset)
+            .padding(.leading, gap)
             .frame(width: geometry.compactActivityWingWidth, alignment: .leading)
         }
     }
@@ -137,7 +140,7 @@ struct NotchCalendarStrip: View {
             Color.clear.frame(width: geometry.compactActivityCameraGap)
             Button { service.openCountdownEvent() } label: {
                 Self.clockMark(countdown, remaining: remaining)
-                    .padding(.trailing, footer ? rowInset : geometry.compactActivityEdgeInset(boxHeight: 9, radius: 0))
+                    .padding(.trailing, footer ? rowInset : geometry.compactWingInset)
                     .frame(width: geometry.compactActivityWingWidth, height: geometry.compactActivityContentHeight,
                            alignment: .trailing)
                     .contentShape(Rectangle())
@@ -162,7 +165,7 @@ struct NotchCalendarStrip: View {
     private static func dot(_ event: NotchCalendarEvent) -> some View {
         Circle().fill(event.color.color).frame(width: NotchCalendarSupport.stripDotWidth,
                                                height: NotchCalendarSupport.stripDotWidth)
-            .overlay { Circle().strokeBorder(NotchDesign.Stroke.increasedContrast, lineWidth: NotchDesign.Stroke.hairline) }
+            .overlay { Circle().strokeBorder(NotchDesign.Stroke.artworkEdge, lineWidth: NotchDesign.Stroke.hairline) }
             .accessibilityHidden(true)
     }
 

@@ -195,8 +195,8 @@ struct NotchAgentGlyph: View {
 
     var body: some View {
         NotchAgentGlyphBridge(provider: provider, size: size, animates: working && !reduceMotion)
-            // Room for the widest mark, the Claude one, drawn past its size.
-            .frame(width: size * 1.45 + 1, height: size * 1.45 + 1)
+            // The frame is the mark's ink, so the strip's inset is measured from the mark itself.
+            .frame(width: size, height: size)
             .accessibilityHidden(true)
             .allowsHitTesting(false)
     }

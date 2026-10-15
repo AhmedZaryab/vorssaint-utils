@@ -617,13 +617,9 @@ final class NotchService: ObservableObject {
     private func watchStripWing(in geometry: NotchGeometry) -> CGFloat {
         let provisional = geometry.compactWatchGeometry(wing: NotchWatchSupport.stripWingRange.lowerBound)
         let watch = NotchWatchService.shared
-        let size = NotchTimerSupport.stripTextSize(height: provisional.compactActivityContentHeight)
         let reading = watch.showsThumbnail ? NotchWatchSupport.thumbnailWidth
-            : (watch.headline as NSString).size(withAttributes: [
-                .font: NSFont.monospacedDigitSystemFont(ofSize: size, weight: .medium)
-            ]).width.rounded(.up)
-        let inset = provisional.compactActivityEdgeInset(boxHeight: size * 0.72, radius: 0)
-        return reading + inset + NotchTimerSupport.stripCameraGap
+            : NotchTimerSupport.stripWidth(watch.headline)
+        return max(reading, NotchDesign.Peek.wingArtwork) + provisional.compactWingInset + NotchTimerSupport.stripCameraGap
     }
 
     private func keepAwakeStripWing(in geometry: NotchGeometry) -> CGFloat {
@@ -641,28 +637,24 @@ final class NotchService: ObservableObject {
         }
         // Measured at the narrowest wing the strip may take.
         let provisional = geometry.compactCalendarGeometry(wing: 0, paired: companion != nil)
-        let inset = provisional.compactActivityEdgeInset(boxHeight: 9, radius: 0)
+        let inset = provisional.compactWingInset
         if let companion {
             let sides = max(inset + calendarClockWidth, companionMarkWidth(companion, in: provisional))
                 + NotchTimerSupport.stripCameraGap
             // A download keeps room for its percentage, as beside a timer.
             return companion == .downloads ? max(80, sides) : sides
         }
-        func width(_ text: String, _ font: NSFont) -> CGFloat {
-            (text as NSString).size(withAttributes: [.font: font]).width.rounded(.up)
-        }
         let language = L10n.shared.language
         let trimmed = countdown.event.title.trimmingCharacters(in: .whitespacesAndNewlines)
         let title = trimmed.isEmpty ? FeatureStrings.notchCalendar(language).untitled : trimmed
         let titleSide = NotchCalendarSupport.stripDotWidth + NotchCalendarSupport.stripTitleSpacing
-            + width(title, .systemFont(ofSize: 11, weight: .semibold))
+            + NotchTimerSupport.stripWidth(title, font: NotchDesign.Typography.stripPrimary.nsFont)
         // The widest clock the hour can show, so the island keeps its size
         // while the minutes count down.
-        let clockSide = width("00:00", .monospacedDigitSystemFont(ofSize: 13, weight: .medium))
-            + NotchCalendarSupport.stripClockSpacing
-            + width(NotchCalendarSupport.timeText(countdown, locale: language.formattingLocale()),
-                    .monospacedDigitSystemFont(ofSize: 11, weight: .medium))
-        return inset + max(titleSide, clockSide)
+        let clockSide = NotchTimerSupport.stripWidth("00:00") + NotchCalendarSupport.stripClockSpacing
+            + NotchTimerSupport.stripWidth(NotchCalendarSupport.timeText(countdown, locale: language.formattingLocale()),
+                                           font: NotchTimerSupport.stripSecondaryFont)
+        return inset + max(titleSide, clockSide) + NotchTimerSupport.stripCameraGap
     }
 
     /// The wider of the two sides, the timer's reading or what shares the
@@ -671,14 +663,10 @@ final class NotchService: ObservableObject {
     private func timerStripWing(for companion: NotchCompactActivity?, in geometry: NotchGeometry) -> CGFloat {
         let provisional = geometry.compactTimerGeometry(showsDownloads: false,
                                                         wing: NotchTimerSupport.stripWingRange.lowerBound)
-        let height = provisional.compactActivityContentHeight
         let timer = NotchTimerService.shared
-        let size = NotchTimerSupport.stripTextSize(height: height)
         let text = NotchTimerSupport.compactText(for: timer.session, at: timer.now,
                                                  locale: Locale(identifier: L10n.shared.language.rawValue))
-        let reading = (NotchAgentSupport.readingShape(text) as NSString).size(withAttributes: [
-            .font: NSFont.monospacedDigitSystemFont(ofSize: size, weight: .medium)
-        ]).width.rounded(.up) + provisional.compactActivityEdgeInset(boxHeight: size * 0.72, radius: 0)
+        let reading = NotchTimerSupport.stripWidth(NotchAgentSupport.readingShape(text)) + provisional.compactWingInset
         return max(reading, companionMarkWidth(companion, in: provisional)) + NotchTimerSupport.stripCameraGap
     }
 
@@ -693,14 +681,12 @@ final class NotchService: ObservableObject {
         case .agents:
             let working = Set(AgentUsageService.shared.snapshot.live.map(\.provider)).count
             let side = NotchTimerSupport.stripAgentMarkSize(height: height, working: working)
-            return CGFloat(max(1, working)) * (side * 1.45 + 1) + CGFloat(max(0, working - 1))
-                + provisional.compactActivityEdgeInset(boxHeight: side + 4, radius: (side + 4) / 2)
+            return CGFloat(max(1, working)) * side + CGFloat(max(0, working - 1)) + provisional.compactWingInset
         case .calendar:
-            return provisional.compactActivityEdgeInset(boxHeight: 9, radius: 0) + calendarClockWidth
+            return provisional.compactWingInset + calendarClockWidth
         default:
-            // Every mark the strip shows is about a square of its point size.
-            let side = NotchTimerSupport.stripIconSize(height: height)
-            return side + provisional.compactActivityEdgeInset(boxHeight: side, radius: side / 2)
+            // Every mark the strip shows fills the peek's wing artwork.
+            return NotchTimerSupport.stripIconSize(height: height) + provisional.compactWingInset
         }
     }
 
@@ -708,9 +694,7 @@ final class NotchService: ObservableObject {
     /// keeps its size while the minutes count down.
     private var calendarClockWidth: CGFloat {
         NotchCalendarSupport.stripDotWidth + NotchCalendarSupport.stripClockSpacing
-            + ("00:00" as NSString).size(withAttributes: [
-                .font: NSFont.monospacedDigitSystemFont(ofSize: 13, weight: .medium)
-            ]).width.rounded(.up)
+            + NotchTimerSupport.stripWidth("00:00")
     }
 
     /// The wider of the two sides, the reading or the working agents' marks,
@@ -718,21 +702,15 @@ final class NotchService: ObservableObject {
     /// and air beside the camera.
     private func agentStripWing(in geometry: NotchGeometry) -> CGFloat {
         let provisional = geometry.compactAgentGeometry(wing: NotchAgentSupport.stripWingRange.lowerBound)
-        let size = NotchAgentSupport.stripTextSize(height: provisional.compactActivityContentHeight)
         let shape = NotchAgentSupport.readingShape(NotchAgentSupport.stripReading(
             AgentUsageService.shared.snapshot, readout: NotchAgentSupport.readout(),
             display: NotchAgentSupport.limitDisplay(), focus: NotchAgentSupport.limitFocus(), now: Date()))
-        let width = (shape as NSString).size(withAttributes: [
-            .font: NSFont.monospacedDigitSystemFont(ofSize: size, weight: .medium)
-        ]).width
-        let reading = width.rounded(.up) + provisional.compactActivityEdgeInset(boxHeight: size * 0.72, radius: 0)
+        let reading = NotchTimerSupport.stripWidth(shape) + provisional.compactWingInset
         // The marks on the other side, drawn as the strip draws them: two
         // working agents share a smaller size, each in a frame wider than it.
         let working = Set(AgentUsageService.shared.snapshot.live.map(\.provider)).count
-        let mark = CGFloat(working > 1 ? 11 : 14)
-        let frame = mark * 1.45 + 1
-        let marks = CGFloat(max(1, working)) * frame + CGFloat(max(0, working - 1))
-            + provisional.compactActivityEdgeInset(boxHeight: mark + 4, radius: (mark + 4) / 2)
+        let mark = NotchTimerSupport.stripAgentMarkSize(height: provisional.compactActivityContentHeight, working: working)
+        let marks = CGFloat(max(1, working)) * mark + CGFloat(max(0, working - 1)) + provisional.compactWingInset
         return max(reading, marks) + NotchAgentSupport.stripCameraGap
     }
 

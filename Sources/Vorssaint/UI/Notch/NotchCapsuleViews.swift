@@ -612,7 +612,7 @@ struct NotchCapsuleCalendarStrip: View {
     private static func dot(_ event: NotchCalendarEvent) -> some View {
         Circle().fill(event.color.color)
             .frame(width: CapsuleLayout.calendarDotSide, height: CapsuleLayout.calendarDotSide)
-            .overlay { Circle().strokeBorder(NotchDesign.Stroke.increasedContrast, lineWidth: NotchDesign.Stroke.hairline) }
+            .overlay { Circle().strokeBorder(NotchDesign.Stroke.artworkEdge, lineWidth: NotchDesign.Stroke.hairline) }
     }
 
     /// Time left in an event under way takes the agenda's "happening now"

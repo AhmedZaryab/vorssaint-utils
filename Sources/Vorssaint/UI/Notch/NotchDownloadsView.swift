@@ -267,8 +267,7 @@ struct NotchDownloadsView: View {
             }
             if !item.completed {
                 if let fraction = item.fraction {
-                    NotchMeter(value: fraction, height: NotchDesign.Control.meter, tint: NotchDesign.Palette.accent)
-                        .animation(NotchDesign.Motion.smooth.animation, value: fraction)
+                    NotchMeter(value: fraction, height: NotchDesign.Control.meter, tint: NotchDesign.Ink.primary)
                 } else if item.active {
                     ProgressView().controlSize(.small)
                 }
@@ -324,56 +323,38 @@ struct NotchDownloadStrip: View {
     @ObservedObject private var l10n = L10n.shared
 
     private var geometry: NotchGeometry { displayGeometry ?? service.compactActivityGeometry }
-    /// The arrow keeps the shared gap from the top and bottom edges too.
-    private var iconSize: CGFloat {
-        min(17, geometry.compactActivityContentHeight - NotchLayout.compactEdgeGap * 2)
-    }
-    private var iconInset: CGFloat {
-        geometry.compactActivityEdgeInset(boxHeight: iconSize, radius: iconSize / 2)
-    }
-
     var body: some View {
         let item = downloads.items.first { $0.active && !$0.completed }
+        // The compact strip is a glyph and a number, one per side. The file's name is in the tall
+        // Download finished peek and on the page, so it never crowds the camera here.
         Button { service.openActivity(.downloads) } label: {
             HStack(spacing: 0) {
-                HStack(spacing: NotchDesign.Spacing.xSmall) {
+                HStack(spacing: 0) {
                     if geometry.compactActivityWingWidth >= 40 {
-                        Image(systemName: "arrow.down.circle.fill").font(.system(size: iconSize))
-                        if NotchDownloadSupport.showsCompactName(in: geometry) {
-                            Text(item?.name ?? FeatureStrings.notchFiles(l10n.language).downloadsTitle)
-                                .font(.system(size: 11, weight: .medium)).lineLimit(1).truncationMode(.middle)
-                        }
+                        Image(systemName: "arrow.down.circle.fill").font(NotchDesign.Strip.markFont)
                     }
                 }
-                .padding(.leading, geometry.compactActivityWingWidth >= 40 ? iconInset : 0)
-                .padding(.trailing, NotchDesign.Spacing.xxSmall)
+                .padding(.leading, geometry.compactActivityWingWidth >= 40 ? geometry.compactWingInset : 0)
                 // Each wing anchors to its own edge, so the silhouette's curve
                 // decides the margin instead of the content's own width.
                 .frame(width: geometry.compactActivityWingWidth, alignment: .leading).clipped()
                 Color.clear.frame(width: geometry.compactActivityCameraGap)
-                HStack(spacing: NotchDesign.Spacing.xSmall) {
-                    // The name widens both wings; the bar fills the side the
-                    // percentage alone would leave as a band of black.
-                    if NotchDownloadSupport.showsCompactName(in: geometry), let fraction = item?.fraction {
-                        NotchMeter(value: fraction, height: NotchDesign.Control.meter, tint: NotchDesign.Palette.accent)
-                            .padding(.leading, NotchDesign.Spacing.xxSmall)
-                    } else {
-                        Spacer(minLength: 0)
-                    }
+                HStack(spacing: 0) {
+                    Spacer(minLength: 0)
                     if geometry.compactActivityWingWidth >= 36 {
                         if let fraction = item?.fraction {
                             Text(fraction, format: NotchDownloadSupport.percentFormat(l10n.language))
-                                .font(.system(size: NotchDownloadSupport.percentSize, weight: .medium))
+                                .font(NotchDesign.Typography.readout.font)
                                 .monospacedDigit()
+                                .foregroundStyle(NotchDesign.Ink.primary)
                                 .lineLimit(1)
-                                .layoutPriority(1)
+                                .minimumScaleFactor(NotchDownloadSupport.percentMinimumScale)
                         } else {
                             ProgressView().controlSize(.mini)
                         }
                     }
                 }
-                .padding(.trailing, geometry.compactActivityWingWidth >= 36
-                                    ? NotchDownloadSupport.percentInset(in: geometry) : 0)
+                .padding(.trailing, geometry.compactActivityWingWidth >= 36 ? geometry.compactWingInset : 0)
                 .frame(width: geometry.compactActivityWingWidth, alignment: .trailing).clipped()
             }
             .frame(height: geometry.compactActivityContentHeight)
