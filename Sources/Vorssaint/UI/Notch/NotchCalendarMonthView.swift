@@ -3,6 +3,88 @@
 
 import SwiftUI
 
+
+/// The numeral of a day cell in the three grids. Today is a white disc with a
+/// black numeral (Fill.inverse, Ink.onInverse), the chosen day a Fill.selected
+/// disc, and a chosen today keeps its disc and gains a ring. Moving the choice
+/// settles on Motion.snappy; Reduce Motion cross-fades.
+private struct NotchCalendarDayMark: ViewModifier {
+    let isToday: Bool
+    let selected: Bool
+    let inMonth: Bool
+    let size: CGFloat
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.colorSchemeContrast) private var contrast
+
+    private var ink: Color {
+        isToday ? NotchDesign.Ink.onInverse : inMonth || selected ? NotchDesign.Ink.primary : NotchDesign.Ink.tertiary
+    }
+
+    func body(content: Content) -> some View {
+        content
+            .font(NotchDesign.Typography.label.font.weight(isToday || selected ? .semibold : .medium).monospacedDigit())
+            .foregroundStyle(ink)
+            .frame(width: size, height: size)
+            .background {
+                Circle().fill(isToday ? NotchDesign.Fill.inverse : selected ? NotchDesign.Fill.selected : .clear)
+            }
+            .overlay {
+                Circle()
+                    .strokeBorder(selected ? (isToday ? NotchDesign.Ink.secondary
+                                              : contrast == .increased ? NotchDesign.Stroke.increasedContrast : .clear) : .clear,
+                                  lineWidth: isToday ? 1.5 : NotchDesign.Stroke.increasedContrastWidth)
+                    .padding(isToday ? -3 : 0)
+            }
+            .animation(reduceMotion ? NotchDesign.Motion.fade : NotchDesign.Motion.snappy.animation, value: selected)
+    }
+}
+
+/// Up to three event colours under a day, content colour as small dots.
+private struct NotchCalendarDots: View {
+    let events: [NotchCalendarEvent]
+    static let side: CGFloat = 4
+
+    var body: some View {
+        let colors = events.reduce(into: [NotchCalendarColor]()) { result, event in
+            if result.count < 3 && !result.contains(event.color) { result.append(event.color) }
+        }
+        HStack(spacing: NotchDesign.Spacing.line) {
+            ForEach(Array(colors.enumerated()), id: \.offset) { _, color in
+                Circle().fill(color.color).frame(width: Self.side, height: Self.side)
+            }
+        }
+        .frame(height: Self.side)
+        .accessibilityHidden(true)
+    }
+}
+
+/// A word on a capsule: the page's step. Prominent is the one accent action.
+struct NotchCalendarPill: View {
+    let title: String
+    var prominent = false
+    let action: () -> Void
+    @Environment(\.colorSchemeContrast) private var contrast
+
+    var body: some View {
+        Button(action: action) {
+            Text(title)
+                .font(NotchDesign.Typography.label.font)
+                .foregroundStyle(NotchDesign.Ink.primary)
+                .lineLimit(1)
+                .padding(.horizontal, NotchDesign.Spacing.medium)
+                .frame(height: NotchDesign.Control.rowHeight)
+                .background(prominent ? NotchDesign.Palette.accent : NotchDesign.Fill.control, in: Capsule(style: .continuous))
+                .overlay {
+                    if contrast == .increased {
+                        Capsule(style: .continuous)
+                            .strokeBorder(NotchDesign.Stroke.increasedContrast, lineWidth: NotchDesign.Stroke.increasedContrastWidth)
+                    }
+                }
+        }
+        .buttonStyle(NotchPressStyle(shape: .capsule))
+    }
+}
+
 struct NotchCalendarMonthView: View {
     let month: Date
     let selectedDay: Date?
@@ -15,29 +97,28 @@ struct NotchCalendarMonthView: View {
     let open: () -> Void
     @Environment(\.locale) private var locale
     @AppStorage(DefaultsKey.notchCalendarWeekNumbers) private var weekNumbers = false
-    private let accent = Color(red: 1, green: 0.36, blue: 0.39)
     private var columns: [GridItem] { NotchCalendarWeekNumber.columns(numbered: weekNumbers) }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 2) {
-                VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: NotchDesign.Spacing.section) {
+            HStack(spacing: NotchDesign.Spacing.line) {
+                VStack(alignment: .leading, spacing: NotchDesign.Spacing.line) {
                     Text(month, format: .dateTime.month(.wide))
-                        .font(.system(size: 16, weight: .semibold)).lineLimit(1).minimumScaleFactor(0.8)
+                        .font(NotchDesign.Typography.pageTitle.font).lineLimit(1).minimumScaleFactor(0.8)
                     Text(month, format: .dateTime.year())
-                        .font(.system(size: 11)).foregroundStyle(.white.opacity(0.45))
+                        .font(NotchDesign.Typography.label.font).foregroundStyle(NotchDesign.Ink.secondary)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 NotchIconButton(symbol: "chevron.left", title: text.previousMonth) { move(-1) }
                 NotchIconButton(symbol: "chevron.right", title: text.nextMonth) { move(1) }
             }
-            LazyVGrid(columns: columns, spacing: 4) {
+            LazyVGrid(columns: columns, spacing: NotchDesign.Spacing.xxSmall) {
                 if weekNumbers { Color.clear.frame(height: 18).accessibilityHidden(true) }
                 ForEach(0..<7, id: \.self) { column in
                     let index = (Calendar.current.firstWeekday - 1 + column) % 7
                     Text(weekdaySymbols[index])
-                        .font(.system(size: 9, weight: .medium))
-                        .foregroundStyle(.white.opacity(0.45))
+                        .font(NotchDesign.Typography.caption.font)
+                        .foregroundStyle(NotchDesign.Ink.secondary)
                         .frame(maxWidth: .infinity).frame(height: 18)
                         .accessibilityHidden(true)
                 }
@@ -49,18 +130,12 @@ struct NotchCalendarMonthView: View {
                 }
             }
             HStack {
-                Button(action: today) {
-                    Text(text.today)
-                        .font(.system(size: 11, weight: .medium))
-                        .padding(.horizontal, 12).frame(height: 28)
-                        .modifier(NotchControlSurface(cornerRadius: 9))
-                }
-                .buttonStyle(NotchButtonStyle(cornerRadius: 9))
-                Spacer(minLength: 4)
+                NotchCalendarPill(title: text.today, action: today)
+                Spacer(minLength: NotchDesign.Spacing.xxSmall)
                 NotchIconButton(symbol: "arrow.up.forward.app", title: text.openCalendar, action: open)
             }
         }
-        .foregroundStyle(.white)
+        .foregroundStyle(NotchDesign.Ink.primary)
     }
 
     private var weekdaySymbols: [String] {
@@ -75,32 +150,18 @@ struct NotchCalendarMonthView: View {
         let selected = selectedDay.map { calendar.isDate(date, inSameDayAs: $0) } ?? false
         let inMonth = calendar.isDate(date, equalTo: month, toGranularity: .month)
         let dayEvents = NotchCalendarSupport.events(events, on: date)
-        let colors = dayEvents.reduce(into: [NotchCalendarColor]()) { result, event in
-            if result.count < 3 && !result.contains(event.color) { result.append(event.color) }
-        }
         return Button { select(date) } label: {
-            VStack(spacing: 2) {
+            VStack(spacing: NotchDesign.Spacing.line) {
                 // The number alone: a formatted day carries the language's suffix,
                 // as 28日 or 28일, which the circle cuts off.
                 Text(calendar.component(.day, from: date), format: .number)
-                    .font(.system(size: 11, weight: isToday || selected ? .bold : .medium))
-                    .foregroundStyle(selected && !isToday ? .black : .white.opacity(isToday || inMonth ? 1 : 0.4))
-                    .frame(width: 24, height: 24)
-                    .background(isToday ? accent : selected ? .white : .clear, in: Circle())
-                    .overlay {
-                        Circle().strokeBorder(.white.opacity(selected && isToday ? 0.8 : 0), lineWidth: 1.5)
-                    }
-                HStack(spacing: 2) {
-                    ForEach(Array(colors.enumerated()), id: \.offset) { _, color in
-                        Circle().fill(color.color).frame(width: 3, height: 3)
-                    }
-                }
-                .frame(height: 3)
+                    .modifier(NotchCalendarDayMark(isToday: isToday, selected: selected, inMonth: inMonth, size: 24))
+                NotchCalendarDots(events: dayEvents)
             }
             .frame(maxWidth: .infinity).frame(height: 30)
-            .contentShape(Rectangle())
         }
-        .buttonStyle(NotchButtonStyle(cornerRadius: 8, lifts: false))
+        .buttonStyle(NotchPressStyle(shape: .rounded(NotchDesign.Radius.control), lifts: false))
+        .frame(height: 30)
         .help(date.formatted(.dateTime.weekday(.wide).day().month(.wide).year().locale(locale)))
         .accessibilityLabel(Text(date, format: .dateTime.weekday(.wide).day().month(.wide).year()))
         .accessibilityValue([isToday ? text.today : "", dayEvents.isEmpty ? "" : text.hasEvents]
@@ -125,10 +186,9 @@ struct NotchCalendarWeekStrip: View {
     let month: () -> Void
     let open: () -> Void
     @Environment(\.locale) private var locale
-    private let accent = Color(red: 1, green: 0.36, blue: 0.39)
 
     var body: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: NotchDesign.Spacing.xxSmall) {
             NotchIconButton(symbol: "chevron.left", title: text.previousWeek) { move(-1) }
             ForEach(NotchCalendarSupport.weekDays(containing: focus), id: \.self) { date in
                 dayButton(date)
@@ -148,7 +208,7 @@ struct NotchCalendarWeekStrip: View {
             }
         }
         .frame(height: Self.height)
-        .foregroundStyle(.white)
+        .foregroundStyle(NotchDesign.Ink.primary)
         .accessibilityElement(children: .contain)
         .accessibilityLabel(Text(focus, format: .dateTime.month(.wide).year()))
     }
@@ -164,35 +224,20 @@ struct NotchCalendarWeekStrip: View {
         let isToday = calendar.isDate(date, inSameDayAs: now)
         let selected = selectedDay.map { calendar.isDate(date, inSameDayAs: $0) } ?? false
         let dayEvents = NotchCalendarSupport.events(events, on: date)
-        let colors = dayEvents.reduce(into: [NotchCalendarColor]()) { result, event in
-            if result.count < 3 && !result.contains(event.color) { result.append(event.color) }
-        }
         // A second tap on the selected day returns to the coming week.
         return Button { selected ? week() : select(date) } label: {
-            VStack(spacing: 2) {
+            VStack(spacing: NotchDesign.Spacing.line) {
                 Text(weekdaySymbols[calendar.component(.weekday, from: date) - 1])
-                    .font(.system(size: 9, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.45))
+                    .font(NotchDesign.Typography.caption.font)
+                    .foregroundStyle(NotchDesign.Ink.secondary)
                 Text(calendar.component(.day, from: date), format: .number)
-                    .font(.system(size: 12, weight: isToday || selected ? .bold : .medium))
-                    .foregroundStyle(selected && !isToday ? .black : .white)
-                    .frame(width: 26, height: 26)
-                    .background(isToday ? accent : selected ? .white : .clear, in: Circle())
-                    .overlay {
-                        Circle().strokeBorder(.white.opacity(selected && isToday ? 0.8 : 0), lineWidth: 1.5)
-                    }
-                HStack(spacing: 2) {
-                    ForEach(Array(colors.enumerated()), id: \.offset) { _, color in
-                        Circle().fill(color.color).frame(width: 3, height: 3)
-                    }
-                }
-                .frame(height: 3)
+                    .modifier(NotchCalendarDayMark(isToday: isToday, selected: selected, inMonth: true, size: 26))
+                NotchCalendarDots(events: dayEvents)
             }
             .frame(maxWidth: .infinity)
             .frame(height: Self.height)
-            .contentShape(Rectangle())
         }
-        .buttonStyle(NotchButtonStyle(cornerRadius: 10, lifts: false))
+        .buttonStyle(NotchPressStyle(shape: .rounded(NotchDesign.Radius.control)))
         .help(date.formatted(.dateTime.weekday(.wide).day().month(.wide).year().locale(locale)))
         .accessibilityLabel(Text(date, format: .dateTime.weekday(.wide).day().month(.wide).year()))
         .accessibilityValue([isToday ? text.today : "", dayEvents.isEmpty ? "" : text.hasEvents]
@@ -218,18 +263,17 @@ struct NotchCalendarMonthGrid: View {
     let week: () -> Void
     @Environment(\.locale) private var locale
     @AppStorage(DefaultsKey.notchCalendarWeekNumbers) private var weekNumbers = false
-    private let accent = Color(red: 1, green: 0.36, blue: 0.39)
     private var columns: [GridItem] { NotchCalendarWeekNumber.columns(numbered: weekNumbers) }
 
     private var rowHeight: CGFloat { NotchLayout.calendarMonthRowHeight(height: height) }
-    private var circle: CGFloat { min(24, rowHeight - 3) }
+    private var circle: CGFloat { min(24, rowHeight - NotchCalendarDots.side) }
 
     var body: some View {
         VStack(spacing: NotchLayout.calendarMonthSpacing) {
-            HStack(spacing: 4) {
+            HStack(spacing: NotchDesign.Spacing.xxSmall) {
                 NotchIconButton(symbol: "chevron.left", title: text.previousMonth) { move(-1) }
                 Text(month, format: .dateTime.month(.wide).year())
-                    .font(.system(size: 13, weight: .semibold)).lineLimit(1).minimumScaleFactor(0.8)
+                    .font(NotchDesign.Typography.title.font).lineLimit(1).minimumScaleFactor(0.8)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 NotchIconButton(symbol: "chevron.right", title: text.nextMonth) { move(1) }
                 NotchIconButton(symbol: "circle.circle", title: text.today, action: today)
@@ -244,8 +288,8 @@ struct NotchCalendarMonthGrid: View {
                 ForEach(0..<7, id: \.self) { column in
                     let index = (Calendar.current.firstWeekday - 1 + column) % 7
                     Text(weekdaySymbols[index])
-                        .font(.system(size: 9, weight: .medium))
-                        .foregroundStyle(.white.opacity(0.45))
+                        .font(NotchDesign.Typography.caption.font)
+                        .foregroundStyle(NotchDesign.Ink.secondary)
                         .frame(maxWidth: .infinity).frame(height: NotchLayout.calendarMonthWeekdayHeight)
                         .accessibilityHidden(true)
                 }
@@ -257,7 +301,7 @@ struct NotchCalendarMonthGrid: View {
                 }
             }
         }
-        .foregroundStyle(.white)
+        .foregroundStyle(NotchDesign.Ink.primary)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
 
@@ -273,30 +317,20 @@ struct NotchCalendarMonthGrid: View {
         let selected = selectedDay.map { calendar.isDate(date, inSameDayAs: $0) } ?? false
         let inMonth = calendar.isDate(date, equalTo: month, toGranularity: .month)
         let dayEvents = NotchCalendarSupport.events(events, on: date)
-        let colors = dayEvents.reduce(into: [NotchCalendarColor]()) { result, event in
-            if result.count < 3 && !result.contains(event.color) { result.append(event.color) }
-        }
         return Button { select(date) } label: {
             VStack(spacing: 0) {
                 Text(calendar.component(.day, from: date), format: .number)
-                    .font(.system(size: min(11, circle * 0.62), weight: isToday || selected ? .bold : .medium))
-                    .foregroundStyle(selected && !isToday ? .black : .white.opacity(isToday || inMonth ? 1 : 0.4))
-                    .frame(width: circle, height: circle)
-                    .background(isToday ? accent : selected ? .white : .clear, in: Circle())
-                    .overlay {
-                        Circle().strokeBorder(.white.opacity(selected && isToday ? 0.8 : 0), lineWidth: 1.5)
-                    }
-                HStack(spacing: 2) {
-                    ForEach(Array(colors.enumerated()), id: \.offset) { _, color in
-                        Circle().fill(color.color).frame(width: 3, height: 3)
-                    }
-                }
-                .frame(height: 3)
+                    .modifier(NotchCalendarDayMark(isToday: isToday, selected: selected, inMonth: inMonth, size: circle))
+                    .minimumScaleFactor(0.7)
+                NotchCalendarDots(events: dayEvents)
             }
             .frame(maxWidth: .infinity).frame(height: rowHeight)
-            .contentShape(Rectangle())
         }
-        .buttonStyle(NotchButtonStyle(cornerRadius: 6, lifts: false))
+        .buttonStyle(NotchPressStyle(shape: .rounded(NotchDesign.Radius.control), lifts: false))
+        // A row can be shorter than the 28 pt a press face keeps; the cell
+        // clips to its row so neither the wash nor the hit area reaches a neighbour.
+        .frame(height: rowHeight)
+        .clipped()
         .help(date.formatted(.dateTime.weekday(.wide).day().month(.wide).year().locale(locale)))
         .accessibilityLabel(Text(date, format: .dateTime.weekday(.wide).day().month(.wide).year()))
         .accessibilityValue([isToday ? text.today : "", dayEvents.isEmpty ? "" : text.hasEvents]
@@ -325,11 +359,11 @@ struct NotchCalendarWeekNumber: View {
     var body: some View {
         VStack(spacing: spacing) {
             Text(NotchCalendarSupport.weekNumber(of: date), format: .number)
-                .font(.system(size: 9, weight: .medium).monospacedDigit())
-                .foregroundStyle(.white.opacity(0.45))
+                .font(NotchDesign.Typography.caption.font.monospacedDigit())
+                .foregroundStyle(NotchDesign.Ink.tertiary)
                 .frame(height: digit)
                 .accessibilityLabel(NotchCalendarSupport.weekNumberLabel(of: date, text: text))
-            Color.clear.frame(height: 3)
+            Color.clear.frame(height: NotchCalendarDots.side)
         }
         .frame(width: Self.width, height: height)
     }
