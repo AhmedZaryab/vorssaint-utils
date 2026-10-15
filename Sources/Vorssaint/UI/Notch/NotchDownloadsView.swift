@@ -221,7 +221,7 @@ struct NotchDownloadsView: View {
     /// the reading at the trailing edge, progress as a meter while it runs.
     private func downloadCard(_ item: NotchDownloadItem) -> some View {
         VStack(alignment: .leading, spacing: NotchDesign.Spacing.xSmall) {
-            HStack(spacing: NotchDesign.Spacing.small) {
+            HStack(spacing: NotchDesign.Spacing.xSmall) {
                 let fileLabel = HStack(spacing: NotchDesign.Spacing.small) {
                     Image(systemName: item.completed ? "checkmark.circle.fill" : "arrow.down.circle")
                         .font(NotchDesign.Icon.button.font)
@@ -265,6 +265,9 @@ struct NotchDownloadsView: View {
                     }
                 }
             }
+            // Finished rows end in icon buttons: their bezels sit Spacing.xSmall from the
+            // card's edge, as on the clipboard card, so the row reaches past the text inset.
+            .padding(.trailing, item.completed ? -(NotchDesign.Spacing.cardPadding - NotchDesign.Spacing.xSmall) : 0)
             if !item.completed {
                 if let fraction = item.fraction {
                     NotchMeter(value: fraction, height: NotchDesign.Control.meter, tint: NotchDesign.Ink.primary)

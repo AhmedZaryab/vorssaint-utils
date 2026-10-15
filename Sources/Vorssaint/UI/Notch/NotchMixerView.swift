@@ -101,7 +101,7 @@ struct NotchMixerView: View {
             let apps = apps
             let ids = apps.compactMap(\.persistenceID)
             NotchRail(items: apps, rows: 1, itemWidth: Self.columnWidth,
-                      width: size.width - leadingWidth - Design.Spacing.section - Design.Stroke.hairline) { app in
+                      width: size.width - leadingWidth - 2 * Design.Spacing.small - Design.Stroke.hairline) { app in
                 NotchAppFader(app: app, height: faderHeight, editingVolumeID: $editingVolumeID,
                               isPinned: arrangement.isPinned(app.persistenceID),
                               togglePin: { updateArrangement { $0.togglePin(app.persistenceID ?? "") } },

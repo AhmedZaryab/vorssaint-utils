@@ -23,7 +23,8 @@ struct NotchScratchpadView: View {
     @AppStorage(DefaultsKey.scratchpadTextSize) private var storedTextSize = ScratchpadSupport.defaultTextSize
     private var text: ScratchpadFeatureStrings { FeatureStrings.scratchpad(l10n.language) }
     private var textSize: CGFloat { CGFloat(ScratchpadSupport.sanitizedTextSize(storedTextSize)) }
-    private static let editorInset = NSSize(width: NotchDesign.Spacing.xSmall, height: NotchDesign.Spacing.xSmall)
+    private static let editorInset = NSSize(width: NotchDesign.Spacing.cardPadding - PlainTextEditor.lineFragmentPadding,
+                                                  height: NotchDesign.Spacing.cardPadding)
 
     /// Holds the editor's text view so a tab change can aim the caret at it
     /// and a clear can go through its undo. Weak, since the view belongs to

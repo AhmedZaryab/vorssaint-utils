@@ -18,7 +18,10 @@ struct NotchUpdateControl: View {
                 ? NotchDesign.Palette.warning : NotchDesign.Palette.accent
             let title = "\(l10n.s.updateBannerTitle), \(l10n.s.versionPrefix) \(version)"
             // A commit: it answers on press and its glyph kicks up and away as the update opens.
-            HStack(spacing: NotchDesign.Spacing.xxSmall) {
+            // The glyph and the word read as one label at Spacing.xxSmall: the glyph's own air inside
+            // its 28 pt button is pulled out of the gap, the hit height stays Control.iconButton.
+            let glyphAir = (NotchDesign.Control.iconButton - 15) / 2
+            HStack(spacing: compact ? 0 : NotchDesign.Spacing.xxSmall - glyphAir) {
                 NotchCommitButton(title, symbol: "arrow.down.circle.fill", kick: .up,
                                   hint: l10n.s.updateBannerAction, size: NotchDesign.Control.iconButton,
                                   symbolSize: 15, tint: tint, action: action)
@@ -27,7 +30,8 @@ struct NotchUpdateControl: View {
                     Button(action: action) {
                         Text(l10n.s.updateBannerAction).font(NotchDesign.Typography.label.font)
                             .foregroundStyle(tint).lineLimit(1)
-                            .padding(.horizontal, NotchDesign.Spacing.xxSmall)
+                            .frame(height: NotchDesign.Control.iconButton)
+                            .contentShape(Rectangle())
                     }
                     .buttonStyle(NotchPressStyle(shape: .rounded(NotchDesign.Radius.control), lifts: false))
                     .accessibilityHidden(true)
