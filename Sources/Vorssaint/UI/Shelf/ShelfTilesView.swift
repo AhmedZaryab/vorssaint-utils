@@ -441,8 +441,8 @@ final class ShelfTileView: NSView, NSDraggingSource {
             let s = L10n.shared.s
             let expand = NSButton(frame: hitFrame(centerX: Self.glyphInset + Self.glyph / 2))
             expand.image = Self.glyphImage(isExpanded ? "chevron.down.circle.fill" : "chevron.right.circle.fill",
-                                           label: isExpanded ? s.shelfCollapse : String(format: s.shelfTooltipItemsFormat, item.leafCount))
-            expand.setAccessibilityLabel(isExpanded ? s.shelfCollapse : String(format: s.shelfTooltipItemsFormat, item.leafCount))
+                                           label: isExpanded ? s.shelfCollapse : s.shelfExpand)
+            expand.setAccessibilityLabel(isExpanded ? s.shelfCollapse : s.shelfExpand)
             expand.isBordered = false
             expand.bezelStyle = .regularSquare
             expand.imagePosition = .imageOnly
@@ -533,11 +533,11 @@ final class ShelfTileView: NSView, NSDraggingSource {
             self?.togglePin(); return true
         })
         if item.isBatch {
-            actions.append(NSAccessibilityCustomAction(name: isExpanded ? s.shelfCollapse : String(format: s.shelfTooltipItemsFormat, item.leafCount)) { [weak self] in
+            actions.append(NSAccessibilityCustomAction(name: isExpanded ? s.shelfCollapse : s.shelfExpand) { [weak self] in
                 self?.toggleBatchExpansion(); return true
             })
         }
-        actions.append(NSAccessibilityCustomAction(name: s.shelfRemoveSelected) { [weak self] in
+        actions.append(NSAccessibilityCustomAction(name: s.shelfRemoveItem) { [weak self] in
             self?.removeSelf(); return true
         })
         return actions

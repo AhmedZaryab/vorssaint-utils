@@ -537,6 +537,8 @@ extension Strings {
         shelfEmpty: "Ziehe Objekte hierher",
         shelfClearAll: "Alle entfernen",
         shelfRemoveSelected: "Ausgewählte entfernen",
+        shelfRemoveItem: "Element entfernen",
+        shelfExpand: "Erweitern",
         shelfSelectedFormat: "%d ausgewählt",
         shelfHint: "Klicken zum Auswählen. Zum Verwenden ziehen oder für weitere Aktionen rechtsklicken.",
         shelfItemImage: "Bild",

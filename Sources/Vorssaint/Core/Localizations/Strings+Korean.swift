@@ -538,6 +538,8 @@ extension Strings {
         shelfEmpty: "여기에 항목을 드래그하세요",
         shelfClearAll: "모두 지우기",
         shelfRemoveSelected: "선택 항목 제거",
+        shelfRemoveItem: "항목 제거",
+        shelfExpand: "펼치기",
         shelfSelectedFormat: "%d개 선택됨",
         shelfHint: "클릭하여 선택하고 드래그하여 사용하거나, 보조 클릭하여 더 많은 동작을 표시하세요.",
         shelfItemImage: "이미지",

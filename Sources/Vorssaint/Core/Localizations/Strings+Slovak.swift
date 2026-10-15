@@ -537,6 +537,8 @@ extension Strings {
         shelfEmpty: "Potiahnite sem položky",
         shelfClearAll: "Vymazať všetko",
         shelfRemoveSelected: "Odstrániť vybrané",
+        shelfRemoveItem: "Odstrániť položku",
+        shelfExpand: "Rozbaliť",
         shelfSelectedFormat: "Vybrané: %d",
         shelfHint: "Kliknutím vyberiete. Potiahnutím von položku použijete, pravým kliknutím získate ďalšie akcie.",
         shelfItemImage: "Obrázok",

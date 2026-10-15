@@ -33,7 +33,7 @@ private typealias Design = NotchDesign
 extension NotchDesign {
     /// Values only the AI page needs. Each has one reason; everything else is composed from the shared tokens.
     enum Agents {
-        /** Card inset top and bottom: the fixed 96 pt card heights live in NotchAgentSupport, so the 12 pt inset would crowd two meter rows. */ static let cardVerticalInset = Spacing.small
+        /** Card inset top and bottom: the same 12 pt as the sides; the fixed card heights in NotchAgentSupport carry the extra room. */ static let cardVerticalInset = Spacing.cardPadding
         /** The pace tick on a meter: thin enough to read as a mark, not a segment. */ static let paceTickWidth: CGFloat = 1.5
         /** How far the pace tick stands past the meter, in total, so it reads on a 4 pt bar. */ static let paceTickOverhang: CGFloat = 4
         /** The closed-island ring is 20 pt across, so a meter's 4 pt stroke would swallow it. */ static let ringLine: CGFloat = 2.5
@@ -179,7 +179,7 @@ struct NotchAgentPulse: View {
 
     var body: some View {
         NotchAgentPulseBridge(tint: NSColor(tint), size: size, animates: !reduceMotion)
-            .frame(width: size * 2, height: size * 2)
+            .frame(width: size, height: size)
             .accessibilityHidden(true)
             .allowsHitTesting(false)
     }

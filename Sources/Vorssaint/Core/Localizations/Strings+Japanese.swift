@@ -537,6 +537,8 @@ extension Strings {
         shelfEmpty: "ここに項目をドラッグ",
         shelfClearAll: "すべてを消去",
         shelfRemoveSelected: "選択した項目を削除",
+        shelfRemoveItem: "項目を削除",
+        shelfExpand: "展開",
         shelfSelectedFormat: "%d 件を選択中",
         shelfHint: "クリックで選択。ドラッグして使用するか、右クリックでその他の操作を表示します。",
         shelfItemImage: "画像",

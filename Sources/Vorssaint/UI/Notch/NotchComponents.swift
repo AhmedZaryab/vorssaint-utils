@@ -174,7 +174,7 @@ struct NotchEmptyView<Actions: View>: View {
 
     var body: some View {
         ViewThatFits(in: .vertical) {
-            VStack(spacing: NotchDesign.Spacing.medium) {
+            VStack(spacing: NotchDesign.Spacing.xxLarge) {
                 glyph
                 label.multilineTextAlignment(.center).frame(maxWidth: 250)
                 actions()
@@ -718,6 +718,8 @@ struct NotchPullDown: View {
         NotchMenuButton(title: title, items: items()) {
             NotchPullDownFace(text: current, maxWidth: maxWidth, truncation: truncation)
         }
+        // The face's 4 pt hover padding is outdented so resting ink lands on the page and card edges.
+        .padding(.horizontal, -NotchDesign.Spacing.xxSmall)
         .help(current)
         .accessibilityValue(current)
     }

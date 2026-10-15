@@ -1386,9 +1386,9 @@ struct NotchQuickAccessPlacement: Equatable, Identifiable {
 /// transparent space reserved beside the black notch.
 enum NotchQuickAccessLayout {
     static let diameter: CGFloat = 44
-    static let gap: CGFloat = 12
+    static let gap: CGFloat = NotchDesign.Spacing.medium
     static let gutter: CGFloat = 72
-    static let rowSpacing: CGFloat = 54
+    static let rowSpacing: CGFloat = diameter + NotchDesign.Spacing.medium
     static let withdrawalDuration = 0.16
     static let hoverMargin: CGFloat = 16
     static let hoverExitDelay = 0.18

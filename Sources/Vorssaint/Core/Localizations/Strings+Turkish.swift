@@ -537,6 +537,8 @@ extension Strings {
         shelfEmpty: "Öğeleri buraya sürükle",
         shelfClearAll: "Tümünü temizle",
         shelfRemoveSelected: "Seçilenleri kaldır",
+        shelfRemoveItem: "Öğeyi kaldır",
+        shelfExpand: "Genişlet",
         shelfSelectedFormat: "%d seçili",
         shelfHint: "Seçmek için tıkla. Kullanmak için sürükle veya diğer eylemler için sağ tıkla.",
         shelfItemImage: "Görsel",

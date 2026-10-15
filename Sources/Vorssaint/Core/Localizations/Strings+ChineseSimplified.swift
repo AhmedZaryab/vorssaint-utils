@@ -537,6 +537,8 @@ extension Strings {
         shelfEmpty: "将项目拖到这里",
         shelfClearAll: "全部清除",
         shelfRemoveSelected: "移除所选",
+        shelfRemoveItem: "移除项目",
+        shelfExpand: "展开",
         shelfSelectedFormat: "已选择 %d 项",
         shelfHint: "点按以选择，拖出即可使用，或右键点按查看更多操作。",
         shelfItemImage: "图像",

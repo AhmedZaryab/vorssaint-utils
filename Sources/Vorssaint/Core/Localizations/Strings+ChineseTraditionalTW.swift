@@ -538,6 +538,8 @@ extension Strings {
         shelfEmpty: "將項目拖曳到這裡",
         shelfClearAll: "全部清除",
         shelfRemoveSelected: "移除所選",
+        shelfRemoveItem: "移除項目",
+        shelfExpand: "展開",
         shelfSelectedFormat: "已選取 %d 項",
         shelfHint: "按一下以選擇，拖出即可使用，或按右鍵查看更多操作。",
         shelfItemImage: "圖片",

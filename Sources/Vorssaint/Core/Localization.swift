@@ -710,6 +710,8 @@ struct Strings {
     let shelfEmpty: String
     let shelfClearAll: String
     let shelfRemoveSelected: String
+    let shelfRemoveItem: String
+    let shelfExpand: String
     let shelfSelectedFormat: String      // + count
     let shelfHint: String
     let shelfItemImage: String
@@ -1692,6 +1694,8 @@ extension Strings {
         shelfEmpty: "Arraste itens aqui",
         shelfClearAll: "Limpar tudo",
         shelfRemoveSelected: "Remover selecionados",
+        shelfRemoveItem: "Remover item",
+        shelfExpand: "Expandir",
         shelfSelectedFormat: "%d selecionados",
         shelfHint: "Clique para selecionar. Arraste para usar ou clique com o botão direito para mais ações.",
         shelfItemImage: "Imagem",
@@ -2644,6 +2648,8 @@ extension Strings {
         shelfEmpty: "Drag items here",
         shelfClearAll: "Clear all",
         shelfRemoveSelected: "Remove selected",
+        shelfRemoveItem: "Remove item",
+        shelfExpand: "Expand",
         shelfSelectedFormat: "%d selected",
         shelfHint: "Click to select. Drag out to use or right-click for more actions.",
         shelfItemImage: "Image",

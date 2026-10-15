@@ -521,6 +521,8 @@ extension Strings {
         shelfEmpty: "Перетягніть елементи сюди",
         shelfClearAll: "Очистити все",
         shelfRemoveSelected: "Видалити вибране",
+        shelfRemoveItem: "Видалити елемент",
+        shelfExpand: "Розгорнути",
         shelfSelectedFormat: "Вибрано: %d",
         shelfHint: "Клацніть для вибору. Перетягніть для використання або клацніть правою для інших дій.",
         shelfItemImage: "Зображення",

@@ -537,6 +537,8 @@ extension Strings {
         shelfEmpty: "Glissez des éléments ici",
         shelfClearAll: "Tout effacer",
         shelfRemoveSelected: "Retirer la sélection",
+        shelfRemoveItem: "Retirer l'élément",
+        shelfExpand: "Développer",
         shelfSelectedFormat: "%d sélectionnés",
         shelfHint: "Cliquez pour sélectionner. Glissez pour utiliser ou faites un clic droit pour plus d’actions.",
         shelfItemImage: "Image",
