@@ -103,6 +103,7 @@ struct NotchLyricsBackdrop: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @Environment(\.colorSchemeContrast) private var contrast
+    @Environment(\.notchGlassSurface) private var glassSurface
 
     var body: some View {
         GeometryReader { proxy in
@@ -119,9 +120,14 @@ struct NotchLyricsBackdrop: View {
             .frame(width: size.width, height: size.height)
         }
         .clipShape(RoundedRectangle(cornerRadius: NotchDesign.Radius.card, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: NotchDesign.Radius.card, style: .continuous)
-            .strokeBorder(contrast == .increased ? NotchDesign.Stroke.increasedContrast : NotchDesign.Stroke.glassEdge,
-                          lineWidth: contrast == .increased ? NotchDesign.Stroke.increasedContrastWidth : NotchDesign.Stroke.hairline))
+        // On the black island a card has no edge; the hairline is for Liquid Glass or Increase Contrast.
+        .overlay {
+            if glassSurface || contrast == .increased {
+                RoundedRectangle(cornerRadius: NotchDesign.Radius.card, style: .continuous)
+                    .strokeBorder(contrast == .increased ? NotchDesign.Stroke.increasedContrast : NotchDesign.Stroke.glassEdge,
+                                  lineWidth: contrast == .increased ? NotchDesign.Stroke.increasedContrastWidth : NotchDesign.Stroke.hairline)
+            }
+        }
         .animation(reduceMotion ? NotchDesign.Motion.fade : .easeOut(duration: 0.6), value: palette)
         // The glows reach far past the page and clipping only hides them, so
         // without this they took the clicks meant for the player above.

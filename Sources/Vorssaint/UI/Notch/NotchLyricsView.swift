@@ -206,7 +206,7 @@ struct NotchLyricsView: View {
         }
         .scaleEffect(current ? 1 : Self.bodyScale, anchor: .leading)
         .animation(NotchDesign.Motion.animation(NotchDesign.Motion.smooth, reduceMotion: reduceMotion), value: current)
-        .animation(reduceMotion ? NotchDesign.Motion.fade : NotchDesign.Motion.fade, value: opacity)
+        .animation(NotchDesign.Motion.fade, value: opacity)
         .id(index)
         .contentShape(Rectangle())
         .onTapGesture {
@@ -225,25 +225,38 @@ struct NotchLyricsView: View {
 }
 
 /// A hairline under the sung verse that fills across the verse's length.
+/// It reads the playback clock on every display frame (no state writes, no
+/// per tick animation), pauses with playback, and under Reduce Motion steps
+/// once a second.
 private struct NotchLyricProgress: View {
     let start: Double
     let end: Double
     let playback: NotchPlayback
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private static let width: CGFloat = 120
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 30, paused: !playback.isPlaying)) { context in
-            let span = max(end - start, 0.1)
-            let fraction = min(max((playback.position(at: context.date) - start) / span, 0), 1)
-            GeometryReader { proxy in
-                ZStack(alignment: .leading) {
-                    Capsule().fill(NotchDesign.Fill.track)
-                    Capsule().fill(NotchDesign.Ink.primary)
-                        .frame(width: proxy.size.width * fraction)
-                }
+        Group {
+            if reduceMotion {
+                TimelineView(.periodic(from: .now, by: 1)) { bar(at: $0.date) }
+            } else {
+                TimelineView(.animation(paused: !playback.isPlaying)) { bar(at: $0.date) }
             }
-            .frame(width: 120, height: NotchDesign.Stroke.hairline * 4)
         }
         .accessibilityHidden(true)
+    }
+
+    private func bar(at date: Date) -> some View {
+        let span = max(end - start, 0.1)
+        let fraction = min(max((playback.position(at: date) - start) / span, 0), 1)
+        return ZStack(alignment: .leading) {
+            Capsule().fill(NotchDesign.Fill.track)
+            Capsule().fill(NotchDesign.Ink.primary)
+                .frame(width: Self.width * fraction)
+        }
+        .frame(width: Self.width, height: NotchDesign.Stroke.hairline * 4)
+        .transaction { $0.animation = nil }
     }
 }
 
