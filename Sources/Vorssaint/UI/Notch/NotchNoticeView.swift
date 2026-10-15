@@ -146,6 +146,9 @@ struct NotchNoticeView: View {
         let side = NotchDesign.Peek.wingArtwork
         if notice.event == .agents, let agent = notice.agent, notice.symbol == agent.symbol {
             NotchAgentMark(provider: agent, size: Self.markSize(agent, fitting: side))
+        } else if notice.event == .track {
+            NotchTrackArtwork(size: side)
+                .clipShape(RoundedRectangle(cornerRadius: NotchDesign.Radius.card * side / NotchDesign.Peek.artwork, style: .continuous))
         } else {
             Image(systemName: notice.symbol)
                 .font(NotchDesign.Icon.wing.font)

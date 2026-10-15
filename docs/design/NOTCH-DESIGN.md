@@ -364,15 +364,16 @@ Words in quotes give the English sense; every string comes from the language's s
 | --- | --- | --- | --- | --- | --- | --- |
 | Volume, brightness, keyboard light | compact | Symbol (fills with level) | | | Meter, 4 pt, plus percent | hudDwell 1.5 s after the last change |
 | Microphone muted or live | compact | `mic.slash` or `mic` | Muted or Live | | | infoDwell 2.5 s |
-| Song change | compact notice (unchanged) | Cover in the leading wing at `Peek.wingArtwork` | Title | | | wings within `Peek.wingMinimum` to `Peek.wingMaximum`; stays the compact `.track` notice because a tall peek would change NotchService behaviour, which is out of scope |
-| Agent wrap-up | tall (shipped: peeks-notice) | Agent mark | "Claude finished" | Time taken · cost | | tallDwell 4 s |
-| Agent limit near or reset | tall (shipped: peeks-notice) | Agent mark, warning glyph when near | "Claude · Weekly" | "20% left" or "Renewed" | | tallDwell 4 s |
-| Notification | compact tonight; tall when the owner asks | App icon 32 | Sender or title | One line of the message | | tallDwell 4 s, held while the pointer rests on it |
-| Download finished | compact tonight; tall when the owner asks | File icon 32 | File name | "Downloaded" · size | | tallDwell 4 s |
+| Song change | compact | Cover in the leading wing at `Peek.wingArtwork` | Title | | | wings within `Peek.wingMinimum` to `Peek.wingMaximum`, tail truncation; the tall variant would show the new cover twice, once in the music strip above and once in the band |
+| Up next | tall band with ring | Cover 32 | Title | "Up next · Artist" | Clockwise ring, equaliser | last 10 s of the song; the strip above stays |
+| Agent wrap-up | tall | Agent mark | "Claude finished" | Time taken · cost | | tallDwell 4 s |
+| Agent limit near or reset | tall | Agent mark, warning glyph when near | "Claude · Weekly" | "20% left" or "Renewed" | | tallDwell 4 s |
+| Notification | tall | App icon 32 | Sender or title | One line of the message | | tallDwell 4 s, held while the pointer rests on it |
+| Download finished | tall | File icon 32 | File name | "Downloaded" · size | | tallDwell 4 s |
 | Device connected | compact | Device symbol | Name, truncated in the middle | | Battery percent when known | infoDwell 2.5 s |
 | Charger and battery | compact | Battery symbol | | | Percent | infoDwell 2.5 s |
 | Timer ended | compact tonight; tall when the owner asks | `timer` in accent | "Timer done" | The timer's name or length | | attentionDwell 8 s, held while pointed at |
-| Watch fired | compact tonight; tall when the owner asks | `eye` | What changed | Where | | attentionDwell 8 s |
+| Watch fired | tall | `eye` | What changed | Where | | attentionDwell 8 s |
 | Keep awake on or off | compact | `cup.and.saucer` | | | Time left or infinity | infoDwell 2.5 s |
 | Calendar soon | compact tonight; tall when the owner asks | Calendar colour dot in a 32 plate | Event title | "In 5 min" · place | | tallDwell 4 s |
 | Copied | compact | `doc.on.clipboard` | Copied | | | infoDwell 2.5 s |
@@ -436,11 +437,11 @@ The owner called it out. It should feel like Dynamic Island on iPhone when a tra
 |                 Artist                               |
 ```
 
-- **When:** the up next pre-roll stays on with its current timing (last 10 s of a song; it is a feature the owner uses and behaviour is out of scope). Only the up next band uses this tall peek anatomy (cover 32, title, "Up next · Artist" as the second line, live equaliser; no ring, no uppercase eyebrow). The track change peek stays a compact notice (cover in the leading wing at `Peek.wingArtwork`, title, wings within `Peek.wingMinimum` to `Peek.wingMaximum`). No new setting.
+- **When:** the up next pre-roll stays on with its current timing (last 10 s of a song; it is a feature the owner uses and behaviour is out of scope). Track change is compact: the cover in the leading wing at `Peek.wingArtwork`, the title in `Typography.stripPrimary`, wings within `Peek.wingMinimum` to `Peek.wingMaximum`, tail truncation. Up next is tall, with its clockwise ring (cover 32, title, "Up next · Artist" as the second line; no uppercase eyebrow). Each song change shows one of them, never the cover twice. No new setting.
 - **Leading:** the cover at `Peek.artwork` 32 pt, `Radius.card` 12, continuous, `Stroke.artworkEdge` hairline. No cover yet: `music.note` in a `Fill.card` plate, and the real cover cross-fades in when it lands.
 - **Text:** title `Typography.stripPrimary` white; artist `Typography.stripSecondary` at 0.6. No eyebrow, no uppercase, no kerning, no 9 or 10.5 pt sizes.
 - **Trailing:** `NotchLiveEqualizerBars`, 3 bars, 2 pt wide, 12 pt tall, in the artwork tint (white for neutral covers). Static bars under Reduce Motion and while paused.
-- **Removed:** the "UP NEXT" eyebrow, the countdown ring and its pine green, the `TimelineView` that drove it under Reduce Motion, and the `.drawingGroup()` it needed.
+- **Removed:** the "UP NEXT" eyebrow. The clockwise countdown ring stays, as the owner asked for it.
 - **Height:** the band is `Peek.bandHeight` 60 pt below the strip; `NotchSongPeekBand.height` returns that token instead of measuring three fonts.
 - **Motion:** as every tall peek (section 11.2). A skip while the band is up updates it in place: the cover and the text cross-fade on `Motion.fade`, the shape does not move.
 - **VoiceOver:** "Now playing: Title, Artist". Not interactive; a click opens the music page.
