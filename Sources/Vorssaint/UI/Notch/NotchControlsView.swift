@@ -569,13 +569,10 @@ enum NotchTileAccent {
     /// white unless it falls under 4.5:1 on the person's accent or the signal red, then `Ink.onInverse`.
     var glyph: Color {
         let base: NSColor = self == .alert ? .systemRed : .controlAccentColor
-        var ratio: CGFloat = 21
-        NSAppearance(named: .darkAqua)?.performAsCurrentDrawingAppearance {
-            guard let c = base.usingColorSpace(.sRGB) else { return }
-            func lin(_ v: CGFloat) -> CGFloat { v <= 0.03928 ? v / 12.92 : pow((v + 0.055) / 1.055, 2.4) }
-            let l = 0.2126 * lin(c.redComponent) + 0.7152 * lin(c.greenComponent) + 0.0722 * lin(c.blueComponent)
-            ratio = 1.05 / (l + 0.05)
-        }
+        guard let c = base.usingColorSpace(.sRGB) else { return Design.Ink.primary }
+        func lin(_ v: CGFloat) -> CGFloat { v <= 0.03928 ? v / 12.92 : pow((v + 0.055) / 1.055, 2.4) }
+        let l = 0.2126 * lin(c.redComponent) + 0.7152 * lin(c.greenComponent) + 0.0722 * lin(c.blueComponent)
+        let ratio = 1.05 / (l + 0.05)
         return ratio >= 4.5 ? Design.Ink.primary : Design.Ink.onInverse
     }
 }
