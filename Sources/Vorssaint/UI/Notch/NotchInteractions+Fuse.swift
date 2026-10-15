@@ -224,7 +224,6 @@ struct NotchFuseButton: View {
         .onExitCommand {
             if fuse.burning { blowOut() }
         }
-        .onDisappear { if fuse.burning { fuse.hold(false) } }
         .help(burning ? undo : title)
         .accessibilityLabel(burning ? undo : title)
         .accessibilityValue(burning ? title : "")
