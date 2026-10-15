@@ -171,7 +171,7 @@ struct NotchCalendarStrip: View {
     private static func clock(_ remaining: String, ongoing: Bool) -> some View {
         Text(remaining)
             .font(NotchDesign.Typography.stripPrimary.font).monospacedDigit()
-            .lineLimit(1).minimumScaleFactor(0.8)
+            .lineLimit(1).minimumScaleFactor(NotchDesign.Typography.stripPrimary.minimumScale)
             .foregroundStyle(ongoing ? NotchDesign.Palette.positive : NotchDesign.Ink.primary)
             .modifier(NotchRollingDigits(value: remaining, countsDown: true, everySecond: false))
     }

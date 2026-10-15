@@ -367,12 +367,14 @@ enum NotchTests {
                 let notice = NotchNotice(event: event, title: "Level", detail: "\(percent)%",
                                          symbol: "speaker.wave.2", level: Double(percent) / 100)
                 let wing = notice.preferredWingWidth
-                let content = width(notice.detail) + 18 + 8
-                suite.expect(content + NotchNotice.levelInset <= wing && wing < content + NotchNotice.levelInset + 1
-                             && notice.inset(wing: wing) == NotchNotice.levelInset,
-                             "a level's wings fit its mark and reading, with no empty black at the end")
-                suite.expect(wing - NotchNotice.levelInset >= 40,
-                             "the opposite meter remains readable beside the shortest reading")
+                let reading = NotchNotice.hudReadingWidth
+                // The glyph in one wing, the meter and its percent in the other, the same
+                // width whatever the reading, so the wings never move as it counts.
+                suite.expect(notice.isHUD && wing == notice.preferredWings.leading && wing == notice.preferredWings.trailing
+                             && NotchNotificationBannerLayout.inset + NotchNotice.hudMeterMinimum + reading + notice.cameraGap <= wing
+                             && wing <= NotchDesign.Peek.wingMaximum
+                             && notice.inset(wing: wing) == NotchNotificationBannerLayout.inset,
+                             "a level's wings fit its glyph, meter and reading, the same width at every percent")
             }
         }
         let long = NotchNotice(event: .accessory, title: "Connected",
@@ -388,7 +390,7 @@ enum NotchTests {
                "a device name fits its wing whole, with the gap its text keeps from the camera")
         suite.expect(trackpad.readsFromEnds && trackpad.cameraGap > 0
                && !NotchNotice(event: .volume, title: "Volume", detail: "40%", symbol: "speaker", level: 0.4).readsFromEnds
-               && NotchNotice(event: .volume, title: "Volume", detail: "40%", symbol: "speaker", level: 0.4).cameraGap == 0
+               && NotchNotice(event: .volume, title: "Volume", detail: "40%", symbol: "speaker", level: 0.4).cameraGap == 6
                && NotchNotice(event: .battery, title: "Charging", detail: "80%", symbol: "battery.100percent.bolt").cameraGap == 16,
                "text reads from the island's ends while levels keep hugging the camera")
         let narrow = NotchGeometry(screen: CGRect(x: 0, y: 0, width: 640, height: 480),
@@ -2670,12 +2672,12 @@ enum NotchTests {
         let calendarWings = physical.compactCalendarGeometry
         let calendarFooter = NotchGeometry(screen: physical.screen, safeAreaTop: 32,
                                            cameraWidth: 180, compactSideRoom: 30).compactCalendarGeometry
-        suite.expect(calendarWings.compactActivityWingWidth == 120 && !calendarWings.compactActivityUsesFooter
+        suite.expect(calendarWings.compactActivityWingWidth == 96 && !calendarWings.compactActivityUsesFooter
                      && calendarFooter.compactActivityUsesFooter && calendarFooter.compactActivityCameraGap == 0,
                      "the event title uses the available wings or a full row below a crowded physical notch")
         suite.expect(physical.compactCalendarGeometry(wing: 90).compactActivityWingWidth == 90
                      && physical.compactCalendarGeometry(wing: 30).compactActivityWingWidth == 72
-                     && physical.compactCalendarGeometry(wing: 500).compactActivityWingWidth == 120
+                     && physical.compactCalendarGeometry(wing: 500).compactActivityWingWidth == 96
                      && NotchGeometry(screen: physical.screen, safeAreaTop: 32, cameraWidth: 180, compactSideRoom: 80)
                         .compactCalendarGeometry(wing: 100).compactActivityWingWidth == 80,
                      "the countdown wings fit the wider of the title and the clock, within the menus' room")

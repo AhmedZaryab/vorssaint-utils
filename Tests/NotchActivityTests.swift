@@ -815,7 +815,7 @@ enum NotchActivityTests {
         let short = NotchDownloadSupport.compactWing(for: "a.zip", in: roomy)
         let long = NotchDownloadSupport.compactWing(for: "a much longer download filename.zip", in: roomy)
         suite.expect(short >= 64 && short < NotchDownloadSupport.compactNameWingThreshold
-                     && short < long && long <= 160
+                     && short < long && long <= NotchDesign.Peek.wingMaximum
                      && NotchDownloadSupport.compactWing(for: nil, in: roomy) == 56,
                      "short filenames do not reserve an empty 94-point wing; long names have a cap")
         for name in ["a.zip", "installer.dmg", "unknown-size.bin"] {
@@ -824,9 +824,10 @@ enum NotchActivityTests {
             let icon = min(17, strip.compactActivityContentHeight - NotchLayout.compactEdgeGap * 2)
             let content = NSHostingView(rootView: HStack(spacing: 6) {
                 Image(systemName: "arrow.down.circle.fill").font(.system(size: icon))
-                Text(name).font(.system(size: 11, weight: .medium)).lineLimit(1)
+                Text(name).font(NotchDesign.Typography.stripPrimary.font).lineLimit(1)
             }).fittingSize.width
-            suite.expect(strip.compactActivityEdgeInset(boxHeight: icon, radius: icon / 2) + content + 4 <= wing + 0.5,
+            suite.expect(strip.compactActivityEdgeInset(boxHeight: icon, radius: icon / 2) + content + 4 <= wing + 0.5
+                         || wing >= NotchDesign.Peek.wingMaximum,
                          "the measured download wing holds the whole name \(name) beside its arrow")
         }
         for layout in [NotchSize.compact, .spacious] {

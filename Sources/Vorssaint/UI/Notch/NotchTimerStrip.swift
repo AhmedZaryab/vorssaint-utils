@@ -24,7 +24,8 @@ struct NotchTimerStrip: View {
     private var geometry: NotchGeometry { displayGeometry ?? service.compactActivityGeometry }
     private var companion: NotchCompactActivity? { service.compactCompanion }
     private var iconSize: CGFloat { NotchTimerSupport.stripIconSize(height: geometry.compactActivityContentHeight) }
-    private var textSize: CGFloat { NotchDesign.Typography.stripPrimary.nsFont.pointSize * 0.72 }
+    /// The reading's digits have no descenders, so their ink is the face's cap height, applied once.
+    private var textBox: CGFloat { NotchDesign.Typography.stripPrimary.nsFont.capHeight }
     private var iconInset: CGFloat {
         guard !geometry.compactActivityUsesFooter else { return 0 }
         if let companion { return NotchCompanionMark.inset(companion, geometry: geometry) }
@@ -32,8 +33,7 @@ struct NotchTimerStrip: View {
     }
     private var textInset: CGFloat {
         guard !geometry.compactActivityUsesFooter else { return 0 }
-        // Digits carry no descenders, so their ink is about the cap height.
-        return geometry.compactActivityEdgeInset(boxHeight: textSize * 0.72, radius: 0)
+        return geometry.compactActivityEdgeInset(boxHeight: textBox, radius: 0)
     }
 
     var body: some View {
@@ -86,7 +86,7 @@ struct NotchTimerStrip: View {
                     Text(text)
                         .font(NotchDesign.Typography.stripPrimary.font).monospacedDigit()
                         .foregroundStyle(NotchDesign.Ink.primary)
-                        .lineLimit(1).minimumScaleFactor(0.65)
+                        .lineLimit(1).minimumScaleFactor(NotchDesign.Typography.stripPrimary.minimumScale)
                         .modifier(NotchRollingDigits(value: text, countsDown: !timer.session.countsUp, everySecond: false))
                         // A reading that gains or loses a character, like
                         // 10m becoming 9m, resizes the wings; the service

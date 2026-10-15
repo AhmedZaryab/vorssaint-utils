@@ -2230,7 +2230,7 @@ struct NotchGeometry: Equatable {
         compact.minimumCompactWidth = cameraWidth + wing * 2
         return compact
     }
-    static let calendarWingRange: ClosedRange<CGFloat> = 72...120
+    static let calendarWingRange: ClosedRange<CGFloat> = 72...NotchDesign.Peek.wingMaximum
     /// Give the title useful space beside the camera, as wide as the title or
     /// the clock needs, so neither wing ends in a band of empty black. When
     /// menus leave less than a readable wing, a physical notch uses one row

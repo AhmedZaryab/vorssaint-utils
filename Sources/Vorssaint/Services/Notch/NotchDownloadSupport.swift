@@ -184,7 +184,7 @@ enum NotchDownloadSupport {
     static let percentSize: CGFloat = 10
     static let compactNameWingThreshold: CGFloat = 94
     private static let compactNameMinimumWing: CGFloat = 64
-    private static let compactNameMaximumWing: CGFloat = 160
+    private static let compactNameMaximumWing: CGFloat = NotchDesign.Peek.wingMaximum
     /// Progress rounds up to a full hundred near the end, and four of the
     /// languages part the number from its sign, so the narrowest wing cannot
     /// hold the widest reading at full size. It shrinks rather than wrap or
@@ -215,6 +215,8 @@ enum NotchDownloadSupport {
 
     /// The island asks for its geometry on every layout and progress tick, so
     /// the one name on show is measured once rather than each time.
+    /// The face the name is drawn in (stripPrimary), made once.
+    private static let nameFont = NotchDesign.Typography.stripPrimary.nsFont
     private static var measuredCompactName: (name: String, icon: CGFloat, width: CGFloat)?
 
     private static func compactNameContentWidth(_ name: String, icon: CGFloat) -> CGFloat {
@@ -227,7 +229,7 @@ enum NotchDownloadSupport {
             .withSymbolConfiguration(NSImage.SymbolConfiguration(pointSize: icon, weight: .regular))?
             .size.width ?? icon + 3
         let title = (name as NSString).size(withAttributes: [
-            .font: NSFont.systemFont(ofSize: 11, weight: .medium)
+            .font: nameFont
         ]).width.rounded(.up)
         let width = max(icon, symbol) + 6 + title
         measuredCompactName = (name, icon, width)

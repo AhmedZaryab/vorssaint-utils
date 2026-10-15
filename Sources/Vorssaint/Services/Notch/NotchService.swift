@@ -42,8 +42,7 @@ struct NotchNotice: Equatable {
             let wing = max(0, (geometry.tallPeek.width - geometry.noticeCameraGap) / 2)
             return NotchNoticeWings(leading: wing, trailing: wing)
         }
-        return geometry.noticeWings(preferredWings(
-            wrapsMessage: NotchNotificationBannerLayout.messageLines(stripHeight: geometry.stripHeight) > 1))
+        return geometry.noticeWings(preferredWings)
     }
 
     func preferredWings(wrapsMessage: Bool) -> NotchNoticeWings {
@@ -53,8 +52,7 @@ struct NotchNotice: Equatable {
         let wing: CGFloat
         if showsGlyphAndWord {
             // The glyph's side holds the glyph; the word's side holds the word.
-            let word = (title as NSString).size(withAttributes: [.font: NotchDesign.Typography.stripPrimary.nsFont]).width
-            wing = ceil(word) + NotchNotificationBannerLayout.inset + cameraGap
+            wing = ceil(wordWidth) + NotchNotificationBannerLayout.inset + cameraGap
         } else {
             wing = raw.widest
         }
@@ -62,7 +60,41 @@ struct NotchNotice: Equatable {
         return NotchNoticeWings(leading: clamped, trailing: clamped)
     }
 
+    /// NSFont is built on every call to `nsFont`, and wings are read on every
+    /// layout pass, so the faces are made once.
+    private static let wordFont = NotchDesign.Typography.stripPrimary.nsFont
+    private static let readingFont = NotchDesign.Typography.readout.nsFont
+
+    /// The one word of a glyph-and-word notice, as the strip draws it.
+    private var wordWidth: CGFloat { (title as NSString).size(withAttributes: [.font: Self.wordFont]).width }
+
+    /// A volume, brightness or keyboard light reading: the glyph in one wing,
+    /// the meter and its percent in the other (docs/design/NOTCH-DESIGN.md 11.1).
+    var isHUD: Bool { clampsWings && level != nil }
+
+    /// The widest reading a HUD shows, so the wings never change as it counts.
+    static var hudReadingWidth: CGFloat {
+        ceil(("100%" as NSString).size(withAttributes: [.font: readingFont]).width) + 2
+    }
+    /// The meter's least length in a HUD's wing.
+    static let hudMeterMinimum: CGFloat = 28
+
+    /// A glyph-and-word notice whose word does not fit the widest compact
+    /// wing goes tall (11.2: "Anything that does not fit 96 pt uses the tall
+    /// variant"), so it is read whole instead of cut.
+    var overflowsCompact: Bool {
+        showsGlyphAndWord
+            && ceil(wordWidth) + NotchNotificationBannerLayout.inset + cameraGap > NotchDesign.Peek.wingMaximum
+    }
+
     private func rawWings(wrapsMessage: Bool) -> NotchNoticeWings {
+        if isHUD {
+            let glyph = ceil(NotchNotificationBannerLayout.inset + NotchDesign.Peek.wingArtwork + cameraGap)
+            let reading = ceil(NotchNotificationBannerLayout.inset + Self.hudMeterMinimum
+                               + NotchDesign.Spacing.xxSmall + Self.hudReadingWidth + cameraGap)
+            let wing = max(glyph, reading)
+            return NotchNoticeWings(leading: wing, trailing: wing)
+        }
         if let notification {
             let fitted = NotchNotificationBannerLayout.wings(for: notification, wrapsMessage: wrapsMessage)
             return NotchNoticeWings(leading: max(minimumWings.leading, fitted.leading),
@@ -115,7 +147,7 @@ struct NotchNotice: Equatable {
 
     /// Room text keeps from the camera; battery labels need breathing room
     /// at both the curved edge and the camera.
-    var cameraGap: CGFloat { event == .battery ? 16 : readsFromEnds ? 6 : 0 }
+    var cameraGap: CGFloat { event == .battery ? 16 : readsFromEnds || isHUD ? 6 : 0 }
 
     var accessibilityText: String {
         notification?.accessibilityText ?? [title, detail].filter { !$0.isEmpty }.joined(separator: ", ")
@@ -125,7 +157,7 @@ struct NotchNotice: Equatable {
     /// narrow as its content still clears; only a display too narrow for a
     /// side's content takes some of it.
     func inset(wing: CGFloat) -> CGFloat {
-        level != nil && event != .accessory ? Self.levelInset : min(NotchNotificationBannerLayout.inset, wing / 2)
+        level != nil && event != .accessory && !isHUD ? Self.levelInset : min(NotchNotificationBannerLayout.inset, wing / 2)
     }
 
     func previewContentHeight(width: CGFloat) -> CGFloat {
@@ -828,6 +860,11 @@ final class NotchService: ObservableObject {
     /// and the band with it, stays the closed notch's width.
     var surfaceSize: CGSize {
         var size = baseSurfaceSize
+        if tallNoticeKeepsStrip {
+            let strip = stripBehindNoticeSize
+            return CGSize(width: max(strip.width, geometry.tallPeek.width),
+                          height: strip.height + NotchDesign.Peek.bandHeight)
+        }
         if songPeekBandActive {
             // The tall peek: the strip as it rests with a band below it, as
             // wide as the resting island within the tall peek's range.
@@ -838,7 +875,20 @@ final class NotchService: ObservableObject {
     }
 
     /// The closed notch's own size, under any band it grows.
-    var baseSurfaceSize: CGSize {
+    var baseSurfaceSize: CGSize { restingSurfaceSize(includingNotice: true) }
+
+    /// A tall notice keeps the live strip exactly as it was and grows a band
+    /// below it (docs/design/NOTCH-DESIGN.md 11.2), as wide as the strip or the
+    /// tall peek's minimum, whichever is wider.
+    var tallNoticeKeepsStrip: Bool {
+        guard let notice, notice.tall, !noticeExpanded, !geometry.floats else { return false }
+        return true
+    }
+
+    /// The strip under a tall notice: the closed island without the notice.
+    var stripBehindNoticeSize: CGSize { restingSurfaceSize(includingNotice: false) }
+
+    private func restingSurfaceSize(includingNotice: Bool) -> CGSize {
         if let capsule = capsuleSurfaceSize { return capsule }
         if fullscreenCompact { return geometry.bareCutout }
         if captureControls != nil {
@@ -849,7 +899,7 @@ final class NotchService: ObservableObject {
         }
         if expanded { return expandedSize }
         if dragPlaceholder { return CGSize(width: geometry.peek.width, height: geometry.safeContentTop + 66) }
-        if let notice {
+        if includingNotice, let notice {
             if notice.tall, !noticeExpanded { return geometry.tallPeek }
             guard noticeExpanded else { return geometry.noticeSize(wings: notice.wings(in: geometry)) }
             return geometry.notificationPreviewSize(
@@ -877,6 +927,7 @@ final class NotchService: ObservableObject {
     /// further toward its wider side. A capsule runs its strips end to end.
     var surfaceShift: CGFloat {
         guard !geometry.floats, !fullscreenCompact, captureControls == nil, !expanded, !dragPlaceholder else { return 0 }
+        if tallNoticeKeepsStrip { return namedMusicWings.map { ($0.trailing - $0.leading) / 2 } ?? 0 }
         if let notice { return noticeExpanded ? 0 : geometry.noticeShift(notice.wings(in: geometry)) }
         return namedMusicWings.map { ($0.trailing - $0.leading) / 2 } ?? 0
     }
@@ -2021,6 +2072,15 @@ final class NotchService: ObservableObject {
               NotchSupport.shouldReplace(notice?.event, with: incoming.event, held: noticeExpanded) else { return false }
         noticeWork?.cancel(); noticeWork = nil
         var incoming = incoming
+        if incoming.overflowsCompact { incoming.tall = true }
+        if incoming.event != .volume, incoming.event != .brightness, incoming.event != .keyboardLight,
+           !incoming.accessibilityText.isEmpty {
+            // The system speaks the level HUDs; every other peek is announced,
+            // loudly when it asks for attention.
+            var spoken = AttributedString(incoming.accessibilityText)
+            if incoming.event.priority >= 2 { spoken.accessibilitySpeechAnnouncementPriority = .high }
+            AccessibilityNotification.Announcement(spoken).post()
+        }
         if incoming.notification != nil, let shown = notice, shown.notification != nil, noticeCanPresent, !noticeExpanded {
             incoming.minimumWings = shown.wings(in: geometry)
         }
@@ -2089,7 +2149,7 @@ final class NotchService: ObservableObject {
                   let playback = NotchMusicService.shared.playback, playback.isPlaying,
                   let title = playback.track.title, !title.isEmpty else { return }
             self.show(NotchNotice(event: .track, title: title, detail: playback.track.artist ?? "",
-                                  symbol: "music.note"))
+                                  symbol: "music.note", tall: true))
         }
         trackWork = work
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5, execute: work)
@@ -3628,7 +3688,7 @@ final class NotchService: ObservableObject {
             NotchDownloadService.shared.onArrival = { [weak self] item in
                 self?.show(NotchNotice(event: .download,
                     title: FeatureStrings.notchFiles(L10n.shared.language).completed,
-                    detail: item.name, symbol: "arrow.down.circle.fill"))
+                    detail: item.name, symbol: "arrow.down.circle.fill", tall: true))
             }
         }
         if modules.contains(.agents) {
@@ -3679,7 +3739,8 @@ final class NotchService: ObservableObject {
             NotchNotificationService.shared.received.sink { [weak self] item in
                 guard let self else { return }
                 let shown = self.show(NotchNotice(event: .systemNotification, title: item.content.title,
-                                                 detail: item.content.body, symbol: "bell.fill", notification: item.content, notificationID: item.id))
+                                                 detail: item.content.body, symbol: "bell.fill", notification: item.content, notificationID: item.id,
+                                                 tall: true))
                 if shown, !self.expanded, self.captureControls == nil, !self.dragPlaceholder {
                     NotchNotificationService.shared.hideNative(item.id)
                 }
@@ -3729,7 +3790,7 @@ final class NotchService: ObservableObject {
                              detail: text.limitRenewed, symbol: "arrow.clockwise", agent: provider, tall: true))
         case .budgetReached(let spent, _):
             show(NotchNotice(event: .agents, title: text.budgetTitle, detail: AgentFormat.cost(spent),
-                             symbol: "dollarsign.circle.fill"))
+                             symbol: "dollarsign.circle.fill", tall: true))
         }
     }
 
