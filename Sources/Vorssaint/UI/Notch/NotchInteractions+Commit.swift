@@ -42,10 +42,12 @@ struct NotchCommitButton: View {
     var hint: String?
     var dragToFire: Bool
     var size: CGFloat
-    /// Nil sizes the glyph from the control's side; callers name Icon.button, Icon.transport or Icon.transportPrimary.
+    /// Nil takes Icon.button; callers name Icon.button, Icon.transport or Icon.transportPrimary.
     var glyph: NotchDesign.TypeStyle?
-    /// Source compatible point size for callers that have not moved to `glyph`.
-    var symbolSize: CGFloat?
+    /// A word beside the glyph, inside the same plate, press, hit area and fire path.
+    var word: String?
+    var wordInk: Color
+    var wordStyle: NotchDesign.TypeStyle
     var filled: Bool
     /// Off, a pointer fire only morphs the symbol: no kick, no burst.
     var launches: Bool
@@ -66,7 +68,9 @@ struct NotchCommitButton: View {
                                                  slop: Metrics.slingSlop)
     @State private var presented = NotchPresentedPull()
     @State private var kicks = 0
-    @State private var burst: NotchBurst?
+    @State private var bursts: [NotchBurst] = []
+    /// The last fire came from the keyboard: the symbol swaps with no animation until the pointer returns.
+    @State private var still = false
     @FocusState private var focused: Bool
     @Environment(\.isEnabled) private var enabled
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -74,7 +78,8 @@ struct NotchCommitButton: View {
 
     init(_ title: String, symbol: String, kick: NotchCommitKick = .morph, hint: String? = nil,
          dragToFire: Bool = false, size: CGFloat = Metrics.commitSide, glyph: NotchDesign.TypeStyle? = nil,
-         symbolSize: CGFloat? = nil, filled: Bool = false,
+         word: String? = nil, wordInk: Color = NotchDesign.Ink.secondary,
+         wordStyle: NotchDesign.TypeStyle = NotchDesign.Typography.callout, filled: Bool = false,
          launches: Bool = true, tint: Color = .white, burstTint: Color? = nil, keyboardShortcut: KeyboardShortcut? = nil,
          action: @escaping () -> Void) {
         self.title = title
@@ -84,7 +89,9 @@ struct NotchCommitButton: View {
         self.dragToFire = dragToFire
         self.size = size
         self.glyph = glyph
-        self.symbolSize = symbolSize
+        self.word = word
+        self.wordInk = wordInk
+        self.wordStyle = wordStyle
         self.filled = filled
         self.launches = launches
         self.tint = tint
@@ -94,9 +101,7 @@ struct NotchCommitButton: View {
     }
 
     private var side: CGFloat { max(size, Metrics.minimumTarget) }
-    private var glyphFont: Font {
-        glyph?.font ?? .system(size: symbolSize ?? (side * 0.45).rounded(), weight: NotchDesign.Weight.semibold.font)
-    }
+    private var glyphFont: Font { (glyph ?? Metrics.toggleGlyph).font }
     /// How far the pointer may stray from the control before a release cancels.
     private var reach: CGFloat { side / 2 + Metrics.pressCancelMargin }
     /// Reduce Motion keeps the gesture a plain press: no band, no flight.
@@ -111,20 +116,28 @@ struct NotchCommitButton: View {
                 NotchSlingWell(pull: shownPull, armed: shownArmed, side: side)
             }
             NotchPressFace(pressed: (held && (slings || inside)) || frozen, shape: .capsule) {
-                NotchCommitGlyph(symbol: symbol, kick: kick, font: glyphFont,
-                                 side: side, tint: tint, kicks: kicks, reduceMotion: reduceMotion)
-                    .frame(width: side, height: side)
-                    .background(.white.opacity(filled ? Metrics.restingFill : 0), in: Circle())
+                HStack(spacing: NotchDesign.Spacing.xxSmall) {
+                    NotchCommitGlyph(symbol: symbol, kick: kick, font: glyphFont, side: side, tint: tint,
+                                     kicks: kicks, reduceMotion: reduceMotion, still: still)
+                        .frame(width: side, height: side)
+                        .notchPlate(NotchDesign.Fill.control, in: Circle(), visible: filled)
+                    if let word {
+                        Text(word).font(wordStyle.font).foregroundStyle(wordInk).lineLimit(1)
+                            .padding(.trailing, NotchDesign.Spacing.xSmall)
+                    }
+                }
             }
             .scaleEffect(shownArmed && !reduceMotion ? Metrics.armedScale : 1)
             .animation(Metrics.pressIn, value: shownArmed)
             .modifier(NotchPresentedOffset(pull: shownPull, probe: presented))
-            if let burst {
-                NotchBurstView(burst: burst, side: side, tint: burstTint ?? tint).allowsHitTesting(false)
+            if !bursts.isEmpty {
+                // Sized to the glyph's seat, so the particles leave from the glyph even beside a word.
+                NotchBurstView(bursts: bursts, side: side, tint: burstTint ?? tint).frame(width: side, height: side)
+                    .allowsHitTesting(false)
             }
         }
-        .frame(width: side, height: side)
-        .contentShape(Circle())
+        .frame(width: word == nil ? side : nil, height: side)
+        .contentShape(word == nil ? AnyShape(Circle()) : AnyShape(Capsule()))
         .gesture(press)
         .focusable(interactions: .activate)
         .focused($focused)
@@ -135,12 +148,6 @@ struct NotchCommitButton: View {
             return .handled
         }
         .background { shortcutButton }
-        .task(id: burst) {
-            guard let burst else { return }
-            let left = burst.start.timeIntervalSinceNow + burst.duration
-            try? await Task.sleep(for: .seconds(max(0, left)))
-            if !Task.isCancelled { self.burst = nil }
-        }
         .help(title)
         .accessibilityElement()
         .accessibilityLabel(title)
@@ -165,6 +172,7 @@ struct NotchCommitButton: View {
             .onChanged { value in
                 guard enabled else { return }
                 if !held {
+                    still = false
                     held = true
                     inside = true
                     sling.begin(presentedX: presented.pull.width, y: presented.pull.height)
@@ -205,20 +213,29 @@ struct NotchCommitButton: View {
 
     private func fire(_ source: Source) {
         guard enabled else { return }
+        // A keyboard action repeats too often to animate: the symbol swaps at once.
+        // Set before the action so the swap it causes lands unanimated.
+        if source == .keyboard { still = true }
         action()
-        // A keyboard action repeats too often to animate; Reduce Motion
-        // keeps only the symbol's own crossfade.
+        // Reduce Motion keeps only the symbol's own crossfade.
         guard source != .keyboard, !reduceMotion, launches || source == .sling else { return }
         kicks &+= 1
         let slung = source == .sling
         let away = hypot(pull.width, pull.height)
         let direction = slung && away > 0.5
             ? CGVector(dx: -pull.width / away, dy: -pull.height / away) : kick.direction
-        burst = NotchBurst(start: Date().addingTimeInterval(slung ? Metrics.slingBurstDelay : 0),
-                           duration: slung ? Metrics.slingBurst : Metrics.tapBurst,
-                           count: slung ? Metrics.slingParticles : Metrics.tapParticles,
-                           reach: Metrics.burstReach * (slung ? 1.5 : 1),
-                           direction: direction, seed: kicks)
+        // Each fire keeps its own burst, so a second tap never cuts the first short.
+        let next = NotchBurst(start: Date().addingTimeInterval(slung ? Metrics.slingBurstDelay : 0),
+                              duration: slung ? Metrics.slingBurst : Metrics.tapBurst,
+                              count: slung ? Metrics.slingParticles : Metrics.tapParticles,
+                              reach: Metrics.burstReach * (slung ? 1.5 : 1),
+                              direction: direction, seed: kicks)
+        bursts.append(next)
+        let life = next.start.timeIntervalSinceNow + next.duration
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(max(0, life)))
+            bursts.removeAll { $0.seed == next.seed }
+        }
     }
 
     /// Back to the seat from wherever the control is, carrying the pointer's
@@ -251,32 +268,35 @@ struct NotchBurst: Equatable {
 /// Particles on an additive layer. The timeline exists only while a burst is
 /// live, so an idle button costs nothing.
 private struct NotchBurstView: View {
-    let burst: NotchBurst
+    let bursts: [NotchBurst]
     let side: CGFloat
     let tint: Color
 
     var body: some View {
-        let canvas = side + 2 * burst.reach + 2 * Metrics.particleSize
+        let reach = bursts.map(\.reach).max() ?? 0
+        let canvas = side + 2 * reach + 2 * Metrics.particleSize
         TimelineView(.animation) { timeline in
             Canvas { context, size in
-                let progress = timeline.date.timeIntervalSince(burst.start) / max(0.01, burst.duration)
-                guard progress >= 0, progress < 1 else { return }
                 context.blendMode = .plusLighter
                 let center = CGPoint(x: size.width / 2, y: size.height / 2)
                 let rim = side * 0.4
-                for index in 0..<burst.count {
-                    let particle = NotchInteractionMath.particle(index, of: burst.count, seed: burst.seed,
-                                                                directionX: burst.direction.dx,
-                                                                directionY: burst.direction.dy,
-                                                                spreadDegrees: Metrics.burstSpread, progress: progress)
-                    let length = hypot(particle.x, particle.y)
-                    let unitX = length > 0 ? particle.x / length : 0
-                    let unitY = length > 0 ? particle.y / length : 0
-                    let x = center.x + unitX * rim + particle.x * burst.reach
-                    let y = center.y + unitY * rim + particle.y * burst.reach
-                    let radius = Metrics.particleSize * particle.size / 2
-                    context.fill(Path(ellipseIn: CGRect(x: x - radius, y: y - radius, width: 2 * radius, height: 2 * radius)),
-                                 with: .color(tint.opacity(0.9 * particle.opacity)))
+                for burst in bursts {
+                    let progress = timeline.date.timeIntervalSince(burst.start) / max(0.01, burst.duration)
+                    guard progress >= 0, progress < 1 else { continue }
+                    for index in 0..<burst.count {
+                        let particle = NotchInteractionMath.particle(index, of: burst.count, seed: burst.seed,
+                                                                    directionX: burst.direction.dx,
+                                                                    directionY: burst.direction.dy,
+                                                                    spreadDegrees: Metrics.burstSpread, progress: progress)
+                        let length = hypot(particle.x, particle.y)
+                        let unitX = length > 0 ? particle.x / length : 0
+                        let unitY = length > 0 ? particle.y / length : 0
+                        let x = center.x + unitX * rim + particle.x * burst.reach
+                        let y = center.y + unitY * rim + particle.y * burst.reach
+                        let radius = Metrics.particleSize * particle.size / 2
+                        context.fill(Path(ellipseIn: CGRect(x: x - radius, y: y - radius, width: 2 * radius, height: 2 * radius)),
+                                     with: .color(tint.opacity(0.9 * particle.opacity)))
+                    }
                 }
             }
         }
@@ -368,13 +388,15 @@ private struct NotchCommitGlyph: View {
     let tint: Color
     let kicks: Int
     let reduceMotion: Bool
+    /// A keyboard fire: the symbol swaps with no animation at all.
+    var still = false
     @State private var place = 0.0
 
     var body: some View {
         if kick == .morph {
             glyph
-                .notchSymbolReplace(reduceMotion: reduceMotion)
-                .animation(reduceMotion ? Metrics.crossfade : Metrics.symbolMorph, value: symbol)
+                .notchSymbolReplace(reduceMotion: reduceMotion, still: still)
+                .animation(still ? nil : reduceMotion ? Metrics.crossfade : Metrics.symbolMorph, value: symbol)
                 .symbolEffect(.bounce, value: kicks)
         } else {
             NotchKickConveyor(place: place, symbol: symbol, font: font, tint: tint,

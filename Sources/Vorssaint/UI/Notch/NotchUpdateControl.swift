@@ -18,26 +18,13 @@ struct NotchUpdateControl: View {
                 ? NotchDesign.Palette.warning : NotchDesign.Palette.accent
             let title = "\(l10n.s.updateBannerTitle), \(l10n.s.versionPrefix) \(version)"
             // A commit: it answers on press and its glyph kicks up and away as the update opens.
-            // The glyph and the word read as one label at Spacing.xxSmall: the glyph's own air inside
-            // its 28 pt button is pulled out of the gap, the hit height stays Control.iconButton.
-            let glyphAir = (NotchDesign.Control.iconButton - 15) / 2
-            HStack(spacing: compact ? 0 : NotchDesign.Spacing.xxSmall - glyphAir) {
-                NotchCommitButton(title, symbol: "arrow.down.circle.fill", kick: .up,
-                                  hint: l10n.s.updateBannerAction, size: NotchDesign.Control.iconButton,
-                                  symbolSize: 15, tint: tint, action: action)
-                if !compact {
-                    // The word opens the update too; the glyph's button is the one VoiceOver reads.
-                    Button(action: action) {
-                        Text(l10n.s.updateBannerAction).font(NotchDesign.Typography.label.font)
-                            .foregroundStyle(tint).lineLimit(1)
-                            .frame(height: NotchDesign.Control.iconButton)
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(NotchPressStyle(shape: .rounded(NotchDesign.Radius.control), lifts: false))
-                    .accessibilityHidden(true)
-                }
-            }
-            .fixedSize()
+            // The word is inside the same control: one plate, one press, one fire path.
+            NotchCommitButton(title, symbol: "arrow.down.circle.fill", kick: .up,
+                              hint: l10n.s.updateBannerAction, size: NotchDesign.Control.iconButton,
+                              glyph: NotchDesign.Icon.button,
+                              word: compact ? nil : l10n.s.updateBannerAction, wordInk: tint,
+                              wordStyle: NotchDesign.Typography.label, tint: tint, action: action)
+                .fixedSize()
             .help(title)
         case let .downloading(progress):
             progressIndicator(title: l10n.s.updateDownloading, fraction: progress)

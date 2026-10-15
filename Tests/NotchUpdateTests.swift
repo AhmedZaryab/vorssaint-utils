@@ -19,13 +19,18 @@ enum NotchUpdateTests {
         var kick: NotchCommitKick = .morph
         var hint: String?
         var size: CGFloat = 32
-        var symbolSize: CGFloat?
+        var glyph: NotchDesign.TypeStyle?
+        var word: String?
+        var wordInk: Color = .white
+        var wordStyle: NotchDesign.TypeStyle = NotchDesign.Typography.label
         var tint: Color = .white
         let action: () -> Void
         init(_ title: String, symbol: String, kick: NotchCommitKick = .morph, hint: String? = nil,
-             size: CGFloat = 32, symbolSize: CGFloat? = nil, tint: Color = .white, action: @escaping () -> Void) {
+             size: CGFloat = 32, glyph: NotchDesign.TypeStyle? = nil, word: String? = nil, wordInk: Color = .white,
+             wordStyle: NotchDesign.TypeStyle = NotchDesign.Typography.label, tint: Color = .white, action: @escaping () -> Void) {
             self.title = title; self.symbol = symbol; self.kick = kick; self.hint = hint
-            self.size = size; self.symbolSize = symbolSize; self.tint = tint; self.action = action
+            self.size = size; self.glyph = glyph; self.word = word; self.wordInk = wordInk; self.wordStyle = wordStyle
+            self.tint = tint; self.action = action
         }
         var body: some View {
             Button(action: action) { Image(systemName: symbol).frame(width: size, height: size) }

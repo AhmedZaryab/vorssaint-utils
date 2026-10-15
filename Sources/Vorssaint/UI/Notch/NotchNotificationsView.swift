@@ -94,7 +94,7 @@ private struct NotchNotificationRow: View {
                     ProgressView().controlSize(.mini)
                 } else if service.canOpen(item) {
                     NotchCommitButton(text.open, symbol: "arrow.up.forward.app", kick: .up,
-                                      size: NotchDesign.Control.iconButton, symbolSize: 13,
+                                      size: NotchDesign.Control.iconButton, glyph: NotchDesign.Icon.button,
                                       tint: NotchDesign.Ink.secondary) {
                         feedback = nil
                         service.open(item.id) { result in
@@ -212,7 +212,7 @@ struct NotchNotificationPreviewView: View {
             HStack(spacing: NotchDesign.Spacing.small) {
                 if let item, notifications.canOpen(item) {
                     NotchCommitButton(text.open, symbol: "arrow.up.forward.app", kick: .up,
-                                      size: NotchDesign.Control.iconButton, symbolSize: 13) { service.activateNotice(notice) }
+                                      size: NotchDesign.Control.iconButton, glyph: NotchDesign.Icon.button) { service.activateNotice(notice) }
                         .disabled(notifications.openingID != nil)
                 }
                 if notifications.openingID == notice.notificationID { ProgressView().controlSize(.small) }

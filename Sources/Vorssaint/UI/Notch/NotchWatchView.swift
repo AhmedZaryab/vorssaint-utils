@@ -105,18 +105,8 @@ private struct NotchWatchCommitRow: View {
     let action: () -> Void
 
     var body: some View {
-        HStack(spacing: NotchDesign.Spacing.xxSmall) {
-            NotchCommitButton(title, symbol: symbol, kick: .up, filled: true, action: action)
-            // The word is part of the control: clicking it does what the glyph does.
-            // VoiceOver already has the glyph's button under the same name, so the word is hidden from it.
-            Button(action: action) {
-                Text(title).font(NotchDesign.Typography.callout.font).foregroundStyle(NotchDesign.Ink.secondary)
-                    .lineLimit(1)
-                    .padding(.horizontal, NotchDesign.Spacing.xxSmall)
-            }
-            .buttonStyle(NotchPressStyle(shape: .rounded(NotchDesign.Radius.control), lifts: false))
-            .accessibilityHidden(true)
-        }
+        // The word is inside the same control: one plate, one press, one fire path.
+        NotchCommitButton(title, symbol: symbol, kick: .up, word: title, filled: true, action: action)
     }
 }
 
@@ -316,17 +306,10 @@ private struct NotchWatchSetupView: View {
             if AppFeature.notchWatch.isAvailable {
                 HStack(spacing: NotchDesign.Spacing.small) {
                     Toggle(text.title, isOn: $enabled)
-                        .toggleStyle(NotchToggleStyle(on: "eye", off: "eye.slash"))
+                        .toggleStyle(NotchToggleStyle(on: "eye", off: "eye.slash", word: text.title))
                         .labelsHidden()
                         .accessibilityLabel(text.title)
                         .onChange(of: enabled) { NotchService.shared.syncWithPreferences() }
-                    Button { enabled.toggle() } label: {
-                        Text(text.title).font(NotchDesign.Typography.callout.font)
-                            .foregroundStyle(NotchDesign.Ink.secondary)
-                            .padding(.horizontal, NotchDesign.Spacing.xxSmall)
-                    }
-                    .buttonStyle(NotchPressStyle(shape: .rounded(NotchDesign.Radius.control), lifts: false))
-                    .accessibilityHidden(true)
                 }
             }
         } else if !permissions.screenRecording {

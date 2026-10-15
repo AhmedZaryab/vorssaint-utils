@@ -194,9 +194,9 @@ struct NotchFuseButton: View {
             }
             // A face swapped from the keyboard swaps at once.
             .animation(keyboardLit ? nil : Metrics.fuseFace, value: burning)
-            .padding(.horizontal, showsTitle ? 12 : 0)
+            .padding(.horizontal, showsTitle ? NotchDesign.Spacing.medium : 0)
             .frame(minWidth: Metrics.minimumTarget, minHeight: Metrics.minimumTarget)
-            .background(.white.opacity(burning ? Metrics.restingFill : 0), in: shape)
+            .notchPlate(NotchDesign.Fill.control, in: shape, visible: burning)
             .overlay {
                 if let frozenFraction {
                     NotchFuseRim(left: frozenFraction, outline: shape).fill(Metrics.fuseTint)
@@ -240,7 +240,7 @@ struct NotchFuseButton: View {
         let done = doneAnnouncement ?? l10n.s.mediaCompleted
         let commit = makeCommit()
         let undone = onUndo
-        let cancelled = NotchFuseStrings.cancelled(l10n.language)
+        let cancelled = FeatureStrings.notch(l10n.language).fuseCancelled
         fuse.light(duration: fuseDuration, onBlowOut: {
             undone?()
             AccessibilityNotification.Announcement(cancelled).post()
@@ -255,7 +255,7 @@ struct NotchFuseButton: View {
         keyboardLit = NSApp.currentEvent?.type == .keyDown
         guard fuse.blowOut() else { return }
         onUndo?()
-        AccessibilityNotification.Announcement(NotchFuseStrings.cancelled(l10n.language)).post()
+        AccessibilityNotification.Announcement(FeatureStrings.notch(l10n.language).fuseCancelled).post()
     }
 }
 
@@ -265,13 +265,13 @@ private struct NotchFuseFace: View {
     let commits: Int
 
     var body: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: NotchDesign.Spacing.xSmall) {
             Image(systemName: symbol)
                 .notchSuccessMorph(trigger: commits)
-                .font(.system(size: 12, weight: .medium))
-            if let text { Text(text).font(.system(size: 12, weight: .medium)).lineLimit(1) }
+                .font(NotchDesign.Icon.strip.font)
+            if let text { Text(text).font(NotchDesign.Typography.callout.font).lineLimit(1) }
         }
-        .foregroundStyle(.white.opacity(0.85))
+        .foregroundStyle(NotchDesign.Ink.primary)
     }
 }
 
@@ -283,18 +283,19 @@ private struct NotchFuseUndoFace: View {
     let remaining: () -> TimeInterval
 
     var body: some View {
-        HStack(spacing: 6) {
-            Image(systemName: "arrow.uturn.backward").font(.system(size: 12, weight: .semibold))
-            if let text { Text(text).font(.system(size: 12, weight: .semibold)).lineLimit(1) }
+        HStack(spacing: NotchDesign.Spacing.xSmall) {
+            Image(systemName: "arrow.uturn.backward").font(NotchDesign.Icon.strip.font).foregroundStyle(Metrics.accent)
+            // The word holds 4.5 to 1 on its plate in white; the arrow and the rim carry the accent.
+            if let text { Text(text).font(NotchDesign.Typography.stripPrimary.font).foregroundStyle(NotchDesign.Ink.primary).lineLimit(1) }
             if countdown {
                 TimelineView(.periodic(from: .now, by: 0.25)) { _ in
                     Text("\(Int(remaining().rounded(.up)))")
                         .font(NotchDesign.Typography.caption.font)
                         .monospacedDigit()
+                        .foregroundStyle(Metrics.accent)
                 }
             }
         }
-        .foregroundStyle(Metrics.accent)
     }
 }
 
@@ -318,28 +319,5 @@ private struct NotchFuseRim: Shape {
                                        width: 2 * Metrics.fuseSpark, height: 2 * Metrics.fuseSpark))
         }
         return path
-    }
-}
-
-/// What VoiceOver hears when a fuse is blown out. Kept here because the
-/// fuse is the only place that says it.
-private enum NotchFuseStrings {
-    static func cancelled(_ language: AppLanguage) -> String {
-        switch language {
-        case .enUS: return "Cancelled"
-        case .ptBR: return "Cancelado"
-        case .tr: return "Iptal edildi"
-        case .ru: return "Отменено"
-        case .es: return "Cancelado"
-        case .sk: return "Zrušené"
-        case .de: return "Abgebrochen"
-        case .fr: return "Annulé"
-        case .it: return "Annullato"
-        case .ja: return "キャンセルしました"
-        case .ko: return "취소됨"
-        case .uk: return "Скасовано"
-        case .zhHans: return "已取消"
-        case .zhTW, .zhHK: return "已取消"
-        }
     }
 }

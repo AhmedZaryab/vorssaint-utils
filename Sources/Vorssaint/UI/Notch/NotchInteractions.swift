@@ -21,20 +21,15 @@ enum NotchInteractionMetrics {
     static let cornerRadius: CGFloat = Design.Radius.control
     /// The smallest hit target any control offers, whatever it draws.
     static let minimumTarget: CGFloat = Design.Control.minimumHit
-    // No focus ring token exists yet; the tokens run adds Design.Stroke.focusRing and these read it then.
-    static let focusRingWidth: CGFloat = 1.5
-    static let focusRingGap: CGFloat = 2.5
-    static let focusRingOpacity = 0.75
+    static let focusRingWidth: CGFloat = Design.Stroke.focusRingWidth
+    static let focusRingGap: CGFloat = Design.Stroke.focusRingGap
+    static let focusRingInk = Design.Stroke.focusRing
 
     // Fills, white on the dark island, read straight from Design.Fill.
     static let hoverFill = Design.Fill.hover
     /// Also the wash a press deepens to under Reduce Motion, in place of the scale.
     static let selectedFill = Design.Fill.selected
-    /// No token yet; the tokens run adds Design.Fill.press and this reads it then.
-    static let pressFill = Color.white.opacity(0.13)
-    /// The alphas of Fill.control and Fill.track, for the slider and fuse files that still take a Double.
-    static let restingFill = Double(NSColor(Design.Fill.control).alphaComponent)
-    static let trackFill = Double(NSColor(Design.Fill.track).alphaComponent)
+    static let pressFill = Design.Fill.press
     static let idleGlyph = Design.Ink.secondary
     static let activeGlyph = Design.Ink.primary
     static let disabledOpacity = Design.Opacity.disabled
@@ -49,32 +44,31 @@ enum NotchInteractionMetrics {
     /// Quick, no overshoot: a release, a toggle's plate, a slider settling.
     static let snappy = Design.Motion.snappy.animation
     /// Only after momentum or a commit: a launch, a success landing.
-    static let bouncy = Spring(response: Design.Motion.bouncy.response,
-                               dampingRatio: Design.Motion.bouncy.dampingFraction)
+    static let bouncy = Spring(design: Design.Motion.bouncy)
     static let release = snappy
-    static let hover = Design.Motion.fade
+    static let hover = Design.Motion.hover
     static let crossfade = Design.Motion.fade
     /// Apple's rubber band constant, shared by every edge that resists.
     static let rubberbandConstant = Double(Design.Interaction.rubberband)
 
     // Toggle.
     static let toggleFill = snappy
-    static let symbolMorph = snappy
+    static let symbolMorph = Design.Motion.symbolMorph.animation
     /// The default glyph of a toggle and a commit's text style when a caller names no size.
     static let toggleGlyph = Design.Icon.button
     static let toggleSide: CGFloat = Design.Control.iconButton
 
     // Commit.
-    /// A commit button's side when the caller names none; no token for it yet (the tokens run decides).
-    static let commitSide: CGFloat = 32
+    /// A commit button's side when the caller names none.
+    static let commitSide: CGFloat = Design.Control.commit
     /// The glyph's kick is a state driven spring on this, so a second press mid flight retargets it.
-    static let kickSpring = Animation.spring(bouncy)
+    static let kickSpring = Animation.spring(duration: Design.Interaction.kickDuration, bounce: Design.Motion.bouncy.bounce)
     /// How far the glyph kicks, as a share of the control's side.
     static let kickTravel: CGFloat = 0.34
     static let tapBurst: TimeInterval = Design.Interaction.burstDuration
     static let tapParticles = Design.Interaction.burstParticleCount
     /// A sling is rarer and earned, so its burst is stronger and a little longer.
-    static let slingBurst: TimeInterval = 0.35
+    static let slingBurst: TimeInterval = Design.Interaction.slingBurst
     static let slingParticles = 10
     /// How far particles fly past the rim, in points; a sling throws them half again as far.
     static let burstReach: CGFloat = Design.Interaction.burstReach
@@ -86,8 +80,8 @@ enum NotchInteractionMetrics {
     static let armedScale: CGFloat = Design.Interaction.armedScale
     /// Follows the pointer almost exactly, and retargets from wherever the
     /// control is drawn so a grab mid flight never jumps.
-    static let slingTrack = Animation.interactiveSpring(response: 0.1, dampingFraction: 0.9)
-    static let slingRecoil = Spring(duration: 0.38, bounce: 0.24)
+    static let slingTrack = Design.Interaction.slingTrack
+    static let slingRecoil = Spring(design: Design.Interaction.slingRecoil)
     /// Release velocities toward the seat, in pull lengths per second.
     static let slingFireKick = 6.0
     static let slingCancelKick = 1.5
@@ -102,7 +96,7 @@ enum NotchInteractionMetrics {
     static let fuseLine: CGFloat = Design.Interaction.fuseLineWidth
     static let fuseSpark: CGFloat = 2
     static let fuseTint = Design.Palette.warning
-    static let fuseFace = Design.Motion.fade
+    static let fuseFace = Design.Interaction.fuseFace
     static let blurBridge: CGFloat = 2
 
     // Slider.
@@ -116,7 +110,7 @@ enum NotchInteractionMetrics {
     static let detentHaptic = Design.Interaction.detentHaptic
     static let detentPulse: CGFloat = 1.22
     static let sliderSettle = snappy
-    static let valueFade = Design.Motion.fade
+    static let valueFade = Design.Interaction.valueFade
 
     // Success.
     static let successHold: TimeInterval = Design.Interaction.successMorphDuration
@@ -128,6 +122,11 @@ enum NotchInteractionMetrics {
 }
 
 private typealias Metrics = NotchInteractionMetrics
+
+private extension Spring {
+    /// A design token spring as SwiftUI's own.
+    init(design: NotchDesign.Spring) { self.init(response: design.response, dampingRatio: design.dampingFraction) }
+}
 
 /// The outline a control presses, washes, burns and focuses along.
 enum NotchPressShape: Shape {
@@ -191,18 +190,41 @@ extension View {
     func notchFocusRing(_ shape: NotchPressShape, visible: Bool) -> some View {
         overlay {
             if visible {
-                shape.stroke(.white.opacity(Metrics.focusRingOpacity), lineWidth: Metrics.focusRingWidth)
+                shape.stroke(Metrics.focusRingInk, lineWidth: Metrics.focusRingWidth)
                     .padding(-Metrics.focusRingGap)
                     .allowsHitTesting(false)
             }
         }
     }
 
+    /// A filled plate that gains Stroke.increasedContrast's 1 pt edge under Increase Contrast. `visible` off draws nothing, edge included.
+    func notchPlate<S: Shape>(_ fill: Color, in shape: S, visible: Bool = true) -> some View {
+        modifier(NotchPlate(fill: fill, shape: shape, visible: visible))
+    }
+
     /// One symbol replacing another: Magic Replace where the system has it,
     /// a plain replace before, and a crossfade under Reduce Motion. One
     /// modifier either way, so toggling Reduce Motion never rebuilds the glyph.
-    func notchSymbolReplace(reduceMotion: Bool) -> some View {
-        contentTransition(reduceMotion ? .opacity : notchSymbolReplaceTransition)
+    func notchSymbolReplace(reduceMotion: Bool, still: Bool = false) -> some View {
+        contentTransition(still ? .identity : reduceMotion ? .opacity : notchSymbolReplaceTransition)
+    }
+}
+
+private struct NotchPlate<S: Shape>: ViewModifier {
+    let fill: Color
+    let shape: S
+    let visible: Bool
+    @Environment(\.colorSchemeContrast) private var contrast
+
+    func body(content: Content) -> some View {
+        content
+            .background(visible ? fill : .clear, in: shape)
+            .overlay {
+                if visible, contrast == .increased {
+                    shape.stroke(NotchDesign.Stroke.increasedContrast, lineWidth: NotchDesign.Stroke.increasedContrastWidth)
+                        .allowsHitTesting(false)
+                }
+            }
     }
 }
 
@@ -246,8 +268,8 @@ struct NotchPressFace<Content: View>: View {
     var pointingHandForLink = false
     let content: Content
     @State private var hovered = false
-    /// The label's drawn size, so only the hit area grows to the minimum target.
-    @State private var drawn = CGSize(width: Metrics.minimumTarget, height: Metrics.minimumTarget)
+    /// How far the hit area grows each side to reach the minimum target; stays zero, so never written, for labels of 28 pt or more.
+    @State private var grow = CGSize.zero
     @Environment(\.isEnabled) private var enabled
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.notchInteractionPreview) private var preview
@@ -269,11 +291,14 @@ struct NotchPressFace<Content: View>: View {
         // A label under the minimum keeps its own layout size; only the hit
         // area reaches 28 pt, as agentHitTarget does, so a short row's
         // control never covers its neighbour's drawing.
-        let growX = max(0, (Metrics.minimumTarget - drawn.width) / 2)
-        let growY = max(0, (Metrics.minimumTarget - drawn.height) / 2)
+        let growX = grow.width
+        let growY = grow.height
         content
             .background(washes ? wash(down: down, hover: hover) : .clear, in: shape)
-            .onGeometryChange(for: CGSize.self, of: \.size) { drawn = $0 }
+            .onGeometryChange(for: CGSize.self, of: { proxy in
+                CGSize(width: max(0, (Metrics.minimumTarget - proxy.size.width) / 2),
+                       height: max(0, (Metrics.minimumTarget - proxy.size.height) / 2))
+            }) { grow = $0 }
             .padding(.horizontal, growX).padding(.vertical, growY)
             .contentShape(shape)
             .padding(.horizontal, -growX).padding(.vertical, -growY)
@@ -326,16 +351,19 @@ struct NotchToggleStyle: ToggleStyle {
     /// The glyph's font from the icon ramp: Icon.button, Icon.transport or Icon.transportPrimary.
     var font: Font
     var tint: Color = NotchInteractionMetrics.accent
+    /// A word beside the glyph, inside the same plate, press and hit area.
+    var word: String?
 
     init(symbol: String, shape: NotchPressShape = .capsule, size: CGFloat = NotchInteractionMetrics.toggleSide,
          glyph: NotchDesign.TypeStyle = NotchInteractionMetrics.toggleGlyph,
-         tint: Color = NotchInteractionMetrics.accent) {
-        self.init(on: symbol, off: symbol, shape: shape, size: size, glyph: glyph, tint: tint)
+         tint: Color = NotchInteractionMetrics.accent, word: String? = nil) {
+        self.init(on: symbol, off: symbol, shape: shape, size: size, glyph: glyph, tint: tint, word: word)
     }
 
     init(on: String, off: String, shape: NotchPressShape = .capsule, size: CGFloat = NotchInteractionMetrics.toggleSide,
          glyph: NotchDesign.TypeStyle = NotchInteractionMetrics.toggleGlyph,
-         tint: Color = NotchInteractionMetrics.accent) {
+         tint: Color = NotchInteractionMetrics.accent, word: String? = nil) {
+        self.word = word
         onSymbol = on
         offSymbol = off
         self.shape = shape
@@ -344,25 +372,9 @@ struct NotchToggleStyle: ToggleStyle {
         self.tint = tint
     }
 
-    /// Source compatible with callers that still pass a point size; they move to `glyph:`.
-    init(symbol: String, shape: NotchPressShape = .capsule, size: CGFloat = NotchInteractionMetrics.toggleSide,
-         symbolSize: CGFloat, tint: Color = NotchInteractionMetrics.accent) {
-        self.init(on: symbol, off: symbol, shape: shape, size: size, symbolSize: symbolSize, tint: tint)
-    }
-
-    init(on: String, off: String, shape: NotchPressShape = .capsule, size: CGFloat = NotchInteractionMetrics.toggleSide,
-         symbolSize: CGFloat, tint: Color = NotchInteractionMetrics.accent) {
-        onSymbol = on
-        offSymbol = off
-        self.shape = shape
-        self.size = size
-        font = .system(size: symbolSize, weight: NotchDesign.Weight.medium.font)
-        self.tint = tint
-    }
-
     func makeBody(configuration: Configuration) -> some View {
         NotchToggleFace(isOn: configuration.$isOn, onSymbol: onSymbol, offSymbol: offSymbol, shape: shape,
-                        side: max(size, NotchInteractionMetrics.minimumTarget), font: font, tint: tint)
+                        side: max(size, NotchInteractionMetrics.minimumTarget), font: font, tint: tint, word: word)
             .accessibilityRepresentation {
                 // A style of its own, or this style would draw itself again.
                 Toggle(isOn: configuration.$isOn) { configuration.label }.toggleStyle(.switch)
@@ -378,14 +390,22 @@ private struct NotchToggleFace: View {
     let side: CGFloat
     let font: Font
     let tint: Color
+    var word: String?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         Button { isOn.toggle() } label: {
-            glyph
-                .frame(width: side, height: side)
-                .background(tint.opacity(isOn ? 1 : 0), in: shape)
-                .animation(reduceMotion ? Metrics.crossfade : Metrics.toggleFill, value: isOn)
+            HStack(spacing: NotchDesign.Spacing.xxSmall) {
+                glyph
+                    .frame(width: side, height: side)
+                    .notchPlate(tint, in: shape, visible: isOn)
+                if let word {
+                    Text(word).font(NotchDesign.Typography.callout.font)
+                        .foregroundStyle(NotchDesign.Ink.secondary).lineLimit(1)
+                        .padding(.trailing, NotchDesign.Spacing.xSmall)
+                }
+            }
+            .animation(reduceMotion ? Metrics.crossfade : Metrics.toggleFill, value: isOn)
         }
         .buttonStyle(NotchPressStyle(shape: shape))
     }
@@ -398,7 +418,7 @@ private struct NotchToggleFace: View {
         return Image(systemName: symbol)
             .symbolVariant(same && isOn ? .fill : .none)
             .font(font)
-            .foregroundStyle(isOn ? Metrics.activeGlyph : Metrics.idleGlyph)
+            .foregroundStyle(isOn ? NotchDesign.Ink.onFill(tint) : Metrics.idleGlyph)
             .notchSymbolReplace(reduceMotion: reduceMotion)
             .animation(reduceMotion ? Metrics.crossfade : Metrics.symbolMorph, value: isOn)
     }

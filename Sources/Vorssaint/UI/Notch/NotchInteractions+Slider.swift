@@ -93,11 +93,11 @@ struct NotchSlider: View {
                     }
                     .offset(x: center - knob / 2)
                     .opacity(showsKnob ? 1 : 0)
-                    .animation(reduceMotion ? nil : Metrics.valueFade, value: showsKnob)
+                    .animation(reduceMotion ? Metrics.crossfade : Metrics.valueFade, value: showsKnob)
                 Text(spokenValue)
-                    .font(.system(size: 10, weight: .semibold))
+                    .font(NotchDesign.Typography.caption.font)
                     .monospacedDigit()
-                    .foregroundStyle(.white.opacity(0.9))
+                    .foregroundStyle(NotchDesign.Ink.primary)
                     .fixedSize()
                     .opacity(showsValue ? 1 : 0)
                     .animation(Metrics.valueFade, value: showsValue)
@@ -211,7 +211,7 @@ private struct NotchSliderTrack: View {
         GeometryReader { proxy in
             let fill = knob / 2 + max(0, proxy.size.width - knob) * fraction
             ZStack(alignment: .leading) {
-                Capsule(style: .continuous).fill(.white.opacity(Metrics.trackFill))
+                Color.clear.notchPlate(NotchDesign.Fill.track, in: Capsule(style: .continuous))
                 Capsule(style: .continuous)
                     .fill(fillStyle.opacity(enabled ? 0.92 : 0.3))
                     .frame(width: max(proxy.size.height, fill))
