@@ -415,46 +415,23 @@ enum NotchTests {
         let fitted = [short, banner("Verification code", "Your code is 482913"),
                       banner(app: "Reminders", "", "Stand up"), banner("Alex", "ok\nsee you at the station"),
                       banner(app: "Calendar", "会议提醒", subtitle: "明天", "项目评审 🚀")]
+        let range = NotchGeometry.compactPeekWing
         for notice in fitted {
-            guard let content = notice.notification else { continue }
             let wings = notice.preferredWings
-            suite.expect(layout.iconSize + layout.spacing + width(content.compactTitle, layout.titleFont) <= wings.leading - layout.inset
-                         && width(content.compactDetail, layout.messageFont) <= wings.trailing - layout.inset
-                         && wings.widest < layout.wingRange.upperBound,
-                         "a short message and its title fit whole in a banner narrower than the widest one")
+            suite.expect(wings.leading == wings.trailing && range.contains(wings.leading),
+                         "a banner is a compact peek: both wings the same width, within 36 to 96")
         }
-        // Issue: a one-word reply beside a long sender left a band of empty
-        // black after the word; each side now takes only what it shows.
         let reply = banner("+55 11 90000-0000", "Oi")
-        suite.expect(reply.preferredWings.trailing == max(layout.wingRange.lowerBound,
-                                                          width("Oi", layout.messageFont).rounded(.up) + layout.inset + layout.air)
-                     && reply.preferredWings.trailing < reply.preferredWings.leading
-                     && short.preferredWings.trailing < short.preferredWings.leading,
-                     "a one-word message leaves no band of empty black beside it")
-        let wrapping = banner("Ana", "Chego em 10 minutos, me espera na entrada")
-        let wrapped = wrapping.preferredWings(wrapsMessage: true).trailing
-        suite.expect(wrapping.preferredWings.trailing == layout.wingRange.upperBound
-                     && wrapped < layout.wingRange.upperBound && wrapped > layout.wingRange.upperBound / 2,
-                     "a message wrapped onto two lines takes the width of its lines, not the whole side")
-        // The wing is measured with AppKit; SwiftUI draws the text. The air
-        // has to cover any difference, in every script a banner can carry.
-        for sample in ["done", "Your code is 482913", "会议提醒 项目评审", "🚀🎉 launch", "مرحبا بالعالم", "שלום עולם"] {
-            for font in [layout.titleFont, layout.messageFont] {
-                let drawn = NSHostingView(rootView: Text(sample).font(Font(font as CTFont)).lineLimit(1).fixedSize())
-                    .fittingSize.width
-                suite.expect(drawn <= width(sample, font).rounded(.up) + layout.air,
-                             "a banner's text draws within the width measured for it")
-            }
-        }
+        suite.expect(range.contains(reply.preferredWings.widest),
+                     "a one-word message never widens the wings past the compact range")
         let long = banner(app: "Mail", "Quarterly planning", subtitle: "Agenda",
                           String(repeating: "Notes for the meeting ", count: 800))
-        suite.expect(long.preferredWingWidth == layout.wingRange.upperBound,
-                     "a long message keeps the widest banner and wraps or truncates within it")
+        suite.expect(long.preferredWingWidth == range.upperBound,
+                     "a long message keeps the widest compact wings and truncates within them")
         var replacement = short
         replacement.minimumWings = long.preferredWings
-        suite.expect(replacement.preferredWings.trailing == long.preferredWings.trailing
-                     && replacement.preferredWings.leading >= long.preferredWings.leading,
-                     "a banner replacing a wider one keeps each of its sides")
+        suite.expect(replacement.preferredWings == long.preferredWings,
+                     "a banner replacing a wider one keeps its wings")
         for physical in [false, true] {
             let geometry = NotchGeometry(screen: screen, safeAreaTop: physical ? 32 : 0,
                                          cameraWidth: physical ? 180 : 0, menuBarHeight: 32)
@@ -463,8 +440,21 @@ enum NotchTests {
             var shifted = geometry
             shifted.surfaceShift = geometry.noticeShift(long.preferredWings)
             suite.expect(compact.width == geometry.cameraWidth + short.preferredWings.leading + short.preferredWings.trailing
-                         && compact.width < widest.width && screen.contains(shifted.frame(for: widest)),
-                         "a short banner narrows around the camera, and the widest stays on the display")
+                         && compact.width <= widest.width && shifted.surfaceShift == 0
+                         && screen.contains(shifted.frame(for: widest)),
+                         "a banner sits centred on the camera, and the widest stays on the display")
+            // The agent wrap-up is the tall peek: the resting wings, a 60 pt band below the strip.
+            let wrapUp = NotchNotice(event: .agents, title: "Claude finished", detail: "4 min · $0.42",
+                                     symbol: "sparkle", agent: .claude, tall: true)
+            suite.expect(wrapUp.wings(in: geometry).leading == wrapUp.wings(in: geometry).trailing
+                         && geometry.tallPeek.height == geometry.stripHeight + NotchDesign.Peek.bandHeight
+                         && NotchNotice.wrapUpDuration(252, locale: Locale(identifier: "en_US")) == "4 min"
+                         && NotchNotice.wrapUpDuration(42, locale: Locale(identifier: "en_US")) == "42 sec",
+                         "the wrap-up is a tall peek of the strip plus the band, with minutes and seconds worded")
+            let song = NotchNotice(event: .track, title: String(repeating: "A very long song title ", count: 8),
+                                   detail: "Artist", symbol: "music.note")
+            suite.expect(song.preferredWings.widest == range.upperBound && song.showsGlyphAndWord,
+                         "a long title never widens the compact wings past 96")
         }
     }
 

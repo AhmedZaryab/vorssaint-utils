@@ -357,16 +357,16 @@ Words in quotes give the English sense; every string comes from the language's s
 | Volume, brightness, keyboard light | compact | Symbol (fills with level) | | | Meter, 4 pt, plus percent | hudDwell 1.5 s after the last change |
 | Microphone muted or live | compact | `mic.slash` or `mic` | Muted or Live | | | infoDwell 2.5 s |
 | Song change | compact notice (unchanged) | Cover in the leading wing at `Peek.wingArtwork` | Title | | | wings within `Peek.wingMinimum` to `Peek.wingMaximum`; stays the compact `.track` notice because a tall peek would change NotchService behaviour, which is out of scope |
-| Agent wrap-up | tall | Agent mark | "Claude finished" | Time taken · cost | | tallDwell 4 s |
-| Agent limit near or reset | tall | Agent mark, warning glyph when near | "Claude · Weekly" | "20% left" or "Renewed" | | tallDwell 4 s |
-| Notification | tall | App icon 32 | Sender or title | One line of the message | | tallDwell 4 s, held while the pointer rests on it |
-| Download finished | tall | File icon 32 | File name | "Downloaded" · size | | tallDwell 4 s |
+| Agent wrap-up | tall (shipped: peeks-notice) | Agent mark | "Claude finished" | Time taken · cost | | tallDwell 4 s |
+| Agent limit near or reset | tall (shipped: peeks-notice) | Agent mark, warning glyph when near | "Claude · Weekly" | "20% left" or "Renewed" | | tallDwell 4 s |
+| Notification | compact tonight; tall when the owner asks | App icon 32 | Sender or title | One line of the message | | tallDwell 4 s, held while the pointer rests on it |
+| Download finished | compact tonight; tall when the owner asks | File icon 32 | File name | "Downloaded" · size | | tallDwell 4 s |
 | Device connected | compact | Device symbol | Name, truncated in the middle | | Battery percent when known | infoDwell 2.5 s |
 | Charger and battery | compact | Battery symbol | | | Percent | infoDwell 2.5 s |
-| Timer ended | tall | `timer` in accent | "Timer done" | The timer's name or length | | attentionDwell 8 s, held while pointed at |
-| Watch fired | tall | `eye` | What changed | Where | | attentionDwell 8 s |
+| Timer ended | compact tonight; tall when the owner asks | `timer` in accent | "Timer done" | The timer's name or length | | attentionDwell 8 s, held while pointed at |
+| Watch fired | compact tonight; tall when the owner asks | `eye` | What changed | Where | | attentionDwell 8 s |
 | Keep awake on or off | compact | `cup.and.saucer` | | | Time left or infinity | infoDwell 2.5 s |
-| Calendar soon | tall | Calendar colour dot in a 32 plate | Event title | "In 5 min" · place | | tallDwell 4 s |
+| Calendar soon | compact tonight; tall when the owner asks | Calendar colour dot in a 32 plate | Event title | "In 5 min" · place | | tallDwell 4 s |
 | Copied | compact | `doc.on.clipboard` | Copied | | | infoDwell 2.5 s |
 | Capture taken | tall | Thumbnail 32 | "Screenshot" | Saved where | | 12 s, it carries a draggable thumbnail |
 

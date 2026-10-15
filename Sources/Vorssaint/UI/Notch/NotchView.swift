@@ -62,14 +62,12 @@ struct NotchView: View {
 
     @ViewBuilder private var surface: some View {
         if service.songPeekBandActive, let peek = service.songPeek {
-            // The strip keeps its closed frame; the band fills the body below,
-            // inside the silhouette's shoulders.
+            // The strip keeps its closed frame; the band fills the body below
+            // and lays out its own margins from the canvas.
             let base = service.baseSurfaceSize
-            let inset = NotchLayout.shoulder(height: service.surfaceSize.height)
             VStack(spacing: 0) {
                 baseSurface.frame(width: base.width, height: base.height)
                 NotchSongPeekBand(model: peek)
-                    .padding(.horizontal, inset)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             }
         } else {
@@ -122,7 +120,7 @@ struct NotchView: View {
                     service.activateNotice(notice)
                 } label: {
                     Group {
-                        if floats {
+                        if floats, !notice.tall {
                             // A departing notice keeps its own row while the capsule closes.
                             NotchCapsuleNoticeView(notice: notice, geometry: service.geometry,
                                                    size: service.notice == nil ? service.capsuleNoticeSurface(notice)
@@ -139,7 +137,7 @@ struct NotchView: View {
                 // A floating capsule lights up under the pointer. Beside a
                 // camera the wash would outline the housing, so the notch keeps
                 // its notices plain, as its other strips are.
-                .buttonStyle(NotchButtonStyle(cornerRadius: 14, lifts: false, highlights: floats))
+                .buttonStyle(NotchPressStyle(shape: .rounded(14), lifts: false, washes: floats))
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel(notice.accessibilityText)
                 .accessibilityAddTraits(.isButton)
