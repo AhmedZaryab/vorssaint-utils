@@ -15,6 +15,8 @@ struct NotchClipboardView: View {
     @AppStorage(DefaultsKey.clipboardHistoryEnabled) private var enabled = false
     @State private var query = ""
     @State private var copiedID: UUID?
+    /// One tick per copy, per entry: the success morph plays on each change.
+    @State private var copyTicks: [UUID: Int] = [:]
     @State private var pinnedOnly = false
     /// The card the arrow keys chose from the search field, or the top result
     /// of a typed search; Return uses it the way a click would.
@@ -38,45 +40,41 @@ struct NotchClipboardView: View {
     /// The island draws its text in white and never in the accent color, so a
     /// match stands out by weight alone.
     private func searchText(_ string: String, matching tokens: [String]) -> Text {
-        SearchHighlightText.text(string, tokens: tokens, fontSize: 12, highlightColor: nil)
+        SearchHighlightText.text(string, tokens: tokens, fontSize: 13, highlightColor: nil)
     }
 
     var body: some View {
         VStack(spacing: NotchLayout.rowSpacing) {
-            HStack(spacing: 8) {
-                Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
+            HStack(spacing: NotchDesign.Spacing.small) {
+                Image(systemName: "magnifyingglass")
+                    .font(NotchDesign.Icon.button.font)
+                    .foregroundStyle(NotchDesign.Ink.secondary)
+                    .accessibilityHidden(true)
                 TextField(text.search, text: $query).textFieldStyle(.plain)
-                    .font(.system(size: 12))
+                    .font(NotchDesign.Typography.body.font)
                     .focused($searching)
                     .accessibilityLabel(text.search)
-                NotchIconButton(symbol: "pin", title: text.pinned, selected: pinnedOnly) {
-                    pinnedOnly.toggle()
-                }
-                NotchIconButton(symbol: "trash", title: text.clearRecent) {
-                    let ids = history.recentEntriesSnapshot
-                    DispatchQueue.main.async {
-                        guard NSAlert.confirmAboveIsland(String(format: text.clearRecentConfirmFormat, ids.count),
-                                                         message: text.clearRecentConfirmMessage,
-                                                         action: text.clearRecent, destructive: true,
-                                                         cancel: text.cancel) else { return }
-                        history.clearRecent(ids)
-                        copiedID = nil
-                    }
+                Toggle(text.pinned, isOn: $pinnedOnly)
+                    .toggleStyle(NotchToggleStyle(on: "pin.fill", off: "pin",
+                                                  shape: .rounded(NotchDesign.Radius.control)))
+                    .help(text.pinned)
+                NotchFuseButton(text.clearRecent, symbol: "trash", doneAnnouncement: text.clearRecent,
+                                shape: .rounded(NotchDesign.Radius.control)) {
+                    history.clearRecent(history.recentEntriesSnapshot)
+                    copiedID = nil
                 }
                 .disabled(history.recentEntries.isEmpty)
-                NotchIconButton(symbol: "arrow.up.forward.app", title: text.title) {
+                .opacity(history.recentEntries.isEmpty ? NotchDesign.Opacity.disabled : 1)
+                NotchPlainIconButton(symbol: "arrow.up.forward.app", title: text.title) {
                     service.perform { history.showHistoryWindow(preferNotch: false) }
                 }
             }
-            .padding(.horizontal, 12)
+            .padding(.leading, NotchDesign.Spacing.medium)
+            .padding(.trailing, NotchDesign.Spacing.xxSmall)
             .frame(height: NotchLayout.clipboardSearchHeight)
-            .modifier(NotchControlSurface(cornerRadius: 14))
-            .overlay {
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .strokeBorder(.white.opacity(searching ? 0.34 : 0), lineWidth: 1)
-                    .allowsHitTesting(false)
-            }
-            .animation(.easeOut(duration: 0.15), value: searching)
+            .modifier(ClipboardPlate(radius: NotchDesign.Radius.control,
+                                     fill: searching ? NotchDesign.Fill.selected : NotchDesign.Fill.control))
+            .animation(NotchDesign.Motion.fade, value: searching)
             .background {
                 if !preview {
                     ClipboardSearchKeyMonitor(active: searching) { handleSearchKey($0) }
@@ -88,13 +86,21 @@ struct NotchClipboardView: View {
             if !enabled, history.entries.isEmpty {
                 // The panel offers the switch beside its caption; the page
                 // says why it is empty and turns the history on from here.
-                VStack(spacing: 10) {
+                VStack(spacing: NotchDesign.Spacing.medium) {
                     NotchEmptyView(symbol: "doc.on.clipboard", message: text.disabled)
-                    Button(text.enable) {
+                    Button {
                         enabled = true
                         history.syncWithPreferences()
+                    } label: {
+                        Text(text.enable)
+                            .font(NotchDesign.Typography.callout.font)
+                            .foregroundStyle(NotchDesign.Ink.primary)
+                            .padding(.horizontal, NotchDesign.Spacing.medium)
+                            .frame(minHeight: NotchDesign.Control.rowHeight)
+                            .background(NotchDesign.Palette.accent, in: Capsule(style: .continuous))
+                            .contentShape(Capsule(style: .continuous))
                     }
-                    .buttonStyle(.bordered).controlSize(.small)
+                    .buttonStyle(NotchPressStyle(shape: .capsule, washes: false))
                 }
                 .frame(maxHeight: .infinity)
             } else if entries.isEmpty {
@@ -104,7 +110,7 @@ struct NotchClipboardView: View {
             } else {
                 ScrollViewReader { proxy in
                     ScrollView {
-                        LazyVStack(spacing: 8) {
+                        LazyVStack(spacing: NotchDesign.Spacing.gutter) {
                             ForEach(Array(entries.enumerated()), id: \.element.id) { index, entry in
                                 card(entry, place: index).frame(height: NotchLayout.clipboardCardHeight)
                                     .id(entry.id)
@@ -113,14 +119,17 @@ struct NotchClipboardView: View {
                     }
                     .scrollIndicators(.automatic)
                     .onChange(of: highlightedID) { _, id in
+                        // Arrow keys land at once; nothing animates on a keyboard action.
                         guard let id else { return }
-                        withAnimation(reduceMotion ? nil : .easeOut(duration: 0.15)) { proxy.scrollTo(id) }
+                        proxy.scrollTo(id)
                     }
                     // A copied recent entry moves to the top, so the list
                     // follows it and the tick stays in view.
                     .onChange(of: copiedID) { _, id in
                         guard let id else { return }
-                        withAnimation(reduceMotion ? nil : .easeOut(duration: 0.15)) { proxy.scrollTo(id) }
+                        withAnimation(NotchDesign.Motion.animation(NotchDesign.Motion.smooth, reduceMotion: reduceMotion)) {
+                            proxy.scrollTo(id)
+                        }
                     }
                 }
             }
@@ -151,44 +160,49 @@ struct NotchClipboardView: View {
 
     /// The entry fills the card; its actions sit in the bottom row.
     private func card(_ entry: ClipboardHistoryEntry, place: Int) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
+        let radius = NotchDesign.Radius.card
+        return VStack(alignment: .leading, spacing: NotchDesign.Spacing.xxSmall) {
             Button { activate(entry) } label: {
                 preview(entry)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                     .clipped()
                     .contentShape(Rectangle())
             }
-            .buttonStyle(NotchButtonStyle(lifts: false))
+            .buttonStyle(NotchPressStyle(shape: .rounded(NotchDesign.Radius.control), lifts: false))
             .help(permissions.accessibility ? text.clickRowShortcut : text.copy)
-            HStack(spacing: 4) {
+            HStack(spacing: NotchDesign.Spacing.xxSmall) {
                 Image(systemName: entry.kind == .image ? "photo" : entry.kind == .files ? "doc" : "text.alignleft")
-                    .font(.system(size: 10)).foregroundStyle(.secondary)
+                    .font(NotchDesign.Typography.caption.font)
+                    .foregroundStyle(NotchDesign.Ink.secondary)
+                    .accessibilityHidden(true)
                 Text(entry.copiedAt, style: .time)
-                    .font(.system(size: 9.5)).foregroundStyle(.tertiary).lineLimit(1)
+                    .font(NotchDesign.Typography.caption.font)
+                    .foregroundStyle(NotchDesign.Ink.secondary).lineLimit(1)
                 Spacer(minLength: 0)
                 if place < 9, service.panelIsKey {
                     Text("⌘\(place + 1)")
-                        .font(.system(size: 9.5, weight: .medium)).monospacedDigit()
-                        .foregroundStyle(.tertiary)
+                        .font(NotchDesign.Typography.caption.font).monospacedDigit()
+                        .foregroundStyle(NotchDesign.Ink.tertiary)
                         .accessibilityHidden(true)
                 }
-                NotchIconButton(symbol: copiedID == entry.id ? "checkmark" : "doc.on.doc",
-                                title: copiedID == entry.id ? text.copied : text.copy) { copy(entry) }
-                NotchIconButton(symbol: entry.isPinned ? "pin.fill" : "pin",
-                                title: entry.isPinned ? text.unpin : text.pin) {
-                    history.togglePin(entry)
-                }
-                NotchIconButton(symbol: "trash", title: text.delete) { remove(entry) }
+                NotchPlainIconButton(symbol: "doc.on.doc", title: copiedID == entry.id ? text.copied : text.copy,
+                                     successTrigger: copyTicks[entry.id, default: 0]) { copy(entry) }
+                Toggle(entry.isPinned ? text.unpin : text.pin,
+                       isOn: Binding(get: { entry.isPinned }, set: { _ in history.togglePin(entry) }))
+                    .toggleStyle(NotchToggleStyle(on: "pin.fill", off: "pin",
+                                                  shape: .rounded(NotchDesign.Radius.control)))
+                    .help(entry.isPinned ? text.unpin : text.pin)
+                NotchFuseButton(text.delete, symbol: "trash", doneAnnouncement: text.delete,
+                                shape: .rounded(NotchDesign.Radius.control)) { remove(entry) }
             }
-            .frame(height: 28)
+            .frame(height: NotchDesign.Control.iconButton)
         }
-        .padding(.horizontal, 10).padding(.top, 10).padding(.bottom, 4)
-        .modifier(NotchControlSurface(cornerRadius: 14, selected: entry.isPinned))
-        .overlay {
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .strokeBorder(.white.opacity(highlightedID == entry.id ? 0.34 : 0), lineWidth: 1)
-                .allowsHitTesting(false)
-        }
+        .padding(.horizontal, NotchDesign.Spacing.cardPadding)
+        .padding(.top, NotchDesign.Spacing.cardPadding)
+        .padding(.bottom, NotchDesign.Spacing.xxSmall)
+        .modifier(ClipboardPlate(radius: radius,
+                                 fill: highlightedID == entry.id ? NotchDesign.Fill.selected : NotchDesign.Fill.card))
+        .animation(NotchDesign.Motion.fade, value: highlightedID == entry.id)
         .clipped()
         .contextMenu { actions(entry) }
         .accessibilityAction(named: Text(text.moveUp)) { move(entry, .up) }
@@ -252,6 +266,7 @@ struct NotchClipboardView: View {
         history.copy(entry) { copied in
             if copied {
                 copiedID = entry.id
+                copyTicks[entry.id, default: 0] += 1
             } else {
                 NSSound.beep()
             }
@@ -276,11 +291,11 @@ struct NotchClipboardView: View {
                                         aspectRatio: entry.imageAspectRatio,
                                         failureText: "\(text.imageEntryLabel) · \(entry.imageDimensionsLabel)")
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                    .clipShape(RoundedRectangle(cornerRadius: 6))
+                    .clipShape(RoundedRectangle(cornerRadius: NotchDesign.Radius.control, style: .continuous))
                     .help("\(text.imageEntryLabel) · \(entry.imageDimensionsLabel)")
             } else {
                 searchText("\(text.imageEntryLabel) · \(entry.imageDimensionsLabel)", matching: searchTokens)
-                    .font(.system(size: 12))
+                    .font(NotchDesign.Typography.body.font)
                     .frame(maxWidth: .infinity, alignment: .topLeading)
             }
         case .files:
@@ -291,7 +306,7 @@ struct NotchClipboardView: View {
                 ClipboardThumbnailImage(source: .file(path: path),
                                         failureText: entry.fileNames.first ?? entry.preview)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                    .clipShape(RoundedRectangle(cornerRadius: 6))
+                    .clipShape(RoundedRectangle(cornerRadius: NotchDesign.Radius.control, style: .continuous))
                     .help(path)
             } else {
                 // A count of several files is no text the search reads.
@@ -303,20 +318,20 @@ struct NotchClipboardView: View {
                 } icon: {
                     Image(systemName: "folder")
                 }
-                .font(.system(size: 12))
+                .font(NotchDesign.Typography.body.font)
                 .lineLimit(2)
                 .truncationMode(.middle)
                 .frame(maxWidth: .infinity, alignment: .topLeading)
                 .help(entry.filePaths.joined(separator: "\n"))
             }
         case .text:
-            HStack(alignment: .firstTextBaseline, spacing: 7) {
+            HStack(alignment: .firstTextBaseline, spacing: NotchDesign.Spacing.xSmall) {
                 if let color = entry.color {
                     ColorSwatch(color: color, size: 12)
                         .alignmentGuide(.firstTextBaseline) { $0[.bottom] - 1 }
                 }
                 searchText(entry.preview, matching: searchTokens)
-                    .font(.system(size: 12))
+                    .font(NotchDesign.Typography.body.font)
                     .lineLimit(3)
                     .multilineTextAlignment(.leading)
             }
@@ -375,6 +390,62 @@ private struct ClipboardSearchKeyMonitor: NSViewRepresentable {
             guard let monitor else { return }
             NSEvent.removeMonitor(monitor)
             self.monitor = nil
+        }
+    }
+}
+
+/// A card or field plate: a flat fill at the token's radius, a hairline on
+/// glass, and the Increase Contrast edge.
+private struct ClipboardPlate: ViewModifier {
+    let radius: CGFloat
+    let fill: Color
+    @Environment(\.colorSchemeContrast) private var contrast
+    @Environment(\.notchGlassSurface) private var glassSurface
+
+    func body(content: Content) -> some View {
+        let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
+        content
+            .background(fill, in: shape)
+            .overlay {
+                if contrast == .increased {
+                    shape.strokeBorder(NotchDesign.Stroke.increasedContrast, lineWidth: NotchDesign.Stroke.increasedContrastWidth)
+                        .allowsHitTesting(false)
+                } else if glassSurface {
+                    shape.strokeBorder(NotchDesign.Stroke.glassEdge, lineWidth: NotchDesign.Stroke.hairline)
+                        .allowsHitTesting(false)
+                }
+            }
+    }
+}
+
+/// The tap class for an icon in a plate row: a 28 pt target on NotchPressStyle.
+/// With a `successTrigger`, each change morphs the glyph to a checkmark.
+struct NotchPlainIconButton: View {
+    let symbol: String
+    let title: String
+    var successTrigger: Int?
+    let action: () -> Void
+    @Environment(\.isEnabled) private var isEnabled
+
+    var body: some View {
+        Button(action: action) {
+            glyph
+                .font(NotchDesign.Icon.button.font)
+                .foregroundStyle(NotchDesign.Ink.secondary)
+                .frame(width: NotchDesign.Control.iconButton, height: NotchDesign.Control.iconButton)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(NotchPressStyle(shape: .rounded(NotchDesign.Radius.control)))
+        .opacity(isEnabled ? 1 : NotchDesign.Opacity.disabled)
+        .help(title)
+        .accessibilityLabel(title)
+    }
+
+    @ViewBuilder private var glyph: some View {
+        if let successTrigger {
+            Image(systemName: symbol).notchSuccessMorph(trigger: successTrigger, announcement: title)
+        } else {
+            Image(systemName: symbol)
         }
     }
 }
