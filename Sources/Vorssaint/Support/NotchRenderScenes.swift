@@ -97,10 +97,18 @@ enum NotchRenderScenes {
         let locale = language.formattingLocale()
         let content = NotchRenderFixtures.notifications(now: Date())[0].content
         return [
+            NotchRenderScene(name: "30-peek-track", summary: "next song peek, ring part way round",
+                             activities: [], music: false, content: .island { now in
+                                 var fixture = resting()
+                                 let model = NotchRenderFixtures.songPeek(now: now)
+                                 model.endsAt = Date().addingTimeInterval(4)
+                                 fixture.songPeek = model
+                                 return fixture
+                             }),
             peek("30-peek-agent-finished", "an agent finished, with its time and spend", NotchNotice(
                 event: .agents, title: agents.finished(AgentProvider.claude.displayName),
                 detail: AgentFormat.duration(754, locale: locale) + " · " + AgentFormat.cost(1.84, locale: locale),
-                symbol: AgentProvider.claude.symbol, agent: .claude)),
+                symbol: AgentProvider.claude.symbol, agent: .claude, tall: true)),
             peek("30-peek-notification", "a message mirrored from Notification Center", NotchNotice(
                 event: .systemNotification, title: content.title, detail: content.body, symbol: "bell.fill",
                 notification: content, notificationID: UUID(uuidString: "6F1C2A3B-0000-4000-8000-0000000000D1"))),

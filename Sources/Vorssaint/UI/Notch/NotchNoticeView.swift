@@ -194,8 +194,6 @@ struct NotchTallPeekRow<Mark: View, Live: View>: View {
     var hasLive = true
     @ViewBuilder var mark: Mark
     @ViewBuilder var live: Live
-    @Environment(\.notchCanvas) private var canvas
-
     var body: some View {
         HStack(spacing: NotchDesign.Spacing.medium) {
             mark.frame(width: NotchDesign.Peek.artwork, height: NotchDesign.Peek.artwork)
@@ -219,8 +217,9 @@ struct NotchTallPeekRow<Mark: View, Live: View>: View {
                 live.frame(width: NotchDesign.Peek.trailingSide, height: NotchDesign.Peek.trailingSide)
             }
         }
-        .padding(.leading, canvas.contentInsets.leading)
-        .padding(.trailing, canvas.contentInsets.trailing)
+        // Equal insets from the band's two edges, so the row sits centred on
+        // the island and the camera (the anatomy's 16 pt, Geometry.margin).
+        .padding(.horizontal, NotchDesign.Geometry.margin)
         .padding(.top, NotchDesign.Peek.bandTop)
         .frame(height: NotchDesign.Peek.bandHeight, alignment: .top)
     }
