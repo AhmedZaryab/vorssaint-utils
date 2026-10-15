@@ -236,8 +236,7 @@ private struct NotchMasterFader: View {
                 Toggle(l10n.s.actionMute,
                        isOn: Binding(get: { muted }, set: { adjustOutput(muted: $0) }))
                     .toggleStyle(NotchToggleStyle(on: "speaker.slash.fill", off: "speaker.wave.2.fill",
-                                                  shape: .rounded(NotchDesign.Radius.control),
-                                                  tint: NotchDesign.Palette.critical))
+                                                  shape: .rounded(NotchDesign.Radius.control)))
                     .disabled(mixer.systemOutputMuted == nil)
             }
             if let level {
@@ -278,8 +277,7 @@ private struct NotchMicrophoneFader: View {
                     Toggle(l10n.s.micMuteName,
                            isOn: Binding(get: { micMute.isMuted }, set: { if $0 != micMute.isMuted { micMute.toggle() } }))
                         .toggleStyle(NotchToggleStyle(on: "mic.slash.fill", off: "mic.fill",
-                                                      shape: .rounded(NotchDesign.Radius.control),
-                                                      tint: NotchDesign.Palette.critical))
+                                                      shape: .rounded(NotchDesign.Radius.control)))
                 } else {
                     Image(systemName: (input.inputVolume ?? 0) <= 0.001 ? "mic.slash.fill" : "mic.fill")
                         .font(NotchDesign.Icon.button.font)
@@ -440,8 +438,7 @@ private struct NotchMixerOptions: View {
                     Toggle(l10n.s.micMuteName,
                            isOn: Binding(get: { micMute.isMuted }, set: { if $0 != micMute.isMuted { micMute.toggle() } }))
                         .toggleStyle(NotchToggleStyle(on: "mic.slash.fill", off: "mic.fill",
-                                                      shape: .rounded(Design.Radius.control),
-                                                      tint: Design.Palette.critical))
+                                                      shape: .rounded(Design.Radius.control)))
                 } else {
                     Image(systemName: volume <= 0.001 ? "mic.slash.fill" : "mic.fill")
                         .font(Design.Icon.button.font)
@@ -575,8 +572,7 @@ private struct NotchAppFader: View {
                     Toggle(l10n.s.actionMute,
                            isOn: Binding(get: { muted }, set: { if $0 != muted { mixer.toggleMute(app) } }))
                         .toggleStyle(NotchToggleStyle(on: "speaker.slash.fill", off: "speaker.wave.2.fill",
-                                                      shape: .rounded(Design.Radius.control),
-                                                      tint: Design.Palette.critical))
+                                                      shape: .rounded(Design.Radius.control)))
                 }
                 .frame(height: Design.Control.rowHeight)
             }

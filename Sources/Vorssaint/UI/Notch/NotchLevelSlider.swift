@@ -129,6 +129,40 @@ private final class NotchLevelCell: NSSliderCell {
     var trackThickness: CGFloat?
     var trackingChanged: ((Bool) -> Void)?
     private var isFader: Bool { isVertical }
+    /// Pointer travel past either end, in points; drawn as a stretch (the track thins as it is
+    /// pulled), resisted by Interaction.rubberbanded and settled back on release.
+    private var pull: CGFloat = 0
+    private var settleTimer: Timer?
+
+    private func setPull(from point: NSPoint) {
+        guard let view = controlView else { return }
+        let bar = barRect(flipped: view.isFlipped)
+        let (pos, lo, hi) = isFader ? (point.y, bar.minY, bar.maxY) : (point.x, bar.minX, bar.maxX)
+        let past = pos < lo ? pos - lo : (pos > hi ? pos - hi : 0)
+        let length = max(1, hi - lo)
+        pull = NotchDesign.Interaction.rubberbanded(past / length, dimension: length)
+        view.needsDisplay = true
+    }
+
+    private func settle() {
+        settleTimer?.invalidate()
+        guard pull != 0 else { return }
+        guard !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion else {
+            pull = 0; controlView?.needsDisplay = true; return
+        }
+        // Critically damped decay, about the Motion.snappy settle (under 300 ms).
+        settleTimer = Timer.scheduledTimer(withTimeInterval: 1 / 60, repeats: true) { [weak self] timer in
+            guard let self else { timer.invalidate(); return }
+            self.pull *= 0.72
+            if abs(self.pull) < 0.05 { self.pull = 0; timer.invalidate() }
+            self.controlView?.needsDisplay = true
+        }
+    }
+
+    override func continueTracking(last lastPoint: NSPoint, current currentPoint: NSPoint, in controlView: NSView) -> Bool {
+        setPull(from: currentPoint)
+        return super.continueTracking(last: lastPoint, current: currentPoint, in: controlView)
+    }
 
     override func barRect(flipped: Bool) -> NSRect {
         let bounds = controlView?.bounds ?? .zero
@@ -153,12 +187,18 @@ private final class NotchLevelCell: NSSliderCell {
     override func stopTracking(last lastPoint: NSPoint, current stopPoint: NSPoint,
                                in controlView: NSView, mouseIsUp flag: Bool) {
         super.stopTracking(last: lastPoint, current: stopPoint, in: controlView, mouseIsUp: flag)
+        settle()
         trackingChanged?(false)
     }
 
     override func drawBar(inside rect: NSRect, flipped: Bool) {
-        let track = barRect(flipped: flipped)
+        var track = barRect(flipped: flipped)
         guard track.width > 0, track.height > 0 else { return }
+        if pull != 0 {
+            // Pulled past an end: the track thins across its width, like a stretched band.
+            let thin = min(abs(pull) * 0.5, (isFader ? track.width : track.height) * 0.4)
+            track = isFader ? track.insetBy(dx: thin / 2, dy: 0) : track.insetBy(dx: 0, dy: thin / 2)
+        }
         let radius = min(track.width, track.height) / 2
         let outline = NSBezierPath(roundedRect: track, xRadius: radius, yRadius: radius)
         NSGraphicsContext.saveGraphicsState()
