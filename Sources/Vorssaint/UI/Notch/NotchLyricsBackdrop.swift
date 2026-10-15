@@ -101,33 +101,50 @@ struct NotchLyricsPalette: Equatable {
 struct NotchLyricsBackdrop: View {
     let palette: NotchLyricsPalette
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @Environment(\.colorSchemeContrast) private var contrast
 
     var body: some View {
         GeometryReader { proxy in
             let size = proxy.size
             ZStack {
                 LinearGradient(colors: [palette.top, palette.bottom], startPoint: .topLeading, endPoint: .bottomTrailing)
-                Circle().fill(palette.top)
-                    .frame(width: size.width * 0.8, height: size.width * 0.8)
-                    .offset(x: -size.width * 0.28, y: -size.height * 0.45)
-                    .blur(radius: 40)
-                    .opacity(0.9)
-                Circle().fill(palette.bottom)
-                    .frame(width: size.width * 0.7, height: size.width * 0.7)
-                    .offset(x: size.width * 0.3, y: size.height * 0.5)
-                    .blur(radius: 46)
-                    .opacity(0.85)
-                // A floor that keeps white text above 4.5:1 on the brightest cover.
-                LinearGradient(colors: [.black.opacity(0.18), .black.opacity(0.42)], startPoint: .top, endPoint: .bottom)
+                if !reduceTransparency {
+                    glows(size)
+                }
+                // A floor that keeps white text above 4.5:1 on the brightest cover; it
+                // deepens under Reduce Transparency and Increase Contrast, which drop the glows.
+                LinearGradient(colors: [.black.opacity(floor.0), .black.opacity(floor.1)], startPoint: .top, endPoint: .bottom)
             }
             .frame(width: size.width, height: size.height)
         }
-        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(.white.opacity(0.08), lineWidth: 1))
-        .animation(reduceMotion ? nil : .easeOut(duration: 0.6), value: palette)
+        .clipShape(RoundedRectangle(cornerRadius: NotchDesign.Radius.card, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: NotchDesign.Radius.card, style: .continuous)
+            .strokeBorder(contrast == .increased ? NotchDesign.Stroke.increasedContrast : NotchDesign.Stroke.glassEdge,
+                          lineWidth: contrast == .increased ? NotchDesign.Stroke.increasedContrastWidth : NotchDesign.Stroke.hairline))
+        .animation(reduceMotion ? NotchDesign.Motion.fade : .easeOut(duration: 0.6), value: palette)
         // The glows reach far past the page and clipping only hides them, so
         // without this they took the clicks meant for the player above.
         .allowsHitTesting(false)
         .accessibilityHidden(true)
+    }
+
+    private var floor: (Double, Double) {
+        reduceTransparency || contrast == .increased ? (0.5, 0.7) : (0.3, 0.55)
+    }
+
+    @ViewBuilder private func glows(_ size: CGSize) -> some View {
+        ZStack {
+                Circle().fill(palette.top)
+                    .frame(width: size.width * 0.8, height: size.width * 0.8)
+                    .offset(x: -size.width * 0.28, y: -size.height * 0.45)
+                    .blur(radius: 40)
+                    .opacity(0.6)
+                Circle().fill(palette.bottom)
+                    .frame(width: size.width * 0.7, height: size.width * 0.7)
+                    .offset(x: size.width * 0.3, y: size.height * 0.5)
+                    .blur(radius: 46)
+                    .opacity(0.55)
+        }
     }
 }
