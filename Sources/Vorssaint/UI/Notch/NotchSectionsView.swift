@@ -62,7 +62,7 @@ struct NotchSectionsView: View {
             .frame(height: NotchLayout.railHeight(rows: visible, rowHeight: NotchLayout.sectionTileHeight,
                                                   spacing: NotchLayout.sectionSpacing), alignment: .top)
             .clipped()
-            .animation(reduceMotion ? nil : .spring(duration: 0.3, bounce: 0), value: first)
+            .animation(NotchDesign.Motion.animation(NotchDesign.Motion.snappy, reduceMotion: reduceMotion), value: first)
             .accessibilityScrollAction { edge in
                 if edge == .bottom { service.scrollSections(by: 1) }
                 else if edge == .top { service.scrollSections(by: -1) }
@@ -78,19 +78,21 @@ struct NotchSectionsView: View {
     /// column keeps its width when everything fits, so tiles never shift.
     @ViewBuilder private func indicator(positions: Int, current: Int) -> some View {
         if positions > 1 {
-            VStack(spacing: 5) {
+            VStack(spacing: 0) {
                 ForEach(0..<positions, id: \.self) { position in
                     Button { service.showSectionRow(position) } label: {
                         Circle()
-                            .fill(.white.opacity(position == current ? 0.9 : contrast == .increased ? 0.5 : 0.28))
+                            .fill(position == current ? NotchDesign.Ink.primary
+                                  : contrast == .increased ? NotchDesign.Ink.secondary : NotchDesign.Ink.tertiary)
                             .frame(width: 6, height: 6)
-                            .frame(width: 12, height: 12)
+                            .frame(width: NotchLayout.sectionIndicatorWidth, height: NotchDesign.Control.minimumHit)
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
+                    .notchPointingCursor()
                 }
             }
-            .animation(reduceMotion ? nil : .easeOut(duration: 0.15), value: current)
+            .animation(NotchDesign.Motion.animation(NotchDesign.Motion.snappy, reduceMotion: reduceMotion), value: current)
             .accessibilityHidden(true)
         } else {
             Color.clear
@@ -100,56 +102,53 @@ struct NotchSectionsView: View {
     private func tile(_ module: NotchModule, visible: Bool) -> some View {
         let highlighted = service.highlightedSection == module
         let current = service.selected == module
-        let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: NotchDesign.Radius.card, style: .continuous)
         return Button { service.select(module) } label: {
-            VStack(spacing: 6) {
+            VStack(spacing: NotchDesign.Spacing.xxSmall) {
                 Image(systemName: module.symbol)
-                    .font(.system(size: 22, weight: .medium))
-                    .foregroundStyle(tint(for: module))
-                    .frame(width: 25, height: 25)
+                    .font(NotchDesign.Icon.tile.font)
+                    .foregroundStyle(NotchDesign.Ink.primary)
+                    .frame(width: NotchDesign.Control.iconButton, height: NotchDesign.Control.iconButton)
                 Text(module.title(l10n.language))
-                    .font(.system(size: 11, weight: .medium))
+                    .font(NotchDesign.Typography.label.font)
                     .lineLimit(2)
                     .minimumScaleFactor(0.85)
                     .multilineTextAlignment(.center)
                     .frame(height: 27)
                 Text("⌥⌘" + module.shortcutKey.uppercased())
-                    .font(.system(size: 10, weight: .medium, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.6))
+                    .font(NotchDesign.Typography.caption.font)
+                    .foregroundStyle(NotchDesign.Ink.secondary)
             }
-            .padding(.horizontal, 6)
+            .padding(.horizontal, NotchDesign.Spacing.xSmall)
             .frame(maxWidth: .infinity)
             .frame(height: NotchLayout.sectionTileHeight)
-            .background(.white.opacity(highlighted ? 0.12 : 0.045), in: shape)
+            // The keyboard's tile is one step up in fill; nothing is outlined
+            // except under Increase Contrast.
+            .background(highlighted ? NotchDesign.Fill.selected : NotchDesign.Fill.card, in: shape)
             .overlay {
-                shape.strokeBorder(.white.opacity(highlighted ? 0.55 : contrast == .increased ? 0.4 : 0.04), lineWidth: 1)
+                if contrast == .increased {
+                    shape.strokeBorder(NotchDesign.Stroke.increasedContrast,
+                                       lineWidth: NotchDesign.Stroke.increasedContrastWidth)
+                }
             }
             .overlay(alignment: .topTrailing) {
                 if current {
                     Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 10))
-                        .foregroundStyle(.white.opacity(0.7))
-                        .padding(7)
+                        .font(NotchDesign.Typography.caption.font)
+                        .foregroundStyle(NotchDesign.Ink.secondary)
+                        .padding(NotchDesign.Spacing.small)
                 }
             }
+            .animation(NotchDesign.Motion.animation(NotchDesign.Motion.snappy, reduceMotion: reduceMotion), value: highlighted)
             .contentShape(shape)
         }
-        .buttonStyle(NotchButtonStyle(cornerRadius: 16, lifts: false))
+        .buttonStyle(NotchPressStyle(shape: .rounded(NotchDesign.Radius.card)))
         .accessibilityLabel(module.title(l10n.language))
         .accessibilityAddTraits(current ? .isSelected : [])
         .accessibilityIdentifier("notch.module.\(module.rawValue)")
         // A stepped-away row sits under the header, clipped; it keeps no
         // tooltip there.
         .help(visible ? module.title(l10n.language) + "  ⌥⌘" + module.shortcutKey.uppercased() : "")
-    }
-
-    private func tint(for module: NotchModule) -> Color {
-        switch module {
-        case .music: return .pink
-        case .calendar: return .red
-        case .timer: return .orange
-        default: return .white.opacity(0.85)
-        }
     }
 }
 
@@ -173,7 +172,7 @@ struct NotchSectionSearch: View {
     /// in a letter cut in half. The magnifier and the accessibility label
     /// still say what the field is for.
     private var prompt: String {
-        let font = NSFont.systemFont(ofSize: 12)
+        let font = NotchDesign.Typography.callout.nsFont
         // The field's text sits a few points inside its frame.
         func fits(_ prompt: String) -> Bool {
             (prompt as NSString).size(withAttributes: [.font: font]).width + 6 <= fieldWidth
@@ -183,16 +182,16 @@ struct NotchSectionSearch: View {
     }
 
     var body: some View {
-        HStack(spacing: expanded ? 4 : 6) {
+        HStack(spacing: expanded ? NotchDesign.Spacing.xxSmall : NotchDesign.Spacing.xSmall) {
             Image(systemName: "magnifyingglass")
-                .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(expanded ? .white : .white.opacity(0.55))
-                .frame(width: expanded ? 22 : 28, height: 28)
+                .font(NotchDesign.Icon.button.font)
+                .foregroundStyle(expanded ? NotchDesign.Ink.primary : NotchDesign.Ink.secondary)
+                .frame(width: expanded ? 22 : NotchDesign.Control.iconButton, height: NotchDesign.Control.iconButton)
             // The field keeps its focus at a hair's width, so typing filters
             // the gallery before the field has even shown itself.
             TextField(prompt, text: Binding(get: { service.sectionQuery }, set: service.searchSections))
                 .textFieldStyle(.plain)
-                .font(.system(size: 12))
+                .font(NotchDesign.Typography.callout.font)
                 .focused($searching)
                 .frame(maxWidth: expanded ? maximumFieldWidth : 1)
                 .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { fieldWidth = $0 }
@@ -200,19 +199,22 @@ struct NotchSectionSearch: View {
                 .accessibilityLabel(text.searchSections)
             if !service.sectionQuery.isEmpty {
                 Button { service.searchSections(""); searching = true } label: {
-                    Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
+                    Image(systemName: "xmark.circle.fill").foregroundStyle(NotchDesign.Ink.secondary)
+                        .frame(width: NotchDesign.Control.minimumHit, height: NotchDesign.Control.minimumHit)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(NotchPressStyle(shape: .capsule))
                 .accessibilityLabel(l10n.s.actionClear)
             }
         }
-        .padding(.trailing, expanded ? 8 : 0)
-        .frame(height: 28)
-        .background(.white.opacity(expanded ? 0.07 : 0), in: RoundedRectangle(cornerRadius: 9, style: .continuous))
-        .contentShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
+        .padding(.trailing, expanded ? NotchDesign.Spacing.small : 0)
+        .frame(height: NotchDesign.Control.iconButton)
+        // Focus is a step up in fill, never a stroke.
+        .background(expanded ? (searching ? NotchDesign.Fill.selected : NotchDesign.Fill.control) : Color.clear,
+                    in: RoundedRectangle(cornerRadius: NotchDesign.Radius.control, style: .continuous))
+        .contentShape(RoundedRectangle(cornerRadius: NotchDesign.Radius.control, style: .continuous))
         .clipped()
         .onHover { hovering in
-            withAnimation(reduceMotion ? nil : .easeOut(duration: 0.15)) { hovered = hovering }
+            withAnimation(NotchDesign.Motion.animation(NotchDesign.Motion.snappy, reduceMotion: reduceMotion)) { hovered = hovering }
         }
         .onTapGesture { searching = true }
         .onAppear { searching = true }

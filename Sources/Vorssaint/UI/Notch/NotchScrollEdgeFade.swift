@@ -4,14 +4,16 @@
 import SwiftUI
 
 /// A scrolling page fades where more of it lies beyond an edge, so a card is
-/// never sliced by a hard line. At rest at the start there is nothing to fade,
-/// and the last row at the end stays clear. Earlier systems keep the hard edge.
+/// never sliced by a hard line. The soft edge follows the scroll as Apple's
+/// scroll edge effect does: it grows with how far content has passed under
+/// the edge, so at rest at the start there is nothing to fade, and the last
+/// row at the end stays clear. Earlier systems keep the hard edge.
 struct NotchScrollEdgeFade: ViewModifier {
     var axis: Axis = .vertical
-    var length: CGFloat = 16
-    @State private var beyondStart = false
-    @State private var beyondEnd = false
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    var length: CGFloat = NotchDesign.Spacing.large
+    /// 0 to 1 in sixteenths: how far content has passed each edge, as a share of the fade.
+    @State private var startAmount = 0.0
+    @State private var endAmount = 0.0
 
     func body(content: Content) -> some View {
         if #available(macOS 15, *) {
@@ -20,10 +22,14 @@ struct NotchScrollEdgeFade: ViewModifier {
                     let offset = axis == .vertical ? geometry.contentOffset.y : geometry.contentOffset.x
                     let visible = axis == .vertical ? geometry.containerSize.height : geometry.containerSize.width
                     let total = axis == .vertical ? geometry.contentSize.height : geometry.contentSize.width
-                    return Edges(start: offset > 1, end: offset + visible < total - 1)
+                    func amount(_ distance: CGFloat) -> Double {
+                        let share = Double(min(1, max(0, distance / max(1, length))))
+                        return (share * 16).rounded() / 16
+                    }
+                    return Edges(start: amount(offset), end: amount(total - visible - offset))
                 } action: { _, edges in
-                    beyondStart = edges.start
-                    beyondEnd = edges.end
+                    startAmount = edges.start
+                    endAmount = edges.end
                 }
                 .mask { fadeMask }
         } else {
@@ -31,20 +37,18 @@ struct NotchScrollEdgeFade: ViewModifier {
         }
     }
 
-    private struct Edges: Equatable { var start: Bool; var end: Bool }
+    private struct Edges: Equatable { var start: Double; var end: Double }
 
     private var fadeMask: some View {
         let vertical = axis == .vertical
         return Rectangle().fill(.black)
             .overlay(alignment: vertical ? .top : .leading) {
-                fade(toStart: true).opacity(beyondStart ? 1 : 0)
+                fade(toStart: true).opacity(startAmount)
             }
             .overlay(alignment: vertical ? .bottom : .trailing) {
-                fade(toStart: false).opacity(beyondEnd ? 1 : 0)
+                fade(toStart: false).opacity(endAmount)
             }
             .compositingGroup()
-            .animation(reduceMotion ? nil : .easeOut(duration: 0.18), value: beyondStart)
-            .animation(reduceMotion ? nil : .easeOut(duration: 0.18), value: beyondEnd)
     }
 
     /// Erases the mask toward the edge it sits on.
@@ -59,7 +63,7 @@ struct NotchScrollEdgeFade: ViewModifier {
 }
 
 extension View {
-    func notchScrollEdgeFade(_ axis: Axis = .vertical, length: CGFloat = 16) -> some View {
+    func notchScrollEdgeFade(_ axis: Axis = .vertical, length: CGFloat = NotchDesign.Spacing.large) -> some View {
         modifier(NotchScrollEdgeFade(axis: axis, length: length))
     }
 }
