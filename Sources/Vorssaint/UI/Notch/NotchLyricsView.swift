@@ -189,7 +189,7 @@ struct NotchLyricsView: View {
         let current = distance == 0
         let opacity: Double = distance == 0 ? NotchDesign.Opacity.primary
             : distance < 0 ? NotchDesign.Opacity.tertiary : NotchDesign.Opacity.secondary
-        return VStack(alignment: .leading, spacing: NotchDesign.Spacing.xxSmall) {
+        let label = VStack(alignment: .leading, spacing: NotchDesign.Spacing.xxSmall) {
             Text(line.text.isEmpty ? "\u{266A}" : line.text)
                 .font(NotchDesign.Typography.hero.font)
                 .lineSpacing(NotchDesign.Spacing.line)
@@ -207,15 +207,16 @@ struct NotchLyricsView: View {
         .scaleEffect(current ? 1 : Self.bodyScale, anchor: .leading)
         .animation(NotchDesign.Motion.animation(NotchDesign.Motion.smooth, reduceMotion: reduceMotion), value: current)
         .animation(NotchDesign.Motion.fade, value: opacity)
-        .id(index)
         .contentShape(Rectangle())
-        .onTapGesture {
-            // Tap a verse to jump the player there, when it can seek.
+        // A Button, so the press answers on mouse down with a wash; tapping a verse jumps the player there when it can seek.
+        return Button {
             guard music.canSeek else { return }
             music.seek(to: line.time + service.offset, in: playback.track, context: playback.commandContext)
             // The tapped line becomes the sung one, so follow it right away.
             stopBrowsing(follow: false)
-        }
+        } label: { label }
+        .buttonStyle(NotchPressStyle(shape: .rounded(NotchDesign.Radius.control), lifts: false))
+        .id(index)
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(current ? [.isButton, .isSelected] : .isButton)
     }

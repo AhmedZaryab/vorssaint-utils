@@ -12,7 +12,6 @@ import SwiftUI
 struct NotchSongPeekBand: View {
     @ObservedObject var model: SongPeekModel
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @ObservedObject private var music = NotchMusicService.shared
     private let upNext = SpotifyQueueStrings.current.upNext
 
     /// What the closed notch grows by while the peek shows.
@@ -25,7 +24,7 @@ struct NotchSongPeekBand: View {
         NotchTallPeekRow(primary: title, secondary: secondary) {
             cover
         } live: {
-            NotchSongPeekRing(endsAt: model.endsAt, tint: music.artworkTint?.color ?? .white,
+            NotchSongPeekRing(endsAt: model.endsAt, tint: NotchMusicService.shared.artworkTint?.color ?? .white,
                               reduceMotion: reduceMotion)
                 .accessibilityHidden(true)
         }
@@ -73,7 +72,7 @@ private struct NotchSongPeekRing: View {
     let tint: Color
     let reduceMotion: Bool
 
-    private static let stroke: CGFloat = 2
+    private static let stroke = NotchDesign.SongPeek.ringWidth
 
     var body: some View {
         Group {
@@ -89,7 +88,7 @@ private struct NotchSongPeekRing: View {
     private func ring(_ value: CGFloat) -> some View {
         ZStack {
             Circle().inset(by: Self.stroke / 2)
-                .stroke(.white.opacity(0.16), lineWidth: Self.stroke)
+                .stroke(NotchDesign.Fill.track, lineWidth: Self.stroke)
             Circle().inset(by: Self.stroke / 2)
                 .trim(from: 0, to: value)
                 .stroke(tint, style: StrokeStyle(lineWidth: Self.stroke, lineCap: .round))
@@ -105,5 +104,12 @@ private struct NotchSongPeekRing: View {
         let remaining = endsAt.timeIntervalSince(date)
         guard remaining.isFinite, remaining > 0 else { return 1 }
         return CGFloat(max(0, min(1, (SongPeekPolicy.lead - remaining) / SongPeekPolicy.lead)))
+    }
+}
+
+extension NotchDesign {
+    /// Page value for the next-song peek's ring; no shared token is 2 pt wide.
+    enum SongPeek {
+        static let ringWidth: CGFloat = 2
     }
 }

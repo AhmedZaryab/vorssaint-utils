@@ -612,8 +612,8 @@ enum NotchMusicStripPart: Equatable {
 /// the island's curved end with the title and the artist, and the cover keeps
 /// its place beside the camera, as do the bars on the other side.
 enum NotchMusicStripLayout {
-    static let titleFont = NSFont.systemFont(ofSize: 11, weight: .semibold)
-    static let artistFont = NSFont.systemFont(ofSize: 9, weight: .medium)
+    static let titleFont = NotchDesign.Typography.stripPrimary.nsFont
+    static let artistFont = NotchDesign.Typography.stripSecondary.nsFont
     /// From the island's curved end to the words, as a banner keeps it.
     static let endInset = NotchNotificationBannerLayout.inset
     /// Between the words and the cover.

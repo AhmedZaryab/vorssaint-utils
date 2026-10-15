@@ -17,6 +17,8 @@ struct NotchSpotifyQueueSection: View {
     @State private var dragTo = 0
     @State private var dragOffset: CGFloat = 0
     @State private var hoveredID: String?
+    /// The row under a mouse down that has not travelled yet; it draws the press until the pointer lifts or swipes.
+    @State private var pressedID: String?
     @State private var orderFailed = false
     @FocusState private var focusedID: String?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -63,7 +65,7 @@ struct NotchSpotifyQueueSection: View {
                     }
                     .notchScrollEdgeFade()
                 }
-                Text(text.reorderLimit).font(NotchDesign.Typography.caption.font).foregroundStyle(NotchDesign.Ink.tertiary).lineLimit(2)
+                Text(text.reorderLimit).font(NotchDesign.Typography.caption.font).foregroundStyle(NotchDesign.Ink.secondary).lineLimit(2)
             }
         }
         .padding(.top, NotchDesign.Spacing.xSmall)
@@ -99,21 +101,37 @@ struct NotchSpotifyQueueSection: View {
         // Pointer or keyboard focus reveals the row's controls, so focus is never on something unseen.
         let revealed = hovered || focusedID == track.id
         let inset = NotchDesign.Control.iconButton * 2 + NotchDesign.Control.minimumHit * 0.7 + NotchDesign.Spacing.xSmall
+            + 2 * (NotchDesign.Spacing.xSmall - NotchDesign.Spacing.xxSmall)
         let name = track.artist.isEmpty ? track.title : "\(track.title), \(track.artist)"
         return ZStack(alignment: .trailing) {
             // Not a Button: the row also swipes to skip, and a Button under a drag sends Spotify
             // two commands. A tap plays; the glyph on the trailing edge is the labelled way to say so.
-            NotchQueueRowLabel(image: track.artworkURL.flatMap { service.artwork[$0] }, title: track.title, artist: track.artist)
-                .padding(.trailing, revealed || dragging ? inset : NotchDesign.Control.iconButton + NotchDesign.Spacing.xSmall)
-                .background(hovered && !dragging ? NotchDesign.Fill.hover : .clear,
-                            in: RoundedRectangle(cornerRadius: NotchDesign.Radius.control, style: .continuous))
-                .onTapGesture { if !service.actionPending { service.playNow(track) } }
+            NotchPressFace(pressed: pressedID == track.id && !dragging,
+                           shape: .rounded(NotchDesign.Radius.control), lifts: false) {
+                NotchQueueRowLabel(image: track.artworkURL.flatMap { service.artwork[$0] }, title: track.title, artist: track.artist)
+                    .padding(.trailing, revealed || dragging ? inset : NotchDesign.Control.iconButton + NotchDesign.Spacing.xSmall)
+            }
+                // Simultaneous, so the row's swipe to skip still sees the same pointer. The press
+                // is drawn on mouse down and given up once the pointer travels past a tap.
+                .simultaneousGesture(DragGesture(minimumDistance: 0)
+                    .onChanged { value in
+                        let travelled = max(abs(value.translation.width), abs(value.translation.height))
+                        let pressed = travelled < NotchDesign.Interaction.dragThreshold
+                        if pressed, pressedID != track.id { pressedID = track.id } else if !pressed, pressedID == track.id { pressedID = nil }
+                    }
+                    .onEnded { value in
+                        let tapped = pressedID == track.id
+                        pressedID = nil
+                        if tapped, !service.actionPending { service.playNow(track) }
+                    })
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel(name)
                 .accessibilityAddTraits(.isButton)
                 .accessibilityAction { if !service.actionPending { service.playNow(track) } }
-            HStack(spacing: NotchDesign.Spacing.xxSmall) {
-                NotchIconButton(symbol: "xmark", title: "\(text.removeFromQueue): \(track.title)") { remove(track) }
+            HStack(spacing: NotchDesign.Spacing.xSmall) {
+                NotchFuseButton("\(text.removeFromQueue): \(track.title)", symbol: "xmark", doneAnnouncement: text.removeFromQueue,
+                                shape: .rounded(NotchDesign.Radius.control)) {}
+                    .capturing { let captured = track; return { remove(captured) } }
                     .focused($focusedID, equals: track.id)
                     .opacity(revealed ? 1 : 0)
                     .allowsHitTesting(revealed)
@@ -227,7 +245,7 @@ struct NotchSpotifyQueueSection: View {
 
     private var header: some View {
         HStack(spacing: NotchDesign.Spacing.xSmall) {
-            Text(title).font(NotchDesign.Typography.title.font)
+            Text(title).font(NotchDesign.Typography.title.font).padding(.leading, NotchDesign.Spacing.small)
             Spacer()
             if service.loading || service.actionPending || service.searching { ProgressView().controlSize(.mini) }
             if connected {
@@ -239,6 +257,7 @@ struct NotchSpotifyQueueSection: View {
                 }
             }
         }
+        .padding(.trailing, NotchDesign.Spacing.xSmall)
     }
 
     private var connectPrompt: some View {

@@ -212,23 +212,33 @@ struct NotchMusicStripButton: View {
 struct NotchMusicSwipeFeedback: ViewModifier {
     var enabled = true
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var trigger = 0
-    @State private var direction: CGFloat = -1
+    /// The drawn offset, a state a spring follows: a second swipe retargets it from where it is
+    /// drawn, so it never snaps back to zero first.
+    @State private var travel: CGFloat = 0
+    @State private var settle: Task<Void, Never>?
 
     func body(content: Content) -> some View {
-        let displacement = reduceMotion ? 0 : direction
-        return content
-            .keyframeAnimator(initialValue: CGFloat.zero, trigger: trigger) { view, travel in
-                view.offset(x: displacement * travel)
-            } keyframes: { _ in
-                CubicKeyframe(8, duration: 0.09)
-                SpringKeyframe(0, duration: 0.25, spring: .smooth)
-            }
+        content
+            .offset(x: travel)
             .onReceive(NotchMusicService.shared.gestureSkips) { forward in
                 guard enabled, !reduceMotion else { return }
-                direction = forward ? -1 : 1
-                trigger &+= 1
+                settle?.cancel()
+                withAnimation(NotchDesign.Motion.snappy.animation) { travel = (forward ? -1 : 1) * NotchDesign.SwipeNudge.travel }
+                settle = Task { @MainActor in
+                    try? await Task.sleep(nanoseconds: NotchDesign.SwipeNudge.holdNanoseconds)
+                    guard !Task.isCancelled else { return }
+                    withAnimation(NotchDesign.Motion.smooth.animation) { travel = 0 }
+                }
             }
+            .onDisappear { settle?.cancel() }
+    }
+}
+
+extension NotchDesign {
+    /// Page values for the swipe-to-skip nudge; no shared token is a travel or a hold.
+    enum SwipeNudge {
+        /** How far the player leans the way the swipe went, in points. */ static let travel: CGFloat = 8
+        /** How long the lean holds before the spring returns it. */ static let holdNanoseconds: UInt64 = 90_000_000
     }
 }
 
