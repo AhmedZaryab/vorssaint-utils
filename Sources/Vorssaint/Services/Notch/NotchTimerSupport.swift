@@ -24,7 +24,8 @@ enum NotchTimerRulerScale {
     }
 
     static func label(for minute: Int) -> String {
-        minute >= 60 ? NotchTimerSupport.hoursText(hours: minute / 60, minutes: minute % 60) : String(minute)
+        // Tick labels stay a tight "1h05": the ruler marks are a few points wide.
+        minute >= 60 ? String(format: "%dh%02d", minute / 60, minute % 60) : String(minute)
     }
 }
 

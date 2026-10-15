@@ -601,8 +601,8 @@ enum NotchActivityTests {
     }
 
     private static func rulerContracts(_ suite: TestSuite) {
-        for (minute, expected) in [(1, "1"), (55, "55"), (60, "1h"), (65, "1h 5m"),
-                                   (140, "2h 20m"), (143, "2h 23m"), (180, "3h")] {
+        for (minute, expected) in [(1, "1"), (55, "55"), (60, "1h00"), (65, "1h05"),
+                                   (140, "2h20"), (143, "2h23"), (180, "3h00")] {
             suite.expect(NotchTimerRulerScale.label(for: minute) == expected,
                    "ruler labels write hours with an h, so an hour mark never reads like the minute clock")
         }
