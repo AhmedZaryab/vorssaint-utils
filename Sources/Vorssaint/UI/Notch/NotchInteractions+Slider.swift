@@ -22,31 +22,40 @@ struct NotchSlider: View {
     /// One arrow press, as a share of the range.
     var step: Double
     var tint: Color
+    /// Colours blended left to right across the filled part; nil keeps the flat tint.
+    var fillStops: [Color]?
+    /// The scrubbers draw no knob at rest; it appears on hover and while dragging.
+    var knobOnlyWhenActive: Bool
     /// Shown while dragging and read by VoiceOver; a percentage by default.
     var valueText: String?
     var onEditingChanged: ((Bool) -> Void)?
 
     @State private var dragging = false
+    @State private var hovering = false
     /// Where on the knob it was grabbed, so it never jumps under the pointer.
     @State private var grab: CGFloat = 0
     @State private var overshoot: CGFloat = 0
     @State private var detentTracker = NotchDetentTracker(detents: [])
     @State private var ticks = 0
     @State private var editing = NotchSliderEditing()
+    /// Goes false when the system cancels the gesture, which `onEnded` never sees.
+    @GestureState private var gestureActive = false
     @FocusState private var focused: Bool
     @Environment(\.isEnabled) private var enabled
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.notchInteractionPreview) private var preview
 
     init(value: Binding<Double>, label: String, range: ClosedRange<Double> = 0...1, detents: [Double] = [],
-         step: Double = NotchInteractionMetrics.sliderStep, tint: Color = .white, valueText: String? = nil,
-         onEditingChanged: ((Bool) -> Void)? = nil) {
+         step: Double = NotchInteractionMetrics.sliderStep, tint: Color = .white, fillStops: [Color]? = nil, knobOnlyWhenActive: Bool = false,
+         valueText: String? = nil, onEditingChanged: ((Bool) -> Void)? = nil) {
         _value = value
         self.label = label
         self.range = range.lowerBound < range.upperBound ? range : range.lowerBound...(range.lowerBound + 1)
         self.detents = detents
         self.step = step
         self.tint = tint
+        self.fillStops = fillStops
+        self.knobOnlyWhenActive = knobOnlyWhenActive
         self.valueText = valueText
         self.onEditingChanged = onEditingChanged
     }
@@ -65,8 +74,9 @@ struct NotchSlider: View {
             let travel = max(0, width - knob)
             let center = knob / 2 + travel * fraction + overshoot
             let showsValue = dragging || preview == .pressed
+            let showsKnob = !knobOnlyWhenActive || dragging || hovering || focused || preview == .pressed
             ZStack(alignment: .leading) {
-                NotchSliderTrack(fraction: fraction, tint: tint, enabled: enabled, knob: knob)
+                NotchSliderTrack(fraction: fraction, tint: tint, fillStops: fillStops, enabled: enabled, knob: knob)
                     .frame(height: Metrics.sliderTrack)
                     // Stretches from the far end, so the end being pulled is the one that gives.
                     .scaleEffect(x: 1 + abs(overshoot) / max(1, width), y: 1,
@@ -82,6 +92,8 @@ struct NotchSlider: View {
                         SpringKeyframe(1, duration: 0.2, spring: Spring(duration: 0.2, bounce: 0))
                     }
                     .offset(x: center - knob / 2)
+                    .opacity(showsKnob ? 1 : 0)
+                    .animation(reduceMotion ? nil : Metrics.valueFade, value: showsKnob)
                 Text(spokenValue)
                     .font(.system(size: 10, weight: .semibold))
                     .monospacedDigit()
@@ -95,6 +107,8 @@ struct NotchSlider: View {
             }
             .frame(width: width, height: proxy.size.height)
             .contentShape(Rectangle())
+            .onHover { hovering = $0 }
+            .onDisappear { endTracking() }
             .gesture(drag(knob: knob, width: width, center: center - overshoot), including: enabled ? .all : .none)
         }
         .frame(height: Metrics.minimumTarget)
@@ -109,6 +123,7 @@ struct NotchSlider: View {
             @unknown default: break
             }
         }
+        .onChange(of: gestureActive) { _, active in if !active { endTracking() } }
         .accessibilityElement()
         .accessibilityLabel(label)
         .accessibilityValue(spokenValue)
@@ -123,6 +138,7 @@ struct NotchSlider: View {
 
     private func drag(knob: CGFloat, width: CGFloat, center: CGFloat) -> some Gesture {
         DragGesture(minimumDistance: 0)
+            .updating($gestureActive) { _, active, _ in active = true }
             .onChanged { gesture in
                 if !dragging {
                     dragging = true
@@ -150,11 +166,18 @@ struct NotchSlider: View {
                     past, dimension: Metrics.sliderStretch, constant: Metrics.rubberbandConstant))
                 if stretched != overshoot { overshoot = stretched }
             }
-            .onEnded { _ in
-                dragging = false
-                editing.trackingChanged(false, onEditingChanged: onEditingChanged)
-                if overshoot != 0 { withAnimation(Metrics.sliderSettle) { overshoot = 0 } }
-            }
+            .onEnded { _ in endTracking() }
+    }
+
+    /// Ends a drag the same way whether it finished or was cancelled.
+    private func endTracking() {
+        guard dragging || overshoot != 0 else { return }
+        let wasDragging = dragging
+        dragging = false
+        if wasDragging { editing.trackingChanged(false, onEditingChanged: onEditingChanged) }
+        if overshoot != 0 {
+            if reduceMotion { overshoot = 0 } else { withAnimation(Metrics.sliderSettle) { overshoot = 0 } }
+        }
     }
 
     /// An arrow or VoiceOver step: a complete edit, with no motion.
@@ -170,8 +193,19 @@ struct NotchSlider: View {
 private struct NotchSliderTrack: View {
     let fraction: Double
     let tint: Color
+    var fillStops: [Color]?
     let enabled: Bool
     let knob: CGFloat
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @Environment(\.colorSchemeContrast) private var contrast
+
+    /// Gradient only when it can hold up: Reduce Transparency and Increase
+    /// Contrast fall back to the first stop, flat.
+    private var fillStyle: AnyShapeStyle {
+        guard let stops = fillStops, let first = stops.first else { return AnyShapeStyle(tint) }
+        if reduceTransparency || contrast == .increased || stops.count < 2 { return AnyShapeStyle(first) }
+        return AnyShapeStyle(LinearGradient(colors: stops, startPoint: .leading, endPoint: .trailing))
+    }
 
     var body: some View {
         GeometryReader { proxy in
@@ -179,7 +213,7 @@ private struct NotchSliderTrack: View {
             ZStack(alignment: .leading) {
                 Capsule(style: .continuous).fill(.white.opacity(Metrics.trackFill))
                 Capsule(style: .continuous)
-                    .fill(tint.opacity(enabled ? 0.92 : 0.3))
+                    .fill(fillStyle.opacity(enabled ? 0.92 : 0.3))
                     .frame(width: max(proxy.size.height, fill))
             }
         }
