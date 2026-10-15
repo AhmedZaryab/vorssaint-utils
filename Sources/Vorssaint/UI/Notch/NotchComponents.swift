@@ -4,34 +4,19 @@
 import AppKit
 import SwiftUI
 
-/// Feedback is local to a visible control. No recurring work is needed.
-/// The pointer lifts a control slightly and a press settles it back, which is
-/// what makes the panel feel physical rather than painted on.
+/// The old button feel, kept so every call site compiles unchanged. It now
+/// delegates to `NotchPressStyle`: a wash under the pointer, a settle on mouse
+/// down and a clean return, with no hover lift.
 @available(*, deprecated, message: "use NotchPressStyle")
 struct NotchButtonStyle: ButtonStyle {
-    var cornerRadius: CGFloat = 10
+    var cornerRadius: CGFloat = NotchDesign.Radius.control
     var lifts = true
     /// A light wash under the pointer.
     var highlights = true
-    @State private var hovered = false
-    @Environment(\.isEnabled) private var enabled
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     func makeBody(configuration: Configuration) -> some View {
-        let active = enabled && hovered
-        configuration.label
-            .overlay {
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .fill(.white.opacity(active && highlights ? 0.09 : 0))
-                    .allowsHitTesting(false)
-            }
-            .opacity(enabled ? (configuration.isPressed ? 0.8 : 1) : 0.4)
-            .scaleEffect(reduceMotion || !lifts ? 1
-                         : configuration.isPressed ? 0.965 : (active ? 1.022 : 1))
-            .animation(reduceMotion ? nil : .spring(response: 0.28, dampingFraction: 0.7),
-                       value: configuration.isPressed)
-            .animation(reduceMotion ? nil : .spring(response: 0.32, dampingFraction: 0.75), value: hovered)
-            .onHover { hovered = $0 }
+        NotchPressStyle(shape: .rounded(cornerRadius), lifts: lifts, washes: highlights)
+            .makeBody(configuration: configuration)
     }
 }
 
@@ -59,20 +44,22 @@ struct NotchLiveEqualizerBars: View {
 /// thin system bar, so every meter in the panel matches.
 struct NotchMeter: View {
     let value: Double
-    var height: CGFloat = 5
-    var tint: Color = .white
+    var height: CGFloat = NotchDesign.Control.meter
+    var tint: Color = NotchDesign.Ink.primary
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         let fraction = value.isFinite ? min(1, max(0, value)) : 0
         GeometryReader { proxy in
             ZStack(alignment: .leading) {
-                Capsule(style: .continuous).fill(.white.opacity(0.14))
+                Capsule(style: .continuous).fill(NotchDesign.Fill.track)
                 Capsule(style: .continuous)
-                    .fill(tint.opacity(0.9))
+                    .fill(tint)
                     .frame(width: max(fraction > 0 ? height : 0, proxy.size.width * fraction))
             }
         }
         .frame(height: height)
+        .animation(NotchDesign.Motion.animation(NotchDesign.Motion.snappy, reduceMotion: reduceMotion), value: fraction)
         .accessibilityHidden(true)
     }
 }
@@ -89,7 +76,7 @@ struct NotchRollingDigits: ViewModifier {
     func body(content: Content) -> some View {
         content
             .contentTransition(.numericText(countsDown: countsDown))
-            .animation(reduceMotion ? nil : .smooth(duration: 0.3),
+            .animation(NotchDesign.Motion.animation(NotchDesign.Motion.snappy, reduceMotion: reduceMotion),
                        value: NotchTimerSupport.rollingValue(value, everySecond: everySecond))
     }
 }
@@ -148,20 +135,28 @@ struct NotchIconButton: View {
     var selected = false
     let action: () -> Void
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.colorSchemeContrast) private var contrast
 
     var body: some View {
+        let shape = RoundedRectangle(cornerRadius: NotchDesign.Radius.control, style: .continuous)
         Button(action: action) {
             Image(systemName: symbol)
-                .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(selected ? .white : .white.opacity(0.55))
-                .contentTransition(.symbolEffect(.replace))
-                .animation(reduceMotion ? nil : .smooth(duration: 0.24), value: symbol)
-                .frame(width: 28, height: 28)
-                .background(.white.opacity(selected ? 0.12 : 0),
-                            in: RoundedRectangle(cornerRadius: 9, style: .continuous))
-                .contentShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
+                .font(NotchDesign.Icon.button.font)
+                .foregroundStyle(selected ? NotchDesign.Ink.primary : NotchDesign.Ink.secondary)
+                .notchSymbolReplace(reduceMotion: reduceMotion)
+                .animation(NotchDesign.Motion.animation(NotchDesign.Motion.snappy, reduceMotion: reduceMotion), value: symbol)
+                .frame(width: NotchDesign.Control.iconButton, height: NotchDesign.Control.iconButton)
+                .background(NotchDesign.Fill.control.opacity(selected ? 1 : 0), in: shape)
+                .overlay {
+                    if selected && contrast == .increased {
+                        shape.strokeBorder(NotchDesign.Stroke.increasedContrast,
+                                           lineWidth: NotchDesign.Stroke.increasedContrastWidth)
+                    }
+                }
+                .animation(reduceMotion ? NotchDesign.Motion.fade : NotchDesign.Motion.snappy.animation, value: selected)
+                .contentShape(shape)
         }
-        .buttonStyle(NotchButtonStyle(cornerRadius: 9))
+        .buttonStyle(NotchPressStyle(shape: .rounded(NotchDesign.Radius.control)))
         .help(title)
         .accessibilityLabel(title)
         .accessibilityAddTraits(selected ? .isSelected : [])
@@ -177,36 +172,38 @@ struct NotchEmptyView<Actions: View>: View {
 
     var body: some View {
         ViewThatFits(in: .vertical) {
-            VStack(spacing: 12) {
+            VStack(spacing: NotchDesign.Spacing.medium) {
                 glyph
                 label.multilineTextAlignment(.center).frame(maxWidth: 250)
                 actions()
             }
-            HStack(spacing: 14) {
+            HStack(spacing: NotchDesign.Spacing.large) {
                 glyph
-                VStack(alignment: .leading, spacing: 10) {
+                VStack(alignment: .leading, spacing: NotchDesign.Spacing.small) {
                     label.frame(maxWidth: 260, alignment: .leading)
                     actions()
                 }
             }
         }
-        .padding(12)
+        .padding(NotchDesign.Spacing.medium)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private var glyph: some View {
-        Image(systemName: symbol)
-            .font(.system(size: 26, weight: .light))
-            .foregroundStyle(.white.opacity(0.65))
-            .frame(width: 56, height: 56)
-            .background(.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        let side = NotchDesign.Control.heroGlyph
+        return Image(systemName: symbol)
+            .font(NotchDesign.Icon.hero.font)
+            .foregroundStyle(NotchDesign.Ink.secondary)
+            .frame(width: side, height: side)
+            .background(NotchDesign.Fill.card,
+                        in: RoundedRectangle(cornerRadius: NotchDesign.Radius.artwork(side: side), style: .continuous))
             .accessibilityHidden(true)
     }
 
     private var label: some View {
         Text(message)
-            .font(.system(size: 12))
-            .foregroundStyle(.secondary)
+            .font(NotchDesign.Typography.callout.font)
+            .foregroundStyle(NotchDesign.Ink.secondary)
             .fixedSize(horizontal: false, vertical: true)
     }
 }
@@ -218,7 +215,7 @@ extension NotchEmptyView where Actions == EmptyView {
 }
 
 /// An empty page's next step, as a word on a pill. The step the page leads
-/// to is filled, and any other stays plain beside it.
+/// to is filled with the accent, and any other stays plain beside it.
 struct NotchPillButton: View {
     let title: String
     var prominent = false
@@ -227,15 +224,16 @@ struct NotchPillButton: View {
     var body: some View {
         Button(action: action) {
             Text(title)
-                .font(.system(size: 12, weight: prominent ? .semibold : .medium))
-                .foregroundStyle(.white.opacity(prominent ? 1 : 0.7))
+                .font(prominent ? NotchDesign.Typography.callout.font.weight(NotchDesign.Weight.semibold.font)
+                                : NotchDesign.Typography.callout.font.weight(NotchDesign.Weight.medium.font))
+                .foregroundStyle(prominent ? NotchDesign.Ink.primary : NotchDesign.Ink.secondary)
                 .lineLimit(1)
-                .padding(.horizontal, 14)
-                .frame(height: 28)
-                .background(.white.opacity(prominent ? 0.14 : 0), in: Capsule())
-                .contentShape(Capsule())
+                .padding(.horizontal, NotchDesign.Spacing.large)
+                .frame(height: NotchDesign.Control.rowHeight)
+                .background(NotchDesign.Palette.accent.opacity(prominent ? 1 : 0), in: Capsule(style: .continuous))
+                .contentShape(Capsule(style: .continuous))
         }
-        .buttonStyle(NotchButtonStyle(cornerRadius: 14))
+        .buttonStyle(NotchPressStyle(shape: .capsule))
     }
 }
 
@@ -244,22 +242,22 @@ struct NotchArtwork: View {
     let size: CGFloat
 
     var body: some View {
+        let shape = RoundedRectangle(cornerRadius: NotchDesign.Radius.artwork(side: size), style: .continuous)
         Group {
             if let image {
                 Image(nsImage: image).resizable().scaledToFill()
             } else {
                 Color.black.overlay {
                     Image(systemName: "music.note")
-                        .font(.system(size: size * 0.3, weight: .light))
-                        .foregroundStyle(.white.opacity(0.45))
+                        .font(.system(size: size * 0.3, weight: NotchDesign.Weight.medium.font))
+                        .foregroundStyle(NotchDesign.Ink.secondary)
                 }
             }
         }
         .frame(width: size, height: size)
-        .clipShape(RoundedRectangle(cornerRadius: size * 0.19, style: .continuous))
+        .clipShape(shape)
         .overlay {
-            RoundedRectangle(cornerRadius: size * 0.19, style: .continuous)
-                .strokeBorder(.white.opacity(0.12), lineWidth: 0.5)
+            shape.strokeBorder(NotchDesign.Stroke.artworkEdge, lineWidth: NotchDesign.Stroke.hairline)
         }
         .accessibilityHidden(true)
     }
@@ -274,8 +272,8 @@ struct NotchRail<Item: Identifiable, Content: View>: View {
     let rows: Int
     let itemWidth: CGFloat
     let width: CGFloat
-    var spacing: CGFloat = 8
-    var rowSpacing: CGFloat = 8
+    var spacing: CGFloat = NotchDesign.Spacing.gutter
+    var rowSpacing: CGFloat = NotchDesign.Spacing.gutter
     var scrollTarget: Item.ID? = nil
     @ViewBuilder let content: (Item) -> Content
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -317,7 +315,7 @@ struct NotchRail<Item: Identifiable, Content: View>: View {
                 }
                 .onChange(of: targetColumn) { _, target in
                     guard let target else { return }
-                    withAnimation(reduceMotion ? nil : .easeOut(duration: 0.16)) {
+                    withAnimation(reduceMotion ? nil : NotchDesign.Motion.easeOut(0.16)) {
                         proxy.scrollTo(target, anchor: .center)
                     }
                 }
@@ -480,7 +478,8 @@ struct NotchSurfaceBackground: View {
         (0...64).map { index in
             let t = Double(index) / 64
             return Gradient.Stop(
-                color: .black.opacity(1 - openness * (contrast == .increased ? 0.10 : 0.45) * pow(t, 2.5)),
+                color: .black.opacity(1 - openness * (1 - (contrast == .increased ? NotchDesign.Glass.increasedContrastDim
+                                                                     : NotchDesign.Glass.lipDim)) * pow(t, 2.5)),
                 location: t)
         }
     }
@@ -581,30 +580,35 @@ struct NotchControlSurface: ViewModifier {
 
     func body(content: Content) -> some View {
         let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+        let fill = selected ? NotchDesign.Fill.control : NotchDesign.Fill.card
         Group {
             if glassSurface {
                 content
-                    .background(.white.opacity(selected ? 0.11 : 0.045), in: shape)
+                    .background(fill, in: shape)
                     .overlay {
-                        shape.strokeBorder(.white.opacity(selected ? 0.16 : 0.065), lineWidth: 0.5)
+                        shape.strokeBorder(selected ? NotchDesign.Stroke.keyLine : NotchDesign.Stroke.glassEdge,
+                                           lineWidth: NotchDesign.Stroke.hairline)
                             .allowsHitTesting(false)
                     }
             } else {
 #if compiler(>=6.2)
                 if #available(macOS 26, *), glass, !reduceTransparency {
-                    content.background(.white.opacity(selected ? 0.12 : 0.065), in: shape)
+                    content.background(fill, in: shape)
                         .glassEffect(.regular.interactive(interactive), in: shape)
                 } else {
-                    content.background(.white.opacity(selected ? 0.12 : 0.065), in: shape)
+                    content.background(fill, in: shape)
                 }
 #else
-                content.background(.white.opacity(selected ? 0.12 : 0.065), in: shape)
+                content.background(fill, in: shape)
 #endif
             }
         }
         .overlay {
-            shape.strokeBorder(.white.opacity(contrast == .increased ? 0.5 : 0), lineWidth: 0.75)
-                .allowsHitTesting(false)
+            if contrast == .increased {
+                shape.strokeBorder(NotchDesign.Stroke.increasedContrast,
+                                   lineWidth: NotchDesign.Stroke.increasedContrastWidth)
+                    .allowsHitTesting(false)
+            }
         }
     }
 }
@@ -629,13 +633,13 @@ struct NotchMenuItem {
 struct NotchMenuButton<Label: View>: View {
     let title: String
     let items: [NotchMenuItem]
-    var cornerRadius: CGFloat = 6
+    var cornerRadius: CGFloat = NotchDesign.Radius.control
     @ViewBuilder let label: () -> Label
     @State private var anchor = NotchMenuAnchor()
 
     var body: some View {
         Button { anchor.popUp(items) } label: { label() }
-            .buttonStyle(NotchButtonStyle(cornerRadius: cornerRadius, lifts: false))
+            .buttonStyle(NotchPressStyle(shape: .rounded(cornerRadius), lifts: false))
             .background(NotchMenuAnchorView(anchor: anchor))
             .accessibilityLabel(title)
     }
@@ -654,14 +658,14 @@ struct NotchDeviceMenu: View {
     var body: some View {
         NotchMenuButton(title: title, items: items) {
             Text("\(current) \(Image(systemName: "chevron.down"))")
-                .font(.system(size: 10, weight: .medium))
+                .font(NotchDesign.Typography.caption.font)
                 .lineLimit(lines)
                 .multilineTextAlignment(alignment)
                 .truncationMode(lines > 1 ? .tail : .middle)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(NotchDesign.Ink.secondary)
                 .frame(maxWidth: width, alignment: frameAlignment)
-                .padding(.horizontal, 4)
-                .contentShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                .padding(.horizontal, NotchDesign.Spacing.xxSmall)
+                .contentShape(RoundedRectangle(cornerRadius: NotchDesign.Radius.control, style: .continuous))
         }
         .help(current)
         .accessibilityValue(current)
