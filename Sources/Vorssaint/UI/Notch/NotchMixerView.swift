@@ -25,10 +25,11 @@ struct NotchMixerView: View {
     @Environment(\.notchSettingsPreview) private var preview
     private static let masterWidth: CGFloat = 72
     private static let columnWidth: CGFloat = 96
+    private typealias Design = NotchDesign
     private var faderHeight: CGFloat { max(104, size.height - 40) }
     /// A microphone that reports no level has nothing to fade, as in the options.
     private var showsMicrophone: Bool { input.inputVolume != nil }
-    private var leadingWidth: CGFloat { showsMicrophone ? Self.masterWidth * 2 + 10 : Self.masterWidth }
+    private var leadingWidth: CGFloat { showsMicrophone ? Self.masterWidth * 2 + Design.Spacing.small : Self.masterWidth }
 
     private var arrangement: MixerAppArrangement { MixerAppArrangement(rawValue: arrangementValue) }
 
@@ -42,27 +43,27 @@ struct NotchMixerView: View {
     }
 
     var body: some View {
-        VStack(spacing: 8) {
-            HStack(spacing: 8) {
-                NotchOutputDeviceMenu(width: size.width - 40, showsFullName: true)
+        VStack(spacing: Design.Spacing.section) {
+            HStack(spacing: Design.Spacing.small) {
+                NotchOutputDeviceMenu(width: size.width - 40)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 NotchIconButton(symbol: showingOptions ? "xmark" : "slider.horizontal.3",
                                 title: showingOptions ? l10n.s.menuClose : l10n.s.keepAwakeOptions,
                                 selected: showingOptions, action: toggleOptions)
             }
-            .frame(height: 32)
+            .frame(height: Design.Control.rowHeight)
             if showingOptions {
                 NotchMixerOptions(editingVolumeID: $editingVolumeID)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                HStack(alignment: .top, spacing: 10) {
+                HStack(alignment: .top, spacing: Design.Spacing.small) {
                     NotchMasterFader(height: faderHeight, editingVolumeID: $editingVolumeID)
                         .frame(width: Self.masterWidth)
                     if showsMicrophone {
                         NotchMicrophoneFader(height: faderHeight, editingVolumeID: $editingVolumeID)
                             .frame(width: Self.masterWidth)
                     }
-                    Rectangle().fill(.white.opacity(0.12)).frame(width: 1)
+                    Rectangle().fill(Design.Stroke.keyLine).frame(width: Design.Stroke.hairline)
                         .accessibilityHidden(true)
                     desk.frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
@@ -80,13 +81,13 @@ struct NotchMixerView: View {
 
     private func toggleOptions() {
         editingVolumeID = nil
-        withAnimation(reduceMotion ? nil : .easeOut(duration: 0.18)) { showingOptions.toggle() }
+        withAnimation(Design.Motion.fade) { showingOptions.toggle() }
     }
 
     /// What Escape does: it only ever closes the options.
     private func closeOptions() {
         editingVolumeID = nil
-        withAnimation(reduceMotion ? nil : .easeOut(duration: 0.18)) { showingOptions = false }
+        withAnimation(Design.Motion.fade) { showingOptions = false }
     }
 
     @ViewBuilder private var desk: some View {
@@ -100,7 +101,7 @@ struct NotchMixerView: View {
             let apps = apps
             let ids = apps.compactMap(\.persistenceID)
             NotchRail(items: apps, rows: 1, itemWidth: Self.columnWidth,
-                      width: size.width - leadingWidth - 21) { app in
+                      width: size.width - leadingWidth - Design.Spacing.section - Design.Stroke.hairline) { app in
                 NotchAppFader(app: app, height: faderHeight, editingVolumeID: $editingVolumeID,
                               isPinned: arrangement.isPinned(app.persistenceID),
                               togglePin: { updateArrangement { $0.togglePin(app.persistenceID ?? "") } },
@@ -138,20 +139,27 @@ struct NotchMixerView: View {
     }
 
     private var permission: some View {
-        HStack(spacing: 14) {
-            Image(systemName: "waveform.badge.exclamationmark").font(.system(size: 24, weight: .light))
-                .foregroundStyle(.white.opacity(0.65))
-                .frame(width: 56, height: 56)
-                .background(.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        HStack(spacing: Design.Spacing.large) {
+            Image(systemName: "waveform.badge.exclamationmark").font(Design.Icon.hero.font)
+                .foregroundStyle(Design.Ink.secondary)
+                .frame(width: Design.Control.heroGlyph, height: Design.Control.heroGlyph)
+                .background(Design.Fill.card, in: RoundedRectangle(cornerRadius: Design.Radius.card, style: .continuous))
                 .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 8) {
-                Text(l10n.s.mixerPermissionBody).font(.system(size: 12)).foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: Design.Spacing.small) {
+                Text(l10n.s.mixerPermissionBody).font(Design.Typography.callout.font).foregroundStyle(Design.Ink.secondary)
                     .fixedSize(horizontal: false, vertical: true)
-                Button(l10n.s.permissionOpenSettings) { Permissions.shared.openAudioCaptureSettings() }
-                    .buttonStyle(.bordered).controlSize(.small)
+                Button { Permissions.shared.openAudioCaptureSettings() } label: {
+                    Text(l10n.s.permissionOpenSettings).font(Design.Typography.label.font)
+                        .foregroundStyle(Design.Ink.primary)
+                        .padding(.horizontal, Design.Spacing.medium)
+                        .frame(minHeight: Design.Control.rowHeight)
+                        .background(Design.Fill.control, in: Capsule(style: .continuous))
+                        .contentShape(Capsule(style: .continuous))
+                }
+                .buttonStyle(NotchPressStyle(shape: .capsule, washes: false))
             }
         }
-        .padding(.horizontal, 8)
+        .padding(.horizontal, Design.Spacing.small)
     }
 }
 
@@ -163,29 +171,45 @@ private struct NotchEditablePercent: View {
     let editorID: String
     @Binding var editingID: String?
     let label: String
-    var tint: Color = .secondary
+    var tint: Color = NotchDesign.Ink.secondary
     var boosting = false
-    var width: CGFloat = 40
-    var height: CGFloat = 18
+    var width: CGFloat = 44
+    var height: CGFloat = NotchDesign.Control.rowHeight
     let commit: (Double) -> Void
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         EditableVolumePercent(currentPercent: percent, maximumPercent: maximum, width: width, height: height,
                               editorID: editorID, editingID: $editingID, accessibilityLabel: label) {
-            HStack(spacing: 1) {
+            HStack(spacing: NotchDesign.Spacing.line) {
                 if boosting {
-                    Image(systemName: "bolt.fill").font(.system(size: 7, weight: .bold)).foregroundStyle(tint)
+                    Image(systemName: "bolt.fill").font(NotchDesign.Typography.caption.font).foregroundStyle(tint)
                 }
                 Text("\(percent)%")
-                    .font(.system(size: height > 18 ? 12 : 10, weight: .medium)).monospacedDigit()
+                    .font(NotchDesign.Typography.readout.font).monospacedDigit()
                     .foregroundStyle(tint)
                     .contentTransition(.numericText())
-                    .animation(reduceMotion ? nil : .smooth(duration: 0.2), value: percent)
+                    .animation(NotchDesign.Motion.animation(NotchDesign.Motion.snappy, reduceMotion: reduceMotion), value: percent)
             }
             .frame(maxWidth: .infinity, minHeight: height)
         } onCommit: { commit($0) }
         .frame(height: height)
+    }
+}
+
+/// One column's head: the mute toggle in a row, the column's name under it. The
+/// output, the microphone and every app share it so the faders line up.
+private struct NotchMixerColumnHead<Lead: View>: View {
+    let name: String
+    @ViewBuilder let lead: () -> Lead
+
+    var body: some View {
+        VStack(spacing: NotchDesign.Spacing.line) {
+            lead().frame(height: NotchDesign.Control.rowHeight)
+            Text(name).font(NotchDesign.Typography.title.font).foregroundStyle(NotchDesign.Ink.primary)
+                .lineLimit(1).truncationMode(.tail)
+                .frame(maxWidth: .infinity, minHeight: NotchMixerFaderLayout.nameHeight)
+        }
     }
 }
 
@@ -196,7 +220,6 @@ private struct NotchMasterFader: View {
     @Binding var editingVolumeID: String?
     @ObservedObject private var mixer = AppVolumeMixer.shared
     @ObservedObject private var l10n = L10n.shared
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     private var level: Double? { mixer.systemOutputVolume.map { mixer.systemOutputMuted == true ? 0 : $0 } }
     private var muted: Bool { mixer.systemOutputMuted == true }
 
@@ -208,32 +231,27 @@ private struct NotchMasterFader: View {
     }
 
     var body: some View {
-        VStack(spacing: 6) {
-            Button {
-                if let muted = mixer.systemOutputMuted { adjustOutput(muted: !muted) }
-            } label: {
-                Image(systemName: muted ? "speaker.slash.fill" : "speaker.wave.2.fill")
-                    .font(.system(size: 15, weight: .medium))
-                    .foregroundStyle(muted ? Color.red : Color.white)
-                    .contentTransition(.symbolEffect(.replace))
-                    .animation(reduceMotion ? nil : .smooth(duration: 0.24), value: muted)
-                    .frame(width: 32, height: 32)
-                    .contentShape(Circle())
+        VStack(spacing: NotchDesign.Spacing.xSmall) {
+            NotchMixerColumnHead(name: l10n.s.mixerSystemOutputTitle) {
+                Toggle(muted ? l10n.s.actionUnmute : l10n.s.actionMute,
+                       isOn: Binding(get: { muted }, set: { adjustOutput(muted: $0) }))
+                    .toggleStyle(NotchToggleStyle(on: "speaker.slash.fill", off: "speaker.wave.2.fill",
+                                                  shape: .rounded(NotchDesign.Radius.control),
+                                                  tint: NotchDesign.Palette.critical))
+                    .disabled(mixer.systemOutputMuted == nil)
             }
-            .buttonStyle(NotchButtonStyle(cornerRadius: 14))
-            .disabled(mixer.systemOutputMuted == nil)
-            .accessibilityLabel(muted ? l10n.s.actionUnmute : l10n.s.actionMute)
             if let level {
                 NotchLevelSlider(value: Binding(get: { level }, set: { adjustOutput(volume: $0) }),
-                                 label: l10n.s.mixerSystemOutputTitle, vertical: true, trackThickness: 28)
-                    .frame(width: 40, height: NotchMixerFaderLayout.trackHeight(in: height))
+                                 label: l10n.s.mixerSystemOutputTitle, vertical: true, trackThickness: NotchMixerFaderLayout.trackThickness)
+                    .frame(width: NotchMixerFaderLayout.sliderWidth, height: NotchMixerFaderLayout.trackHeight(in: height))
                 NotchEditablePercent(percent: Int((level * 100).rounded()), maximum: 100,
                                      editorID: "notch-system-output", editingID: $editingVolumeID,
-                                     label: l10n.s.mixerSystemOutputTitle, height: 28) {
+                                     label: l10n.s.mixerSystemOutputTitle) {
                     adjustOutput(volume: $0)
                 }
             } else {
-                Text(l10n.s.mixerOutputUnavailable).font(.system(size: 10)).foregroundStyle(.secondary)
+                Text(l10n.s.mixerOutputUnavailable).font(NotchDesign.Typography.caption.font)
+                    .foregroundStyle(NotchDesign.Ink.secondary)
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
@@ -250,30 +268,33 @@ private struct NotchMicrophoneFader: View {
     @ObservedObject private var input = AudioInputDeviceManager.shared
     @ObservedObject private var micMute = MicMuteService.shared
     @ObservedObject private var l10n = L10n.shared
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        VStack(spacing: 6) {
-            // The mute is its own feature; without it the column keeps the
-            // plain icon the options row shows.
-            if AppFeature.micMute.isAvailable {
-                Button(action: micMute.toggle) {
-                    icon(muted: micMute.isMuted).foregroundStyle(micMute.isMuted ? Color.red : Color.white)
+        VStack(spacing: NotchDesign.Spacing.xSmall) {
+            NotchMixerColumnHead(name: l10n.s.mixerInputTitle) {
+                // The mute is its own feature; without it the column keeps the
+                // plain icon the options row shows.
+                if AppFeature.micMute.isAvailable {
+                    Toggle(micMute.isMuted ? l10n.s.micUnmuteName : l10n.s.micMuteName,
+                           isOn: Binding(get: { micMute.isMuted }, set: { _ in micMute.toggle() }))
+                        .toggleStyle(NotchToggleStyle(on: "mic.slash.fill", off: "mic.fill",
+                                                      shape: .rounded(NotchDesign.Radius.control),
+                                                      tint: NotchDesign.Palette.critical))
+                } else {
+                    Image(systemName: (input.inputVolume ?? 0) <= 0.001 ? "mic.slash.fill" : "mic.fill")
+                        .font(NotchDesign.Icon.button.font)
+                        .foregroundStyle(NotchDesign.Ink.secondary)
+                        .accessibilityHidden(true)
                 }
-                .buttonStyle(NotchButtonStyle(cornerRadius: 14))
-                .accessibilityLabel(micMute.isMuted ? l10n.s.micUnmuteName : l10n.s.micMuteName)
-            } else {
-                icon(muted: (input.inputVolume ?? 0) <= 0.001).foregroundStyle(.secondary)
-                    .accessibilityHidden(true)
             }
             if let volume = input.inputVolume {
                 NotchLevelSlider(value: Binding(get: { volume }, set: { input.setInputVolume($0) }),
-                                 label: l10n.s.mixerInputTitle, vertical: true, trackThickness: 28)
-                    .frame(width: 40, height: NotchMixerFaderLayout.trackHeight(in: height))
+                                 label: l10n.s.mixerInputTitle, vertical: true, trackThickness: NotchMixerFaderLayout.trackThickness)
+                    .frame(width: NotchMixerFaderLayout.sliderWidth, height: NotchMixerFaderLayout.trackHeight(in: height))
                     .disabled(micMute.isMuted)
                 NotchEditablePercent(percent: Int((volume * 100).rounded()), maximum: 100,
                                      editorID: "notch-microphone-fader", editingID: $editingVolumeID,
-                                     label: l10n.s.mixerInputTitle, height: 28) {
+                                     label: l10n.s.mixerInputTitle) {
                     input.setInputVolume($0)
                 }
                 .disabled(micMute.isMuted)
@@ -282,28 +303,47 @@ private struct NotchMicrophoneFader: View {
         .frame(maxWidth: .infinity)
         .frame(height: height, alignment: .top)
     }
+}
 
-    private func icon(muted: Bool) -> some View {
-        Image(systemName: muted ? "mic.slash.fill" : "mic.fill")
-            .font(.system(size: 15, weight: .medium))
-            .contentTransition(.symbolEffect(.replace))
-            .animation(reduceMotion ? nil : .smooth(duration: 0.24), value: muted)
-            .frame(width: 32, height: 32)
-            .contentShape(Circle())
+/// Every column reserves the same head, name, gaps and footer, so the faders line up.
+private enum NotchMixerFaderLayout {
+    static let nameHeight: CGFloat = 18
+    static let sliderWidth: CGFloat = 40
+    static let trackThickness: CGFloat = 28
+    static func trackHeight(in height: CGFloat) -> CGFloat {
+        let head = NotchDesign.Control.rowHeight + NotchDesign.Spacing.line + nameHeight
+        let gaps = NotchDesign.Spacing.xSmall * 2
+        return min(160, max(32, height - head - NotchDesign.Control.rowHeight - gaps))
     }
 }
 
-/// Both the output and app columns reserve the same header, gaps and footer.
-private enum NotchMixerFaderLayout {
-    static func trackHeight(in height: CGFloat) -> CGFloat {
-        min(160, max(32, height - 32 - 28 - 6 * 2))
+/// A chooser whose current choice reads in full, on the shared menu button: one line
+/// cut in the middle, a chevron, a wash under the pointer.
+private struct NotchMixerDeviceMenu: View {
+    let title: String
+    let current: String
+    var width: CGFloat = 200
+    let items: [NotchMenuItem]
+
+    var body: some View {
+        NotchMenuButton(title: title, items: items, cornerRadius: NotchDesign.Radius.control) {
+            HStack(spacing: NotchDesign.Spacing.xxSmall) {
+                Text(current).lineLimit(1).truncationMode(.middle)
+                Image(systemName: "chevron.down").font(NotchDesign.Typography.caption.font)
+            }
+            .font(NotchDesign.Typography.callout.font)
+            .foregroundStyle(NotchDesign.Ink.secondary)
+            .padding(.horizontal, NotchDesign.Spacing.small)
+            .frame(maxWidth: width, minHeight: NotchDesign.Control.rowHeight, alignment: .leading)
+            .contentShape(RoundedRectangle(cornerRadius: NotchDesign.Radius.control, style: .continuous))
+        }
+        .help(current)
+        .accessibilityValue(current)
     }
 }
 
 private struct NotchOutputDeviceMenu: View {
     var width: CGFloat = 150
-    var lines = 1
-    var showsFullName = false
     @ObservedObject private var mixer = AppVolumeMixer.shared
     @ObservedObject private var l10n = L10n.shared
     private var deviceName: String {
@@ -320,24 +360,7 @@ private struct NotchOutputDeviceMenu: View {
     }
 
     var body: some View {
-        if showsFullName {
-            NotchMenuButton(title: l10n.s.mixerSystemOutputTitle, items: items) {
-                Text("\(current) \(Image(systemName: "chevron.down"))")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.85))
-                    .lineLimit(2)
-                    .multilineTextAlignment(.leading)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: width, minHeight: 32, alignment: .leading)
-                    .contentShape(Rectangle())
-            }
-            .help(current)
-            .accessibilityValue(current)
-        } else {
-            NotchDeviceMenu(title: l10n.s.mixerSystemOutputTitle, current: current,
-                            width: width, lines: lines, alignment: lines > 1 ? .center : .trailing,
-                            items: items)
-        }
+        NotchMixerDeviceMenu(title: l10n.s.mixerSystemOutputTitle, current: current, width: width, items: items)
     }
 }
 
@@ -350,6 +373,7 @@ private struct NotchMixerOptions: View {
     @ObservedObject private var input = AudioInputDeviceManager.shared
     @ObservedObject private var micMute = MicMuteService.shared
     @ObservedObject private var l10n = L10n.shared
+    private typealias Design = NotchDesign
     private var outputDevices: [MixerOutputDevice] { mixer.outputDevices.filter(\.canBeDefaultOutput) }
     private var soundEffectsDevices: [MixerOutputDevice] { mixer.outputDevices.filter(\.canBeDefaultSystemOutput) }
     private var soundEffectsName: String {
@@ -368,8 +392,8 @@ private struct NotchMixerOptions: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 8) {
-                VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: Design.Spacing.small) {
+                VStack(alignment: .leading, spacing: Design.Spacing.xSmall) {
                     row(l10n.s.mixerSystemOutputTitle, symbol: "speaker.wave.2") { NotchOutputDeviceMenu(width: 200) }
                     if outputDevices.isEmpty {
                         message(l10n.s.mixerSystemOutputNoDevices, systemImage: "speaker.slash")
@@ -379,8 +403,7 @@ private struct NotchMixerOptions: View {
                                 systemImage: "exclamationmark.triangle")
                     }
                     row(l10n.s.mixerSoundEffectsOutputTitle, symbol: "bell") {
-                        NotchDeviceMenu(title: l10n.s.mixerSoundEffectsOutputTitle, current: soundEffectsName,
-                                        width: 200, lines: 1, alignment: .trailing,
+                        NotchMixerDeviceMenu(title: l10n.s.mixerSoundEffectsOutputTitle, current: soundEffectsName,
                                         items: soundEffectsDevices.map { device in
                                             NotchMenuItem(title: device.name,
                                                           checked: device.uid == mixer.currentSystemSoundOutputDeviceUID) {
@@ -393,11 +416,11 @@ private struct NotchMixerOptions: View {
                     }
                     microphone
                 }
-                Divider().overlay(.white.opacity(0.12))
+                Rectangle().fill(Design.Stroke.keyLine).frame(height: Design.Stroke.hairline).accessibilityHidden(true)
                 MixerOptionsControls()
             }
-            .padding(.trailing, 4)
-            .padding(.bottom, 4)
+            .padding(.trailing, Design.Spacing.xxSmall)
+            .padding(.bottom, Design.Spacing.xxSmall)
         }
         .scrollIndicators(.automatic)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -405,7 +428,7 @@ private struct NotchMixerOptions: View {
 
     @ViewBuilder private var microphone: some View {
         row(l10n.s.mixerInputTitle, symbol: micMute.isMuted ? "mic.slash" : "mic") {
-            NotchDeviceMenu(title: l10n.s.mixerInputTooltip, current: microphoneName, width: 200, lines: 1, alignment: .trailing,
+            NotchMixerDeviceMenu(title: l10n.s.mixerInputTooltip, current: microphoneName,
                             items: [NotchMenuItem(title: l10n.s.mixerOutputDefault, checked: selectedMicrophoneUID == nil) {
                                 guard !false else { return }
                                 input.setPreferredInputDeviceUID(nil)
@@ -422,29 +445,25 @@ private struct NotchMixerOptions: View {
                                  ? [NotchMenuItem(title: l10n.s.mixerInputUnavailable, checked: true)] : []))
         }
         if let volume = input.inputVolume {
-            HStack(spacing: 8) {
+            HStack(spacing: Design.Spacing.small) {
                 // The mute is its own feature; without it the row keeps the
                 // plain icon the panel's row shows.
                 if AppFeature.micMute.isAvailable {
-                    Button(action: micMute.toggle) {
-                        Image(systemName: micMute.isMuted ? "mic.slash.fill" : "mic.fill")
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundStyle(micMute.isMuted ? Color.red : Color.white)
-                            .frame(width: 18, height: 18)
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(NotchButtonStyle(cornerRadius: 6))
-                    .accessibilityLabel(micMute.isMuted ? l10n.s.micUnmuteName : l10n.s.micMuteName)
+                    Toggle(micMute.isMuted ? l10n.s.micUnmuteName : l10n.s.micMuteName,
+                           isOn: Binding(get: { micMute.isMuted }, set: { _ in micMute.toggle() }))
+                        .toggleStyle(NotchToggleStyle(on: "mic.slash.fill", off: "mic.fill",
+                                                      shape: .rounded(Design.Radius.control),
+                                                      tint: Design.Palette.critical))
                 } else {
                     Image(systemName: volume <= 0.001 ? "mic.slash.fill" : "mic.fill")
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundStyle(.secondary)
-                        .frame(width: 18, height: 18)
+                        .font(Design.Icon.button.font)
+                        .foregroundStyle(Design.Ink.secondary)
+                        .frame(width: Design.Control.iconButton, height: Design.Control.iconButton)
                         .accessibilityHidden(true)
                 }
                 NotchLevelSlider(value: Binding(get: { volume }, set: { input.setInputVolume($0) }),
                                  label: l10n.s.mixerInputTitle)
-                    .frame(height: 22)
+                    .frame(height: Design.Control.rowHeight)
                     .disabled(micMute.isMuted)
                 NotchEditablePercent(percent: Int((volume * 100).rounded()), maximum: 100,
                                      editorID: "notch-microphone-input", editingID: $editingVolumeID,
@@ -453,7 +472,7 @@ private struct NotchMixerOptions: View {
                 }
                 .disabled(micMute.isMuted)
             }
-            .frame(height: 22)
+            .frame(height: Design.Control.rowHeight)
         }
         if input.inputDevices.isEmpty {
             message(l10n.s.mixerInputNoDevices, systemImage: "mic.slash")
@@ -465,19 +484,20 @@ private struct NotchMixerOptions: View {
     }
 
     private func row<Menu: View>(_ title: String, symbol: String, @ViewBuilder menu: () -> Menu) -> some View {
-        HStack(spacing: 8) {
-            Image(systemName: symbol).font(.system(size: 11, weight: .medium)).foregroundStyle(.secondary).frame(width: 18)
-            Text(title).font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(1)
-            Spacer(minLength: 4)
+        HStack(spacing: Design.Spacing.small) {
+            Image(systemName: symbol).font(Design.Icon.button.font).foregroundStyle(Design.Ink.secondary)
+                .frame(width: Design.Control.iconButton)
+            Text(title).font(Design.Typography.callout.font).foregroundStyle(Design.Ink.secondary).lineLimit(1)
+            Spacer(minLength: Design.Spacing.xxSmall)
             menu()
         }
-        .frame(height: 22)
+        .frame(height: Design.Control.rowHeight)
     }
 
     private func message(_ text: String, systemImage: String) -> some View {
         Label(text, systemImage: systemImage)
-            .font(.system(size: 9.5))
-            .foregroundStyle(.secondary)
+            .font(Design.Typography.caption.font)
+            .foregroundStyle(Design.Ink.secondary)
             .lineLimit(2)
             .fixedSize(horizontal: false, vertical: true)
     }
@@ -508,67 +528,69 @@ private struct NotchAppFader: View {
             ?? l10n.s.mixerOutputUnavailable
     }
 
+    private typealias Design = NotchDesign
+
     var body: some View {
-        VStack(spacing: 6) {
-            icon
-                .frame(maxWidth: .infinity)
-                .frame(height: 32)
-                .help(app.name)
-                .overlay(alignment: .trailing) {
-                    if app.persistenceID != nil || !app.isBypassed { actionsMenu }
-                }
-                .overlay(alignment: .leading) {
-                    if isPinned {
-                        Image(systemName: "pin.fill").font(.system(size: 9)).foregroundStyle(.secondary)
-                            .accessibilityLabel(strings.pinFirst)
+        VStack(spacing: Design.Spacing.xSmall) {
+            NotchMixerColumnHead(name: app.name) {
+                icon
+                    .frame(maxWidth: .infinity)
+                    .help(app.name)
+                    .overlay(alignment: .trailing) {
+                        if app.persistenceID != nil || !app.isBypassed { actionsMenu }
                     }
-                }
+                    .overlay(alignment: .leading) {
+                        if isPinned {
+                            Image(systemName: "pin.fill").font(Design.Typography.caption.font)
+                                .foregroundStyle(Design.Ink.secondary)
+                                .accessibilityLabel(strings.pinFirst)
+                        }
+                    }
+            }
             if app.isBypassed {
                 // Conferencing and pro audio apps manage their own sound: listed so
                 // their absence never reads as a bug, never tapped.
                 Text(l10n.s.mixerBypassedCaption)
-                    .font(.system(size: 9)).foregroundStyle(.secondary)
+                    .font(Design.Typography.caption.font).foregroundStyle(Design.Ink.secondary)
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 NotchLevelSlider(value: Binding(get: { app.volume }, set: { mixer.setVolume($0, for: app) }),
                                  label: app.name, range: 0...AppVolumeMixer.maxVolume,
-                                 tint: boosting ? .orange : .white, vertical: true, trackThickness: 28, marker: 1,
+                                 tint: boosting ? Design.Palette.warning : .white, vertical: true,
+                                 trackThickness: NotchMixerFaderLayout.trackThickness, marker: 1,
                                  valueLabel: "\(percent)%")
-                    .frame(width: 40, height: NotchMixerFaderLayout.trackHeight(in: height))
+                    .frame(width: NotchMixerFaderLayout.sliderWidth, height: NotchMixerFaderLayout.trackHeight(in: height))
                 NotchEditablePercent(percent: percent, maximum: Int(AppVolumeMixer.maxVolume * 100),
                                      editorID: "notch-app:\(app.id)", editingID: $editingVolumeID,
-                                     label: app.name, tint: boosting ? .orange : .secondary,
-                                     boosting: boosting, height: 28) {
+                                     label: app.name, tint: boosting ? Design.Palette.warning : Design.Ink.secondary,
+                                     boosting: boosting) {
                     mixer.setVolume($0, for: app)
                 }
                 .frame(maxWidth: .infinity)
                 .overlay(alignment: .leading) {
                     Button { mixer.setVolume(1, for: app) } label: {
                         Image(systemName: "arrow.counterclockwise")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(boosting ? Color.orange : Color.secondary)
-                            .frame(width: 28, height: 28)
-                            .contentShape(Rectangle())
+                            .font(Design.Icon.button.font)
+                            .foregroundStyle(boosting ? Design.Palette.warning : Design.Ink.secondary)
+                            .frame(width: Design.Control.minimumHit, height: Design.Control.minimumHit)
+                            .contentShape(RoundedRectangle(cornerRadius: Design.Radius.control, style: .continuous))
                     }
-                    .buttonStyle(NotchButtonStyle(cornerRadius: 5))
+                    .buttonStyle(NotchPressStyle(shape: .rounded(Design.Radius.control)))
                     .opacity(percent == 100 ? 0 : 1)
+                    .animation(Design.Motion.fade, value: percent == 100)
                     .disabled(percent == 100)
                     .help(l10n.s.mixerResetTooltip)
                     .accessibilityLabel(l10n.s.mixerResetTooltip)
                 }
                 .overlay(alignment: .trailing) {
-                    Button { mixer.toggleMute(app) } label: {
-                        Image(systemName: muted ? "speaker.slash.fill" : "speaker.wave.2.fill")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundStyle(muted ? Color.red : Color.secondary)
-                            .frame(width: 28, height: 28)
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(NotchButtonStyle(cornerRadius: 5))
-                    .accessibilityLabel(muted ? l10n.s.actionUnmute : l10n.s.actionMute)
+                    Toggle(muted ? l10n.s.actionUnmute : l10n.s.actionMute,
+                           isOn: Binding(get: { muted }, set: { _ in mixer.toggleMute(app) }))
+                        .toggleStyle(NotchToggleStyle(on: "speaker.slash.fill", off: "speaker.wave.2.fill",
+                                                      shape: .rounded(Design.Radius.control),
+                                                      tint: Design.Palette.critical))
                 }
-                .frame(height: 28)
+                .frame(height: Design.Control.rowHeight)
             }
         }
         .frame(maxWidth: .infinity)
@@ -585,11 +607,12 @@ private struct NotchAppFader: View {
         ZStack(alignment: .bottomTrailing) {
             Image(nsImage: ResponsibleProcess.icon(for: app.ownerPid, pointSize: 32))
                 .resizable()
-                .frame(width: 28, height: 28)
+                .frame(width: Design.Control.iconButton, height: Design.Control.iconButton)
+                .clipShape(RoundedRectangle(cornerRadius: Design.Radius.control, style: .continuous))
             if app.isPlaying {
-                Circle().fill(.green).frame(width: 7, height: 7)
-                    .overlay(Circle().stroke(.black, lineWidth: 1.2))
-                    .offset(x: 1, y: 1)
+                Circle().fill(Design.Palette.positive).frame(width: 8, height: 8)
+                    .overlay(Circle().stroke(.black, lineWidth: 1.5))
+                    .offset(x: 2, y: 2)
                     .accessibilityHidden(true)
             }
         }
@@ -599,30 +622,70 @@ private struct NotchAppFader: View {
             // room for.
             if routed {
                 Image(systemName: app.outputDeviceUnavailable ? "exclamationmark.triangle.fill" : "arrow.triangle.branch")
-                    .font(.system(size: 7, weight: .bold))
-                    .foregroundStyle(app.outputDeviceUnavailable ? Color.orange : Color.white)
-                    .frame(width: 12, height: 12)
+                    .font(Design.Typography.caption.font)
+                    .foregroundStyle(app.outputDeviceUnavailable ? Design.Palette.warning : Design.Ink.primary)
+                    .frame(width: 14, height: 14)
                     .background(.black, in: Circle())
-                    .offset(x: -2, y: 1)
+                    .offset(x: -3, y: 2)
                     .help(routeDescription)
                     .accessibilityLabel(routeDescription)
             }
         }
     }
 
+    /// The app's menu on the shared menu button: pin, move, route, reset, hide.
     private var actionsMenu: some View {
-        Menu { actions } label: {
+        NotchMenuButton(title: "\(strings.actions): \(app.name)", items: menuItems,
+                        cornerRadius: Design.Radius.control) {
             Image(systemName: "ellipsis")
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(.white.opacity(0.7))
-                .frame(width: 24, height: 28)
-                .contentShape(Rectangle())
+                .font(Design.Icon.button.font)
+                .foregroundStyle(Design.Ink.secondary)
+                .frame(width: Design.Control.minimumHit, height: Design.Control.minimumHit)
+                .contentShape(RoundedRectangle(cornerRadius: Design.Radius.control, style: .continuous))
         }
-        .menuStyle(.borderlessButton)
-        .menuIndicator(.hidden)
-        .fixedSize()
         .help(strings.actions)
-        .accessibilityLabel("\(strings.actions): \(app.name)")
+    }
+
+    private var menuItems: [NotchMenuItem] {
+        var items: [NotchMenuItem] = []
+        if app.persistenceID != nil {
+            items.append(NotchMenuItem(title: isPinned ? strings.unpin : strings.pinFirst,
+                                       symbol: isPinned ? "pin.slash" : "pin", action: togglePin))
+            items.append(NotchMenuItem(title: strings.moveLeft, symbol: "arrow.left",
+                                       enabled: moveBack != nil) { moveBack?() })
+            items.append(NotchMenuItem(title: strings.moveRight, symbol: "arrow.right",
+                                       enabled: moveForward != nil) { moveForward?() })
+        }
+        if !app.isBypassed {
+            if app.persistenceID != nil { items.append(.separator) }
+            let current = app.selectedOutputDeviceUID ?? MixerRoutingSupport.systemDefaultSelectionID
+            func route(_ title: String, _ id: String) {
+                items.append(NotchMenuItem(title: title, checked: current == id) { outputSelection.wrappedValue = id })
+            }
+            route(l10n.s.mixerOutputDefault, MixerRoutingSupport.systemDefaultSelectionID)
+            for device in mixer.outputDevices {
+                route(device.isDefault ? "\(device.name) (\(l10n.s.mixerOutputCurrent))" : device.name, device.uid)
+            }
+            if let selected = app.selectedOutputDeviceUID,
+               MixerRoutingSupport.needsUnavailableOutputRow(selectedUID: selected,
+                                                             isUnavailable: app.outputDeviceUnavailable,
+                                                             listedUIDs: mixer.outputDevices.map(\.uid)) {
+                route(l10n.s.mixerOutputUnavailable, selected)
+            }
+            if mixer.outputDevices.contains(where: { MixerRoutingSupport.isAirPlaySentinel($0.uid) }) {
+                items.append(.separator)
+                route(l10n.s.mixerAirPlayChooseSpeaker, MixerRoutingSupport.airPlaySpeakerChoiceID)
+            }
+            items.append(.separator)
+            items.append(NotchMenuItem(title: l10n.s.mixerResetTooltip, enabled: percent != 100) {
+                mixer.setVolume(1, for: app)
+            })
+        }
+        if app.persistenceID != nil {
+            items.append(.separator)
+            items.append(NotchMenuItem(title: l10n.s.mixerHideFromList) { mixer.hideFromList(app) })
+        }
+        return items
     }
 
     @ViewBuilder private var actions: some View {
