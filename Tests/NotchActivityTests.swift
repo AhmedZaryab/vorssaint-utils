@@ -64,8 +64,8 @@ enum NotchActivityTests {
         suite.expect(text(30 * 60) == "30m" && text(30 * 60 - 0.5) == "30m" && text(29 * 60 + 1) == "30m"
                      && text(29 * 60) == "29m",
                      "a new half-hour session reads 30m until a whole minute has passed")
-        suite.expect(text(60 * 60) == "1h00" && text(61 * 60) == "1h01" && text(8 * 3600) == "8h00"
-                     && text(26 * 3600 + 5 * 60) == "26h05",
+        suite.expect(text(60 * 60) == "1h" && text(61 * 60) == "1h 1m" && text(8 * 3600) == "8h"
+                     && text(26 * 3600 + 5 * 60) == "26h 5m",
                      "hours read as the timer's do, past the timer's three hours")
         suite.expect(text(59 * 60) == "59m" && text(1) == "1m" && text(0) == "1m" && text(-30) == "1m",
                      "the last minute, and an end the session has not reached yet, still read one minute")
@@ -294,12 +294,12 @@ enum NotchActivityTests {
         suite.expect(NotchTimerSupport.compactText(.greatestFiniteMagnitude, locale: locale) == "3h",
                "compact duration formatting preserves the timer's upper limit")
         let hourCases: [(TimeInterval, String)] = [
-            (3600, "1h00"), (3659.9, "1h00"), (3660, "1h01"), (5700, "1h35"),
-            (8580, "2h23"), (10800, "3h00"), (.greatestFiniteMagnitude, "3h00"), (.nan, "0h00")
+            (3600, "1h"), (3659.9, "1h"), (3660, "1h 1m"), (5700, "1h 35m"),
+            (8580, "2h 23m"), (10800, "3h"), (.greatestFiniteMagnitude, "3h"), (.nan, "0m")
         ]
         for (seconds, expected) in hourCases {
-            suite.expect(NotchTimerSupport.compactHoursText(seconds) == expected,
-                   "the compact strip writes hours as 1h35, never as a colon that reads like minutes and seconds: \(seconds)")
+            suite.expect(NotchTimerSupport.compactHoursText(seconds, locale: Locale(identifier: "en_US")) == expected,
+                   "the compact strip writes hours as 1h 35m, never as a colon that reads like minutes and seconds: \(seconds)")
         }
         for language in AppLanguage.allCases {
             suite.expect(!NotchTimerSupport.compactText(870, locale: Locale(identifier: language.rawValue)).isEmpty,
@@ -512,11 +512,11 @@ enum NotchActivityTests {
         }
         let compactStopwatchCases: [(TimeInterval, String)] = [
             (0, "00:00"), (42.7, "00:42"), (599, "09:59"), (754, "12:34"), (3599.9, "59:59"),
-            (3600, "1h00"), (3720, "1h02"), (5700, "1h35"), (36_000, "10h00"),
-            (.greatestFiniteMagnitude, "99h59"), (-1, "00:00"), (.nan, "00:00")
+            (3600, "1h"), (3720, "1h 2m"), (5700, "1h 35m"), (36_000, "10h"),
+            (.greatestFiniteMagnitude, "99h 59m"), (-1, "00:00"), (.nan, "00:00")
         ]
         for (seconds, expected) in compactStopwatchCases {
-            suite.expect(NotchTimerSupport.compactStopwatchText(seconds) == expected,
+            suite.expect(NotchTimerSupport.compactStopwatchText(seconds, locale: Locale(identifier: "en_US")) == expected,
                    "the compact strip keeps a stopwatch's seconds until hours take their place: \(seconds)")
         }
         let locale = Locale(identifier: "en_US")
@@ -528,8 +528,8 @@ enum NotchActivityTests {
                "compact session readings keep each mode's own notation")
         var hours = NotchTimerSession()
         hours.start(mode: .timer, minutes: 120, now: 0)
-        suite.expect(NotchTimerSupport.compactText(for: hours, at: 1, locale: locale) == "1h59"
-               && NotchTimerSupport.compactText(for: hours, at: 3600, locale: locale) == "1h00"
+        suite.expect(NotchTimerSupport.compactText(for: hours, at: 1, locale: locale) == "1h 59m"
+               && NotchTimerSupport.compactText(for: hours, at: 3600, locale: locale) == "1h"
                && NotchTimerSupport.compactText(for: hours, at: 3601, locale: locale) == "59m",
                "compact countdowns still switch from hours to minutes at the hour boundary")
 

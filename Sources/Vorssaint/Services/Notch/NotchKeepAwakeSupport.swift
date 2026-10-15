@@ -25,11 +25,11 @@ enum NotchKeepAwakeSupport {
         return Int(min(Double(Int32.max), max(1, minutes)))
     }
 
-    /// The timer strip's shapes, "45m" and "1h35", past its three hours too.
+    /// The timer strip's shapes, "45m" and "1h 35m", past its three hours too.
     static func compactText(until end: Date, now: Date, locale: Locale) -> String {
         let minutes = minutesLeft(until: end, now: now)
         guard minutes >= 60 else { return NotchTimerSupport.compactText(TimeInterval(minutes * 60), locale: locale) }
-        return NotchTimerSupport.hoursText(hours: minutes / 60, minutes: minutes % 60)
+        return NotchTimerSupport.hoursText(hours: minutes / 60, minutes: minutes % 60, locale: locale)
     }
 
     /// The minute boundary the reading last crossed. A schedule that ticks

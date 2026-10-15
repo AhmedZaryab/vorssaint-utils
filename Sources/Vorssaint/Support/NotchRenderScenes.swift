@@ -145,7 +145,7 @@ enum NotchRenderScenes {
             peek("30-peek-brightness", "brightness HUD at 70%", NotchNotice(
                 event: .brightness, title: FeatureStrings.notch(language).brightness, detail: "70%",
                 symbol: "sun.max.fill", level: 0.7)),
-            NotchRenderScene(name: "30-peek-keep-awake", summary: "keep awake strip, 1h35 left",
+            NotchRenderScene(name: "30-peek-keep-awake", summary: "keep awake strip, 1h 35m left",
                              activities: [.keepAwake], music: false, check: expecting(.keepAwake),
                              content: .island { _ in resting() }),
             NotchRenderScene(name: "30-peek-calendar-soon", summary: "calendar strip, next meeting in 12 minutes",

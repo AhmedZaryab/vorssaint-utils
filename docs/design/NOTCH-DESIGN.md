@@ -33,7 +33,7 @@ The biggest problems, in the order a person sees them:
 3. **Corners do not nest.** Cards use an 18 pt corner inside a 28 pt silhouette with a 14 pt side margin and a 16 pt bottom margin, so no inner corner is concentric with the island. Radii 5, 6, 7, 8, 9, 10, 11, 12, 14, 16, 18 and 24 all appear for the same kind of plate.
 4. **The island opens squished.** Content starts fading in at 0.16 s, before either side has arrived (height 0.23 s, width 0.25 s), scaled to 0.86 from the top and blurred 12 pt. Width and height ride different springs (0.44 s at 0.25 bounce, 0.38 s at 0.22), so the shape changes aspect as it grows. Departing content fades on ease in.
 5. **A rainbow of accents.** Orange (timer), yellow (keep awake), red, green, mint, blue, a pink calendar "today", agent brand colours on text, the cover's tint on text glyphs. Apple: one colour means one thing `[HIG color.md]`.
-6. **Visible borders.** Keyboard highlight in the gallery is a 1 pt white stroke at 0.55; the optional outline is 2 pt at 0.65; clipboard and watch focus rings are 1 pt at 0.34.
+6. **Visible borders.** Keyboard highlight in the gallery was a 1 pt white stroke at 0.55; the optional outline is 2 pt at 0.65; clipboard and watch focus rings are 1 pt at 0.34.
 
 ---
 
@@ -208,6 +208,8 @@ The island is always dark (`.environment(\.colorScheme, .dark)`). Text is white 
 
 **What goes:** the timer's orange (the running timer's tile and strip use the accent), keep awake's yellow (accent), the calendar's pink "today" (today is a white circle with a black numeral, `Fill.inverse` and `Ink.onInverse`), the song peek ring's pine green (the ring goes, section 12), agent tints on notice text (white text, tint on the mark only), orange text on the timer notice.
 
+**Ink on a fill.** On the accent fill (`Palette.accent`), glyphs and semibold labels are white always, as in Control Center (`Ink.onAccent`). On any other coloured fill, `Ink.onFill(_:)` keeps white unless it falls under 3 to 1, the bar for glyphs and bold or semibold text; regular weight text on a fill needs 4.5 to 1 (`regularText: true`). The home tiles share one ink.
+
 Signals always pair with a symbol or a word; colour alone never carries meaning `[HIG color.md › Inclusive color]`.
 
 ---
@@ -220,7 +222,7 @@ Signals always pair with a symbol or a word; colour alone never carries meaning 
 - **Before macOS 26, or glass off:** black, or the translucent behind-window material (`NotchTranslucentMaterial`, `.hudWindow`) when that setting is on; floating controls fall back to `Glass.fallbackMaterial` (ultra thin).
 - **Reduce Transparency:** everything black, no blur, no material. `notchGlass(in:)` already does this.
 - **Fills:** a card is `Fill.card` (0.06); a control plate `Fill.control` (0.10); the hover wash `Fill.hover` (0.08); a chosen option `Fill.selected` (0.16).
-- **Borders:** hairlines only. `Stroke.hairline` (0.5 pt) at `Stroke.glassEdge` for a card on glass, `Stroke.artworkEdge` round artwork. On black, cards have no edge at all. No 1 pt white borders anywhere: keyboard highlight is `Fill.selected`, a focused field is `Fill.selected` plus the system focus ring. The one dashed stroke is the drop target (`Stroke.dropTarget`).
+- **Borders:** hairlines only. `Stroke.hairline` (0.5 pt) at `Stroke.glassEdge` for a card on glass, `Stroke.artworkEdge` round artwork. On black, cards have no edge at all. No 1 pt white borders anywhere: keyboard highlight is `Fill.selected` plus the system focus ring (`keyboardFocusIndicatorColor`, 2 pt, drawn by the code on every keyboard highlight), and a focused field is `Fill.selected` plus the same ring. The one dashed stroke is the drop target (`Stroke.dropTarget`).
 - **Increase Contrast:** every card and plate gains a 1 pt edge at `Stroke.increasedContrast` (white 0.5); secondary text stays 0.6 (it already passes) and hints rise to 0.6.
 - **Shadows:** none inside the black island. `Shadow.floating` under floating buttons; `Shadow.halo(tint)` once, behind the music page artwork. No text shadows and no glows: the lyrics' white glow on the sung line goes.
 
@@ -337,7 +339,7 @@ Tile (rail)                     Card                          Segmented choice
 Slider                          Meter (read only)             Menu button
  (o)======o------------   (o)    ===========-------            Name v
  track 6 pt Fill.track, fill     4 pt capsule, no thumb        Typography.callout, Ink.secondary,
- white or tint, no knob drawn    Fill.track, white fill        chevron Icon at caption size
+ white or tint, level: knob; scrubber: none   Fill.track, white fill        chevron Icon at caption size
 ```
 
 - **Icon button:** 28 by 28, glyph `Icon.button` in `Ink.secondary`, primary when selected; selected plate `Fill.control` at `Radius.control`. Tap or Toggle class.
@@ -393,8 +395,8 @@ Tall (strip + band 60)
    \_______________________ 16 bottom, corners 28 _____________/
 ```
 
-- **Compact:** wings beside the camera at the strip's height, each at most `Peek.wingMaximum` 96 pt and at least `wingMinimum` 36 pt, glyph or cover `Peek.wingArtwork` 20 pt, one word or number per side in `Typography.stripPrimary` or `readout`. Snug to the camera: no padding between content and the housing beyond `NotchLayout.compactEdgeGap` `[HIG live-activities.md › Compact presentation]`. Anything that does not fit 96 pt uses the tall variant; text never pushes the wings wider.
-- **Tall:** the strip stays exactly as it was; a band of `Peek.bandHeight` 60 pt grows below it, as wide as the closed island at rest (camera plus resting wings), at least `Peek.bandMinimumWidth` 300 pt and at most `bandMaximumWidth` 360 pt. Band: `bandTop` 12 pt under the strip, 16 pt sides and bottom (`Geometry.margin`). Leading `Peek.artwork` 32 pt cover or glyph plate at `Radius.card` 12 (concentric: 28 minus 16). Text column: primary `Typography.stripPrimary` in `Ink.primary`, secondary `Typography.stripSecondary` in `Ink.secondary`, `Spacing.line` between, one line each, tail truncation. Optional trailing live element `Peek.trailingSide` 20 pt: equaliser, a progress ring, or a short amount in `Typography.readout`.
+- **Compact:** wings beside the camera at the strip's height, each at most `Peek.wingMaximum` 96 pt and at least `wingMinimum` 36 pt, glyph or cover `Peek.wingArtwork` 20 pt, one word or number per side in `Typography.stripPrimary` or `readout`. A glyph or cover sits `Peek.wingInset` from the curved outer end of its wing (curve-safe for the 20 pt box); `Icon.wing` is the one fixed 17 pt face that fills it. Snug to the camera: no padding between content and the housing beyond `NotchLayout.compactEdgeGap` `[HIG live-activities.md › Compact presentation]`. Anything that does not fit 96 pt uses the tall variant; text never pushes the wings wider.
+- **Tall:** the strip stays exactly as it was; a band of `Peek.bandHeight` 60 pt grows below it, as wide as the closed island at rest (camera plus resting wings), at least `Peek.bandMinimumWidth` 300 pt and at most `bandMaximumWidth`: the camera plus a full `Peek.wingMaximum` each side, 377 pt on a 185 pt camera, so a tall peek is never wider than the widest compact strip. Band: `bandTop` 12 pt under the strip, 16 pt sides and bottom (`Geometry.margin`). Leading `Peek.artwork` 32 pt cover or glyph plate at `Radius.card` 12 (concentric: 28 minus 16). Text column: primary `Typography.stripPrimary` in `Ink.primary`, secondary `Typography.stripSecondary` in `Ink.secondary`, `Spacing.line` between, one line each, tail truncation. Optional trailing live element `Peek.trailingSide` 20 pt: equaliser, a progress ring, or a short amount in `Typography.readout`.
 - **No chrome:** no eyebrows, no uppercase, no plates behind text, no borders, no buttons. Clicking a peek opens its page. A notification may expand in place (the notification preview), nothing else does.
 - **Enter:** the silhouette grows on `Peek.grow` (0.36 s, damping 0.88) from the top centre; content reveals under blur while the shape grows (`Geometry.contentRevealDelay`, 0.12 s), sharp by 0.30 s, never scaled. **Exit:** content leaves on `Motion.exit` (0.12 s), then the island shrinks on `Geometry.shrinkSpring` back to rest, the same path it came out on.
 - **Dwell:** as the table; the clock pauses while the pointer rests on the peek and while the screen is locked or the display asleep, and restarts at `minimumRead` after the pointer leaves.
@@ -419,7 +421,7 @@ The owner: "when Claude wraps up the notch goes wider and shows amount spent and
 | Primary | The agent's name and "finished": "Claude finished" | Typography.stripPrimary, Ink.primary |
 | Secondary | Time taken, then the cost, joined by " · ": "4 min · $0.42". Time in whole minutes from one minute up, seconds below it. Cost only when known exactly and at least one cent; otherwise the line is the time alone | Typography.stripSecondary, Ink.secondary |
 | Trailing | Nothing | |
-| Width | The closed island's resting width, at least 300 pt and at most 360 pt. Text truncates at the tail; the island never widens for it, and the wings beside the camera do not change | Peek.bandMinimumWidth, Peek.bandMaximumWidth; Peek.bandHeight 60 below the strip |
+| Width | The closed island's resting width, at least 300 pt and at most `bandMaximumWidth` (377 pt on a 185 pt camera: camera + 2 × `wingMaximum`). Text truncates at the tail; the island never widens for it, and the wings beside the camera do not change | Peek.bandMinimumWidth, Peek.bandMaximumWidth; Peek.bandHeight 60 below the strip |
 | Dwell | 4 s, held while the pointer rests on it; a click opens the AI page | Peek.tallDwell |
 
 **Never show:** token counts, input and output or cache splits, per-model breakdowns, the day's running total, limit percentages (the limit peek says those, on its own), request counts, "≥" estimates for unpriced usage (leave the cost out instead), project paths, the agent's colour on any text, more than two lines, or anything that widens the wings.
@@ -450,7 +452,7 @@ The owner called it out. It should feel like Dynamic Island on iPhone when a tra
 
 ## 13. Accessibility
 
-- **Contrast:** text at least 4.5 to 1 against what is behind it. On black, `Ink.secondary` is 7.4 to 1 and `Ink.primary` 21 to 1. On glass, `Glass.textDim` keeps secondary text at 4.5 to 1 over a white desktop. `Ink.tertiary` (2.5 to 1) is for text that need not be read; never put information in it.
+- **Contrast:** text at least 4.5 to 1 against what is behind it; glyphs and semibold or bold labels on a fill at least 3 to 1, white always on the accent (section 6). On black, `Ink.secondary` is 7.4 to 1 and `Ink.primary` 21 to 1. On glass, `Glass.textDim` keeps secondary text at 4.5 to 1 over a white desktop. `Ink.tertiary` (2.5 to 1) is for text that need not be read; never put information in it.
 - **Increase Contrast** (`colorSchemeContrast == .increased`): a 1 pt `Stroke.increasedContrast` edge on every card and plate, `Glass.increasedContrastDim` on glass, hints at 0.6, the gallery's dots at 0.5.
 - **Reduce Transparency:** black everywhere; `notchGlass(in:)` and `NotchSurfaceBackground` already fall back.
 - **Reduce Motion:** section 8, and the fallback column of section 9.
@@ -458,7 +460,7 @@ The owner called it out. It should feel like Dynamic Island on iPhone when a tra
 - **Keyboard:** Full Keyboard Access reaches every control; Escape undoes a fuse and closes a layer before the island; keyboard changes do not animate.
 - **Targets:** 28 pt minimum, about 6 pt between bezel-less icon buttons, more where they sit on different rows `[HIG accessibility.md › Mobility]`.
 - **Colour alone never carries meaning:** every signal has a symbol or a word.
-- **Strings:** every user-visible string comes from the language's strings file, through `L10n`, never a literal in a view.
+- **Strings:** every user-visible string comes from the language's strings file, through `L10n`, never a literal in a view. Durations are formatted by the system, never by `String(format:)`: keep awake reads "1h 35m" (`Duration.formatted(.units(allowed: [.hours, .minutes], width: .narrow))`), localized.
 
 ---
 
@@ -527,7 +529,7 @@ Every page gets every box in the common list, then its own. Tick in the PR descr
 
 **Capture:** toolbar buttons 28 icon buttons with the chosen tool on `Fill.selected`; record is a commit in critical red; the collapsed strip's chevron at `Icon.strip`.
 
-**Lock screen:** padlock glyph `Icon.strip`, bars per the strip; the clear Liquid Glass player keeps the 35% dimming over bright wallpaper `[HIG materials.md]`; artwork shadow from `Shadow.halo` only.
+**Lock screen:** padlock glyph `Icon.strip`, bars per the strip; the clear Liquid Glass player puts `Glass.textDim` (0.72) black under its text over bright wallpaper `[HIG materials.md]`; artwork shadow from `Shadow.halo` only.
 
 **Notifications:** cards `Radius.card`, app icon 20, sender `title`, body `body` up to the card's lines, time `caption` 0.6; dismiss a tap with `Motion.exit`; clear all a fuse in the header; banner as a tall peek.
 

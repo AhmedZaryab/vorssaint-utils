@@ -24,7 +24,8 @@ enum NotchTimerRulerScale {
     }
 
     static func label(for minute: Int) -> String {
-        minute >= 60 ? NotchTimerSupport.hoursText(hours: minute / 60, minutes: minute % 60) : String(minute)
+        // Tick labels stay a tight "1h05": the ruler marks are a few points wide.
+        minute >= 60 ? String(format: "%dh%02d", minute / 60, minute % 60) : String(minute)
     }
 }
 
@@ -239,22 +240,23 @@ enum NotchTimerSupport {
         clockText(seconds: wholeSeconds(elapsed, limit: stopwatchLimit, rounded: .down))
     }
 
-    /// Hours read as "1h35", never "1:35", which beside the minute clock
-    /// would pass for one minute and thirty five seconds.
-    static func hoursText(hours: Int, minutes: Int) -> String {
-        String(format: "%dh%02d", hours, minutes)
+    /// Hours read as "1h 35m", never "1:35", which beside the minute clock
+    /// would pass for one minute and thirty five seconds. Localized by Duration.
+    static func hoursText(hours: Int, minutes: Int, locale: Locale = .current) -> String {
+        Duration.seconds(hours * 3600 + minutes * 60)
+            .formatted(.units(allowed: [.hours, .minutes], width: .narrow).locale(locale))
     }
 
-    static func compactHoursText(_ remaining: TimeInterval) -> String {
+    static func compactHoursText(_ remaining: TimeInterval, locale: Locale = .current) -> String {
         let seconds = wholeSeconds(remaining, limit: timerLimit, rounded: .down)
-        return hoursText(hours: seconds / 3600, minutes: seconds / 60 % 60)
+        return hoursText(hours: seconds / 3600, minutes: seconds / 60 % 60, locale: locale)
     }
 
     /// The compact strip keeps a stopwatch's seconds, the reading that shows
     /// it is alive, until hours take their place.
-    static func compactStopwatchText(_ elapsed: TimeInterval) -> String {
+    static func compactStopwatchText(_ elapsed: TimeInterval, locale: Locale = .current) -> String {
         let seconds = wholeSeconds(elapsed, limit: stopwatchLimit, rounded: .down)
-        return seconds >= 3600 ? hoursText(hours: seconds / 3600, minutes: seconds / 60 % 60) : clockText(seconds: seconds)
+        return seconds >= 3600 ? hoursText(hours: seconds / 3600, minutes: seconds / 60 % 60, locale: locale) : clockText(seconds: seconds)
     }
 
     static func clockText(for session: NotchTimerSession, at now: TimeInterval) -> String {
@@ -272,8 +274,8 @@ enum NotchTimerSupport {
 
     static func compactText(for session: NotchTimerSession, at now: TimeInterval, locale: Locale) -> String {
         let reading = session.reading(at: now)
-        if session.countsUp { return compactStopwatchText(reading) }
-        return reading >= 3600 ? compactHoursText(reading) : compactText(reading, locale: locale)
+        if session.countsUp { return compactStopwatchText(reading, locale: locale) }
+        return reading >= 3600 ? compactHoursText(reading, locale: locale) : compactText(reading, locale: locale)
     }
 
     /// Seconds until the reading next crosses a whole second. A tick every
