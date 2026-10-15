@@ -61,8 +61,8 @@ private struct NotchFader: NSViewRepresentable {
     func makeNSView(context: Context) -> NSSlider {
         let slider = NSSlider()
         let cell = NotchLevelCell()
-        cell.trackingChanged = { [weak coordinator = context.coordinator] editing in
-            coordinator?.trackingChanged(editing)
+        cell.trackingChanged = { [weak coordinator = context.coordinator, weak slider] editing in
+            coordinator?.trackingChanged(editing, current: slider?.doubleValue)
         }
         slider.cell = cell
         slider.isVertical = vertical
@@ -98,12 +98,25 @@ private struct NotchFader: NSViewRepresentable {
     final class Coordinator: NSObject {
         var parent: NotchFader
         private var editing = NotchSliderEditing()
+        private var detentTracker = NotchDetentTracker(detents: [])
         init(_ parent: NotchFader) { self.parent = parent }
-        func trackingChanged(_ value: Bool) {
+        func trackingChanged(_ value: Bool, current: Double? = nil) {
+            if value {
+                detentTracker = NotchDetentTracker(detents: parent.marker.map { [$0] } ?? [])
+                detentTracker.begin(at: current ?? parent.value)
+            }
             editing.trackingChanged(value, onEditingChanged: parent.onEditingChanged)
         }
         @objc func changed(_ sender: NSSlider) {
-            editing.valueChanged({ parent.value = sender.doubleValue }, onEditingChanged: parent.onEditingChanged)
+            // The unity marker is a detent: it holds within the shared snap share
+            // of the range and ticks the trackpad on the frame it is crossed.
+            let range = sender.maxValue - sender.minValue
+            let snapped = NotchInteractionMath.snapped(
+                sender.doubleValue, to: parent.marker.map { [$0] } ?? [],
+                within: NotchDesign.Interaction.detentSnap * range)
+            if snapped != sender.doubleValue { sender.doubleValue = snapped }
+            if detentTracker.move(to: snapped) != nil { NotchHaptics.tick() }
+            editing.valueChanged({ parent.value = snapped }, onEditingChanged: parent.onEditingChanged)
         }
     }
 }
