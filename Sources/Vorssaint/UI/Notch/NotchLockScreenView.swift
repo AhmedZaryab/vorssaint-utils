@@ -156,22 +156,6 @@ private struct NotchLockScreenGlass: ViewModifier {
     }
 }
 
-/// The plate-less line's backing: a vibrant blur that fades out softly at its
-/// edges, so the readings sit on the wallpaper as Apple's clock widgets do,
-/// with no capsule to see. Increase Contrast and Reduce Transparency draw the
-/// dimmed capsule instead.
-private struct NotchLockScreenVibrancy: NSViewRepresentable {
-    func makeNSView(context: Context) -> NSVisualEffectView {
-        let view = NSVisualEffectView()
-        view.material = .hudWindow
-        view.blendingMode = .behindWindow
-        view.state = .active
-        return view
-    }
-
-    func updateNSView(_ view: NSVisualEffectView, context: Context) {}
-}
-
 /// The frosted material has to round its own layer: SwiftUI clips what it
 /// draws, not a material blurring what lies behind the window.
 private struct NotchLockScreenMaterial: NSViewRepresentable {
@@ -571,8 +555,8 @@ struct NotchLockScreenActivities: View {
     }
 }
 
-/// Plate-less and vibrant like Apple's clock widgets: a vibrant blur that
-/// fades out at its edges behind the readings. Increase Contrast and Reduce
+/// Plate-less like Apple's clock widgets: full-opacity white over a soft
+/// shadow, with no capsule. Increase Contrast and Reduce
 /// Transparency keep the dimmed capsule.
 private struct NotchLockScreenLineBacking: ViewModifier {
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
@@ -583,12 +567,9 @@ private struct NotchLockScreenLineBacking: ViewModifier {
             content.modifier(NotchLockScreenGlass(cornerRadius: 0, capsule: true))
         } else {
             content
-                .shadow(color: .black.opacity(0.35), radius: 6, y: 1)
-                .background {
-                    NotchLockScreenVibrancy()
-                        .opacity(0.5)
-                        .mask(Capsule(style: .continuous).fill(.black).padding(-4).blur(radius: 8))
-                }
+                // White at full opacity over a soft shadow holds over any wallpaper, as a widget's vibrant label does.
+                .shadow(color: .black.opacity(0.45), radius: 8, y: 1)
+                .shadow(color: .black.opacity(0.25), radius: 2)
         }
     }
 }

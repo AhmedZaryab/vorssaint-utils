@@ -288,10 +288,11 @@ enum NotchRenderScenes {
                            startRadius: 0, endRadius: screen.width * 0.35)
         }
         var layers: [AnyView] = [AnyView(wallpaper.frame(width: screen.width, height: screen.height))]
-        if let frame = NotchLockScreenLayout.rowFrame(in: screen) {
+        let rowHeight = model.gates.timer ? NotchLockScreenLayout.paneRowHeight : NotchLockScreenLayout.rowHeight
+        if let frame = NotchLockScreenLayout.rowFrame(in: screen, height: rowHeight) {
             layers.append(AnyView(place(NotchLockScreenActivities(model: model, size: frame.size), frame)))
         }
-        if let frame = NotchLockScreenLayout.playerFrame(in: screen) {
+        if let frame = NotchLockScreenLayout.playerFrame(in: screen, rowHeight: rowHeight) {
             layers.append(AnyView(place(NotchLockScreenPlayer(model: model, size: frame.size), frame)))
         }
         if let surface = NotchLockScreenLayout.islandSurface(
