@@ -74,14 +74,12 @@ extension NotchCalendarColor {
 }
 
 /// Week and Month as one segmented control, the same two segments in the same
-/// place on both views: the chosen plate slides between the icons.
+/// place on both views: the chosen segment wears the selected fill.
 struct NotchCalendarViewSwitch: View {
     let monthSelected: Bool
     let text: NotchCalendarStrings
     let week: () -> Void
     let month: () -> Void
-    @Namespace private var plate
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.colorSchemeContrast) private var contrast
 
     var body: some View {
@@ -96,7 +94,6 @@ struct NotchCalendarViewSwitch: View {
                     .strokeBorder(NotchDesign.Stroke.increasedContrast, lineWidth: NotchDesign.Stroke.increasedContrastWidth)
             }
         }
-        .animation(NotchDesign.Motion.animation(NotchDesign.Motion.snappy, reduceMotion: reduceMotion), value: monthSelected)
         .accessibilityElement(children: .contain)
     }
 
@@ -110,7 +107,6 @@ struct NotchCalendarViewSwitch: View {
                     if selected {
                         RoundedRectangle(cornerRadius: NotchDesign.Radius.control, style: .continuous)
                             .fill(NotchDesign.Fill.selected)
-                            .matchedGeometryEffect(id: "selection", in: plate)
                     }
                 }
                 .contentShape(RoundedRectangle(cornerRadius: NotchDesign.Radius.control, style: .continuous))
@@ -169,7 +165,7 @@ struct NotchCalendarMonthView: View {
                 VStack(alignment: .leading, spacing: NotchDesign.Spacing.line) {
                     Text(month, format: .dateTime.month(.wide))
                         .font(NotchDesign.Typography.pageTitle.font).lineLimit(1)
-                        .minimumScaleFactor(NotchDesign.SpecTime.scale(NotchDesign.Typography.pageTitle, preferred: 0.8))
+                        .minimumScaleFactor(max(0.8, NotchDesign.Typography.pageTitle.minimumScale))
                     Text(month, format: .dateTime.year())
                         .font(NotchDesign.Typography.label.font).foregroundStyle(NotchDesign.Ink.secondary)
                 }
@@ -264,7 +260,7 @@ struct NotchCalendarWeekStrip: View {
             // day tappable: a second tap on the selected day still returns to
             // the coming week, and every appointment card opens Calendar.
             if width >= 400 {
-                NotchIconButton(symbol: "circle.circle", title: text.today, action: today)
+                NotchCalendarPill(title: text.today, action: today)
             }
             NotchCalendarViewSwitch(monthSelected: false, text: text, week: week, month: month)
             if width >= 340 {
@@ -338,11 +334,11 @@ struct NotchCalendarMonthGrid: View {
                 NotchIconButton(symbol: "chevron.left", title: text.previousMonth) { move(-1) }
                 Text(month, format: .dateTime.month(.wide).year())
                     .font(NotchDesign.Typography.title.font).lineLimit(1)
-                    .minimumScaleFactor(NotchDesign.SpecTime.scale(NotchDesign.Typography.title, preferred: 0.8))
+                    .minimumScaleFactor(max(0.8, NotchDesign.Typography.title.minimumScale))
                     .frame(maxWidth: .infinity, alignment: .leading)
                 NotchIconButton(symbol: "chevron.right", title: text.nextMonth) { move(1) }
                 // The fixed order on both views: Today, Week and Month, Open.
-                NotchIconButton(symbol: "circle.circle", title: text.today, action: today)
+                NotchCalendarPill(title: text.today, action: today)
                 NotchCalendarViewSwitch(monthSelected: true, text: text, week: week, month: {})
                 NotchIconButton(symbol: "arrow.up.forward.app", title: text.openCalendar, action: open)
             }
@@ -387,7 +383,7 @@ struct NotchCalendarMonthGrid: View {
             VStack(spacing: 0) {
                 Text(calendar.component(.day, from: date), format: .number)
                     .modifier(NotchCalendarDayMark(isToday: isToday, selected: selected, inMonth: inMonth, size: circle))
-                    .minimumScaleFactor(NotchDesign.SpecTime.scale(NotchDesign.Typography.label, preferred: 0.7))
+                    .minimumScaleFactor(max(0.7, NotchDesign.Typography.label.minimumScale))
                 NotchCalendarDots(events: dayEvents)
             }
             .frame(maxWidth: .infinity).frame(height: rowHeight)
@@ -413,6 +409,7 @@ struct NotchCalendarWeekNumber: View {
     let digit: CGFloat
     let spacing: CGFloat
     let height: CGFloat
+    @Environment(\.colorSchemeContrast) private var contrast
 
     static func columns(numbered: Bool) -> [GridItem] {
         (numbered ? [GridItem(.fixed(width), spacing: 0)] : [])
@@ -423,7 +420,7 @@ struct NotchCalendarWeekNumber: View {
         VStack(spacing: spacing) {
             Text(NotchCalendarSupport.weekNumber(of: date), format: .number)
                 .font(NotchDesign.Typography.caption.font.monospacedDigit())
-                .foregroundStyle(NotchDesign.Ink.tertiary)
+                .foregroundStyle(contrast == .increased ? NotchDesign.Ink.secondary : NotchDesign.Ink.tertiary)
                 .frame(height: digit)
                 .accessibilityLabel(NotchCalendarSupport.weekNumberLabel(of: date, text: text))
             Color.clear.frame(height: NotchCalendarDots.side)

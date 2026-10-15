@@ -94,7 +94,8 @@ private struct NotchNotificationRow: View {
                     ProgressView().controlSize(.mini)
                 } else if service.canOpen(item) {
                     NotchCommitButton(text.open, symbol: "arrow.up.forward.app", kick: .up,
-                                      size: NotchDesign.Control.iconButton, symbolSize: 13) {
+                                      size: NotchDesign.Control.iconButton, symbolSize: 13,
+                                      tint: NotchDesign.Ink.secondary) {
                         feedback = nil
                         service.open(item.id) { result in
                             if result == .unavailable || result == .uncertain { feedback = text.unavailable }

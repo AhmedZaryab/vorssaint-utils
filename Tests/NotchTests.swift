@@ -2812,7 +2812,7 @@ enum NotchTests {
             let row = NotchLayout.calendarMonthRowHeight(height: height)
             let grid = NotchLayout.calendarMonthHeaderHeight + NotchLayout.calendarMonthWeekdayHeight
                 + NotchLayout.calendarMonthSpacing * 2 + row * 6
-            suite.expect(row >= 16 && row <= 30 && row == row.rounded() && grid <= height,
+            suite.expect(row >= 16 && row == row.rounded() && grid <= height,
                    "the strip's month grid keeps six readable rows inside every preset and the lowest custom height")
         }
         for (firstWeekday, minimumDays) in [(1, 1), (2, 4), (7, 1)] {

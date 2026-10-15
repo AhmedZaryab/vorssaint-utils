@@ -192,7 +192,7 @@ struct NotchDownloadsView: View {
                     Spacer(minLength: NotchDesign.Spacing.small)
                     NotchDownloadsIconButton(symbol: "folder.badge.gearshape", title: text.chooseFolder,
                                              action: downloads.chooseFolder)
-                    NotchFuseButton(text.clearFolder, symbol: "xmark.circle", doneAnnouncement: text.clearFolder,
+                    NotchFuseButton(text.clearFolder, symbol: "xmark.circle", 
                                     shape: .rounded(NotchDesign.Radius.control), onCommit: downloads.forgetFolder)
                 }
                 .frame(height: NotchDesign.Control.rowHeight)
@@ -233,7 +233,7 @@ struct NotchDownloadsView: View {
                         Text(item.name).font(NotchDesign.Typography.title.font)
                             .foregroundStyle(NotchDesign.Ink.primary)
                             .lineLimit(1).truncationMode(.middle)
-                        Text(item.completed ? text.saved : item.active ? text.inProgress : "")
+                        Text(item.completed ? text.completed : item.active ? text.inProgress : "")
                             .font(NotchDesign.Typography.callout.font)
                             .foregroundStyle(NotchDesign.Ink.secondary).lineLimit(1)
                     }
@@ -252,7 +252,8 @@ struct NotchDownloadsView: View {
                         NSWorkspace.shared.activateFileViewerSelecting([item.url])
                     }
                     if AppFeature.shelf.isAvailable {
-                        ShelfAddButton(url: item.url, title: FeatureStrings.notch(l10n.language).files)
+                        ShelfAddButton(url: item.url, title: FeatureStrings.notch(l10n.language).files,
+                                       announcement: text.saved)
                     }
                 } else {
                     fileLabel
@@ -295,6 +296,7 @@ struct NotchDownloadsView: View {
 private struct ShelfAddButton: View {
     let url: URL
     let title: String
+    var announcement: String?
     @State private var added = 0
 
     var body: some View {
@@ -302,7 +304,7 @@ private struct ShelfAddButton: View {
             if ShelfService.shared.addFiles([url]) { added += 1 }
         } label: {
             Image(systemName: "tray.and.arrow.down")
-                .notchSuccessMorph(trigger: added)
+                .notchSuccessMorph(trigger: added, announcement: announcement)
                 .font(NotchDesign.Icon.button.font)
                 .foregroundStyle(NotchDesign.Ink.secondary)
                 .frame(width: NotchDesign.Control.iconButton, height: NotchDesign.Control.iconButton)

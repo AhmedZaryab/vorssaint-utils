@@ -53,7 +53,7 @@ final class NotchTimerRulerControl: NSSlider {
     private typealias Design = NotchDesign
     private static let spacing = NotchTimerRulerScale.spacing
     /// How far a flick carries after release: the velocity projected over a short, fixed coast.
-    private static let coast = 0.1
+    private static let coast = Design.Interaction.rulerCoast
 
     var increasedContrast = false
     var durationLocale = Locale.current
@@ -65,11 +65,11 @@ final class NotchTimerRulerControl: NSSlider {
     /// What the ruler draws: continuous, so a drag moves the ticks 1:1 with the pointer.
     /// Past either end it sits a little beyond the range, the rubberband.
     private var position = 1.0
-    private var spring: (timer: Timer, start: TimeInterval, from: Double, target: Double, velocity: Double)?
+    private var spring: (link: CADisplayLink, start: TimeInterval, from: Double, target: Double, velocity: Double)?
     override var isFlipped: Bool { true }
     override var acceptsFirstResponder: Bool { isEnabled }
 
-    deinit { spring?.timer.invalidate() }
+    deinit { spring?.link.invalidate() }
 
     func synchronize(minutes: Int) {
         let bounded = NotchTimerRulerScale.minute(Double(minutes))
@@ -103,7 +103,7 @@ final class NotchTimerRulerControl: NSSlider {
         let raw = previous.raw - Double(x - previous.x) / Self.spacing
         let elapsed = max(0.001, event.timestamp - previous.time)
         let instant = (raw - previous.raw) / elapsed
-        drag = (x, raw, event.timestamp, previous.velocity * 0.6 + instant * 0.4)
+        drag = (x, raw, event.timestamp, previous.velocity * Design.Interaction.rulerVelocityCarry + instant * (1 - Design.Interaction.rulerVelocityCarry))
         didDrag = true
         position = stretched(raw)
         select(raw)
@@ -115,7 +115,7 @@ final class NotchTimerRulerControl: NSSlider {
         drag = nil
         if didDrag {
             // A flick that sat still before release carries nothing.
-            let stale = event.timestamp - finished.time > 0.08
+            let stale = event.timestamp - finished.time > Design.Interaction.rulerStale
             release(from: finished.raw, velocity: stale ? 0 : finished.velocity)
         } else {
             let offset = convert(event.locationInWindow, from: nil).x - bounds.midX
@@ -226,12 +226,13 @@ final class NotchTimerRulerControl: NSSlider {
             needsDisplay = true
             return
         }
-        let timer = Timer(timeInterval: 1.0 / 120.0, repeats: true) { [weak self] _ in self?.stepSettle() }
-        RunLoop.main.add(timer, forMode: .common)
-        spring = (timer, ProcessInfo.processInfo.systemUptime, position, target, velocity)
+        // The display link ticks on vsync and stops with the settle, so a 60 Hz panel redraws 60 times.
+        let link = displayLink(target: self, selector: #selector(stepSettle))
+        link.add(to: .main, forMode: .common)
+        spring = (link, ProcessInfo.processInfo.systemUptime, position, target, velocity)
     }
 
-    private func stepSettle() {
+    @objc private func stepSettle() {
         guard let spring else { return }
         let omega = 2 * Double.pi / Design.Motion.snappy.response
         let t = ProcessInfo.processInfo.systemUptime - spring.start
@@ -239,7 +240,7 @@ final class NotchTimerRulerControl: NSSlider {
         let carried = spring.velocity + omega * offset
         position = spring.target + (offset + carried * t) * exp(-omega * t)
         select(position)
-        if t > 0.6 || abs(position - spring.target) < 0.002 {
+        if t > Design.Interaction.rulerSettleCap || abs(position - spring.target) < 0.002 {
             position = spring.target
             select(spring.target)
             stopSettling()
@@ -248,7 +249,7 @@ final class NotchTimerRulerControl: NSSlider {
     }
 
     private func stopSettling() {
-        spring?.timer.invalidate()
+        spring?.link.invalidate()
         spring = nil
     }
 
@@ -314,4 +315,13 @@ final class NotchTimerRulerControl: NSSlider {
         needsDisplay = true
         return accepted
     }
+}
+
+extension NotchDesign.Interaction {
+    /// The ruler's settle tuning, named once: coast seconds a flick carries, the pause after which a drag is stale,
+    /// the share of the old velocity kept in the blend, and the longest a settle may run.
+    static let rulerCoast = 0.1
+    static let rulerStale = 0.08
+    static let rulerVelocityCarry = 0.6
+    static let rulerSettleCap = 0.6
 }

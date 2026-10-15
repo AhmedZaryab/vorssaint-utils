@@ -166,7 +166,7 @@ struct NotchTimerView: View {
                     // that morphs, so VoiceOver reads the action ("Pause"), never a switch state.
                     let title = session.isPaused ? text.resume : l10n.s.actionPause
                     NotchCommitButton(title, symbol: session.isPaused ? "play.fill" : "pause.fill", kick: .morph,
-                                      size: roundSide, symbolSize: 20, action: service.pauseOrResume)
+                                      size: roundSide, symbolSize: 20, launches: session.isPaused, action: service.pauseOrResume)
                         .background(Design.Palette.accent, in: Circle())
                 } else {
                     doneButton
@@ -226,7 +226,7 @@ struct NotchTimerView: View {
             VStack(alignment: .trailing, spacing: Design.Spacing.line) {
                 Text(title).font(Design.Typography.label.font).foregroundStyle(Design.Ink.secondary)
                     .lineLimit(1)
-                    .minimumScaleFactor(NotchDesign.SpecTime.scale(Design.Typography.label, preferred: 0.7))
+                    .minimumScaleFactor(max(0.7, Design.Typography.label.minimumScale))
                 clock(value).modifier(NotchRollingDigits(value: value, countsDown: countsDown))
             }
         }

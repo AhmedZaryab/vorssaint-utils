@@ -173,7 +173,7 @@ struct NotchScratchpadView: View {
                           selected: pad.isPreviewing, action: pad.togglePreview)
                 .disabled(pad.text.isEmpty)
             ToolbarButton(symbol: "doc.on.doc", title: copied ? text.copied : text.copyAll,
-                          morphTrigger: copyCount) {
+                          morphTrigger: copyCount, announcement: text.copied) {
                 pad.copyAll()
                 copied = true
                 copyCount += 1
@@ -302,6 +302,7 @@ struct NotchScratchpadView: View {
         let title: String
         var selected = false
         var morphTrigger: Int?
+        var announcement: String?
         let action: () -> Void
 
         var body: some View {
@@ -321,7 +322,7 @@ struct NotchScratchpadView: View {
 
         @ViewBuilder private var glyph: some View {
             if let morphTrigger {
-                Image(systemName: symbol).notchSuccessMorph(trigger: morphTrigger)
+                Image(systemName: symbol).notchSuccessMorph(trigger: morphTrigger, announcement: announcement)
             } else {
                 Image(systemName: symbol).contentTransition(.symbolEffect(.replace))
             }

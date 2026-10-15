@@ -398,10 +398,10 @@ private struct NotchCalendarEventRow: View {
         VStack(alignment: .leading, spacing: NotchDesign.Spacing.line) {
             if ongoing || isNext {
                 // The word stays Ink: accent type on Fill.control is 4.33 to 1.
-                // An ongoing event marks itself with an accent dot beside it.
+                // An ongoing event marks itself with an Ink dot beside it, never the accent.
                 HStack(spacing: NotchDesign.Spacing.xxSmall) {
                     if ongoing {
-                        Circle().fill(NotchDesign.Palette.accent).frame(width: 6, height: 6)
+                        Circle().fill(NotchDesign.Ink.primary).frame(width: 6, height: 6)
                             .accessibilityHidden(true)
                     }
                     Text(ongoing ? text.ongoing : text.next)
