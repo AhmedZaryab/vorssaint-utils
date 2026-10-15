@@ -16,13 +16,17 @@ extension AgentProvider {
     }
 }
 
-/// Green reads as fine and red as trouble only when it earns it: the agent's
-/// own color while there is room, orange once a window runs low.
+/// Identity color stays on the agent's mark. A meter is white until a window
+/// runs low, then warning, then critical; only past those thresholds does it
+/// take a signal color, and the card pairs it with a symbol.
 func agentLimitTint(_ provider: AgentProvider, usedFraction: Double) -> Color {
-    if usedFraction >= 0.95 { return .red }
-    if usedFraction >= 0.8 { return .orange }
-    return provider.tint
+    if usedFraction >= 0.95 { return NotchDesign.Palette.critical }
+    if usedFraction >= 0.8 { return NotchDesign.Palette.warning }
+    return NotchDesign.Ink.primary
 }
+
+/// Whether a window is close enough to its limit to carry a warning symbol.
+func agentLimitIsNear(usedFraction: Double) -> Bool { usedFraction >= 0.8 }
 
 private typealias Design = NotchDesign
 
@@ -34,6 +38,11 @@ extension NotchDesign {
         /** How far the pace tick stands past the meter, in total, so it reads on a 4 pt bar. */ static let paceTickOverhang: CGFloat = 4
         /** The closed-island ring is 20 pt across, so a meter's 4 pt stroke would swallow it. */ static let ringLine: CGFloat = 2.5
         /** The share bar beside a model or project name. */ static let shareBarWidth: CGFloat = 44
+        /** Smallest the type may shrink to: 10 pt, the floor of the ramp. */ static let minimumType: CGFloat = 10
+        /** A scale factor that never takes a style below 10 pt: the preferred factor, or higher when the style is small. */
+        static func minimumScale(_ style: TypeStyle, preferred: CGFloat) -> CGFloat {
+            max(preferred, min(1, minimumType / style.nsFont.pointSize))
+        }
         /** A heatmap cell from quiet to busy, as Opacity tokens, so the busiest day is full white. */ static let heatLevels: [Double] = [Opacity.tertiary, Opacity.disabled, Opacity.secondary, Opacity.primary]
     }
 }
@@ -91,6 +100,7 @@ struct NotchAgentCardHeader<Accessory: View>: View {
                 .font(Design.Typography.label.font)
                 .foregroundStyle(Design.Ink.primary)
                 .lineLimit(1)
+                .accessibilityAddTraits(.isHeader)
             Spacer(minLength: Design.Spacing.xxSmall)
             accessory
         }
@@ -237,6 +247,13 @@ private struct NotchAgentGlyphBridge: NSViewRepresentable {
 /// Stacked bars, one per bucket, each split by agent. Hovering a bar reports
 /// it so the card can name the day and its value.
 struct NotchAgentBars: View {
+    /// Agents are told apart by white at stepped alphas, never by identity colour; a hovered bar keeps full strength.
+    static func slotOpacity(_ slot: Int, active: Bool) -> Double {
+        let levels = [Design.Opacity.primary, Design.Opacity.secondary, Design.Opacity.disabled, Design.Opacity.tertiary]
+        let level = levels[min(max(slot, 0), levels.count - 1)]
+        return active ? level : level * Design.Opacity.secondary
+    }
+
     let buckets: [AgentBucket]
     let providers: [AgentProvider]
     let byCost: Bool
@@ -262,7 +279,7 @@ struct NotchAgentBars: View {
                                 ForEach(providers.indices.reversed(), id: \.self) { slot in
                                     if parts[slot] > 0 {
                                         Rectangle()
-                                            .fill(providers[slot].tint.opacity(hovered == nil || hovered == bucket.start ? Design.Opacity.primary : Design.Opacity.secondary))
+                                            .fill(Design.Ink.primary.opacity(Self.slotOpacity(slot, active: hovered == nil || hovered == bucket.start)))
                                             .frame(height: max(1, proxy.size.height * parts[slot] / peak))
                                     }
                                 }
