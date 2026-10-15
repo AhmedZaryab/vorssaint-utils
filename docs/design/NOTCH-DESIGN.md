@@ -100,7 +100,7 @@ Surfaces that are not pages keep their own size: the sections gallery (`sectionP
 
 ### 2.4 The radii ladder
 
-Inner radius equals outer radius minus the inset between them `[HIG live-activities.md › Use consistent margins and concentric placement]`. Margins are even (16 pt sides and bottom), so the ladder is exact.
+Inner radius equals outer radius minus the inset between them `[HIG live-activities.md › Use consistent margins and concentric placement]`. Margins are even (16 pt sides and bottom), so the ladder is exact for plates that sit `Spacing.xSmall` (6 pt) inside a card. Content that hugs a corner of a padded card (12 pt `cardPadding`), such as artwork flush to the card's inset, uses `Radius.concentric(Radius.card, inset: Spacing.cardPadding)` floored at `Radius.small` (4 pt), never `Radius.control`: 12 minus 12 is 0, so a plate at r12 in an r12 card would run parallel to it, not concentric.
 
 ```
 island (open)        28  Geometry.panelCornerRadius
@@ -235,10 +235,16 @@ Content motion tokens are in `NotchDesign.Motion`; the silhouette's are in `Geom
 | Motion.snappy | response 0.25, damping 1 | Press release, toggles, hover lift, a selection moving |
 | Motion.smooth | response 0.4, damping 1 | Rows and content that move or resize, a thumb settling |
 | Motion.bouncy | response 0.4, damping 0.8 | Only after momentum or a commit: launch, success landing, a released swipe |
-| Motion.fade | ease out 0.18 s | Every opacity cross-fade; the one motion Reduce Motion keeps |
-| Motion.exit | ease out 0.12 s | Anything leaving: always faster than it arrived |
+| Motion.fade | strong ease out (0.23, 1, 0.32, 1), 0.18 s | Every opacity cross-fade; the one motion Reduce Motion keeps |
+| Motion.exit | strong ease out, 0.12 s | Anything leaving: always faster than it arrived |
 | Motion.easeOut(_:) | cubic (0.23, 1, 0.32, 1) | Fixed-time entrances that are not springs |
-| Motion.ceiling | 2 s | Nothing transient runs longer `[HIG live-activities.md]` |
+| Motion.ceiling | 2 s | Nothing transient runs longer `[HIG live-activities.md]`; the fuse (`fuseDuration` 2 s) sits exactly on it |
+| Motion.hover, valueChange, symbolMorph, steady, ambient | 0.15 s ease out, 0.14 s ease out, spring 0.25 / 1, spring 0.25 / 1, 0.6 s ease out | The named homes for the timings views used to write inline; `ambient` is for artwork-driven tint changes only, never a user action |
+| Interaction.kickDuration, slingBurst, slingTrack, slingRecoil, fuseFace, valueFade | 0.3 s, 0.35 s, interactive spring 0.1 / 0.9, spring 0.38 / 0.76, 0.2 s ease out, 0.15 s ease out | Control feedback timings read by NotchInteractions |
+| Peek.contentRevealDelay | 0 | Peek content arrives with the grow, no wait, so keyboard-driven notices (volume, brightness, keyboard light, Copied) answer on the first frame |
+| Icon.wing | 17 pt medium | One mark size in a compact wing or closed strip (fills `Peek.wingArtwork`), so a mark never resizes when a strip becomes a notice; `Icon.strip` is for glyphs inline with text |
+| TypeStyle.minimumScale | 10 / point size | The floor for every `minimumScaleFactor`; truncate rather than shrink below 10 pt |
+| Ink.hint, Ink.onFill(_:) | tertiary rising to 0.6 under Increase Contrast; white or black by contrast | Instructions and hints use `Ink.hint` (or `Ink.secondary` when they carry information); anything drawn on a coloured fill takes `Ink.onFill(fill)` so it holds 4.5 to 1 |
 
 **What animates:** the silhouette; content arriving and leaving (opacity, small blur); a press; a toggle's symbol (`.contentTransition(.symbolEffect(.replace))`); numbers rolling (`NotchRollingDigits`); a commit's burst; a fuse burning; a slider's thumb and rubberband; live indicators that report something (equaliser bars from audio, a progress ring filling).
 
@@ -259,12 +265,12 @@ The owner: "each button should be responsive to reflect what is done and make it
 | Tap | `NotchPressStyle` (ButtonStyle) | On mouse down the control lands at `Interaction.pressScale` 0.97 within `pressDuration` 0.1 s, ease out; release springs back on `Motion.snappy`. Under the pointer: the `Fill.hover` wash only, on every control. Nothing scales on hover (`Interaction.hoverScale` is 1): macOS highlights, the lift is an iPadOS pointer effect `[HIG pointing-devices.md › iPadOS]`, and hover happens tens of times a day. Disabled: `Opacity.disabled`, no press. | No scale; the wash deepens to `Fill.selected` while pressed. |
 | Toggle | `NotchToggleStyle` (ToggleStyle) | The symbol morphs between its off and on forms with SF Symbols `.contentTransition(.symbolEffect(.replace))` and the plate fades to `Palette.accent` (on) or clear (off) on `Motion.snappy`. The press is NotchPressStyle's. | Symbol swaps with a cross-fade; plate colour changes on `Motion.fade`. |
 | Commit or send | `NotchCommitButton` | Something leaves or starts. Press as a tap; on fire, the glyph launches (a short travel in the action's direction on `Motion.bouncy`) and `burstParticleCount` (8) particles of `burstParticleSize` 3 pt fly `burstReach` 18 pt within a `burstSpread` 60 degree cone over `burstDuration` 0.3 s, in white or the music tint. Holding and pulling past `dragThreshold` arms it (`armedScale` 1.04); a plain click still fires. Results that are not otherwise visible end in `NotchSuccessMorph`. Pointer-initiated only: a keyboard shortcut fires with no burst. | No travel, no burst, no armed scale; the glyph cross-fades to its result. |
-| Destructive | `NotchFuseButton` | Pressing does not act yet. A fuse of `fuseLineWidth` 1.5 pt in `Palette.warning` burns round the control's rim for `fuseDuration` 2.5 s, linear, while the control reads Undo in `Palette.accent`. Click it or press Escape and nothing happened. The pointer resting on it pauses the burn. When it burns out the action commits and the control morphs to done (`NotchSuccessMorph`). Replaces the `NSAlert` confirmations for undoable actions; a truly irreversible action keeps the alert `[HIG alerts.md]`. | The rim does not sweep: it shows static and the label counts down in whole seconds ("Undo 2", "Undo 1"); commit timing and Escape are unchanged. |
+| Destructive | `NotchFuseButton` | Pressing does not act yet. A fuse of `fuseLineWidth` 1.5 pt in `Palette.warning` burns round the control's rim for `fuseDuration` 2 s, linear, while the control reads Undo in `Palette.accent`. Click it or press Escape and nothing happened. The pointer resting on it pauses the burn. When it burns out the action commits and the control morphs to done (`NotchSuccessMorph`). Replaces the `NSAlert` confirmations for undoable actions; a truly irreversible action keeps the alert `[HIG alerts.md]`. | The rim does not sweep: it shows static and the label counts down in whole seconds ("Undo 2", "Undo 1"); commit timing and Escape are unchanged. |
 | Slider | `NotchSlider` | Tracks the pointer 1:1 from where it was grabbed. Past either end the track stretches with `Interaction.rubberbanded(_:dimension:)` (Apple's 0.55, at most `rubberbandLimit` 6 pt) and springs back on `Motion.snappy` on release. Within `detentSnap` (2% of the range) of a detent it snaps and plays `detentHaptic` on the trackpad on the same frame. Drawn track `Control.sliderTrack` 6 pt in `Fill.track`, fill white or the music tint; hit area `Control.rowHeight` 28 pt. | No stretch: a hard stop at the ends. Snap and haptic stay. |
 
 `NotchSuccessMorph` (a ViewModifier, applied as `.notchSuccessMorph(...)`): the control's glyph morphs to `checkmark` (symbol replace effect, `Motion.bouncy`), holds `successMorphDuration` 1.2 s, then morphs back. Under Reduce Motion it cross-fades. Use it where the result is not otherwise visible: copied, saved, exported, sent to a device.
 
-Timing asymmetry `[Emil]`: slow where the person decides (the fuse, 2.5 s linear), fast where the system answers (press 0.1 s, release on a 0.25 s spring, exit 0.12 s).
+Timing asymmetry `[Emil]`: slow where the person decides (the fuse, 2 s linear), fast where the system answers (press 0.1 s, release on a 0.25 s spring, exit 0.12 s).
 
 **By control kind.** Builders follow this table literally; the next one lists every control page by page.
 

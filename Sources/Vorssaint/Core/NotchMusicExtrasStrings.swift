@@ -77,7 +77,7 @@ extension FeatureStrings {
             allowPlayback: "Allow playback control",
             automationPermission: "Playback automation",
             automationExplanation: "Some music apps require permission for their playback controls. Authorize the selected player from Dynamic Island; access is granted separately for each app.",
-            queue: "Up next",
+            queue: "Up Next",
             queueDescription: "See the actual upcoming songs shared by your player.",
             enableQueue: "Show upcoming songs",
             queueUnavailable: "This player does not share its upcoming songs.",

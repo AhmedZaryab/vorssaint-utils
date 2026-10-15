@@ -54,7 +54,7 @@ extension FeatureStrings {
             denied: "Allow calendar access in System Settings to see your appointments.",
             settings: "Open System Settings",
             empty: "No upcoming appointments",
-            next: "Up next",
+            next: "Up Next",
             ongoing: "Happening now",
             allDay: "All day",
             untitled: "Untitled event",

@@ -41,7 +41,7 @@ enum NotchDesign {
         /** Shrink on both axes together, no overshoot. */ static let shrinkSpring = Spring(response: 0.30, dampingFraction: 1)
         /** The farthest a growing side may pass its target, in points. */ static let overshootLimit: CGFloat = 8
         /** Content arrives the way Dynamic Island does: it starts 0.12 s in, under blur, while the shape is still growing, and the 0.18 s fade from the 4 pt blur is sharp by 0.30 s. Never scaled, clipped to the growing shape. */ static let contentRevealDelay: TimeInterval = 0.12
-        /** Content then fades in over this, fully in by 0.3 s. It never scales, so it is never squished. */ static let contentRevealDuration: TimeInterval = 0.18
+        /** Content then fades in over this, fully in at the delay plus this (0.30 s). It never scales, so it is never squished. */ static let contentRevealDuration: TimeInterval = 0.18
         /** The blur content arrives from, in points; none under Reduce Motion. */ static let contentRevealBlur: CGFloat = 4
         /** Content leaves this fast, ease out; the shrink starts halfway through it. */ static let contentExitDuration: TimeInterval = 0.12
         /** Under Reduce Motion the silhouette resizes on an ease out this long, no spring. */ static let reducedMotionResize: TimeInterval = 0.2
@@ -70,16 +70,29 @@ enum NotchDesign {
     struct TypeStyle {
         let style: Font.TextStyle
         let weight: Weight
-        var rounded = false
-        /// The SwiftUI font.
-        var font: Font { .system(style, design: rounded ? .rounded : .default, weight: weight.font) }
-        /// The same face for AppKit measuring, as NotchLayout and the capsule layouts do.
-        var nsFont: NSFont {
+        let rounded: Bool
+        /// The AppKit face, built once: layout reads it many times a pass (NotchLayout.wings, preferredWings).
+        let nsFont: NSFont
+        init(style: Font.TextStyle, weight: Weight, rounded: Bool = false) {
+            self.style = style
+            self.weight = weight
+            self.rounded = rounded
             let size = NSFont.preferredFont(forTextStyle: Self.appKitStyles[style] ?? .body).pointSize
             let font = NSFont.systemFont(ofSize: size, weight: weight.appKit)
-            guard rounded, let descriptor = font.fontDescriptor.withDesign(.rounded) else { return font }
-            return NSFont(descriptor: descriptor, size: size) ?? font
+            if rounded, let descriptor = font.fontDescriptor.withDesign(.rounded) {
+                self.nsFont = NSFont(descriptor: descriptor, size: size) ?? font
+            } else {
+                self.nsFont = font
+            }
         }
+        /// The smallest point size anything in the notch draws at.
+        static let minimumPointSize: CGFloat = 10
+        /// The style's size in points.
+        var pointSize: CGFloat { nsFont.pointSize }
+        /// For `minimumScaleFactor`: the most this style may shrink before it sits under minimumPointSize. Truncate instead of going lower.
+        var minimumScale: CGFloat { min(1, Self.minimumPointSize / pointSize) }
+        /// The SwiftUI font.
+        var font: Font { .system(style, design: rounded ? .rounded : .default, weight: weight.font) }
         private static let appKitStyles: [Font.TextStyle: NSFont.TextStyle] = [
             .largeTitle: .largeTitle, .title: .title1, .title2: .title2, .title3: .title3, .headline: .headline,
             .subheadline: .subheadline, .body: .body, .callout: .callout, .footnote: .footnote,
@@ -103,6 +116,7 @@ enum NotchDesign {
     enum Icon {
         /** A glyph in a 28 pt icon button: 13 pt. */ static let button = TypeStyle(style: .body, weight: .medium)
         /** A glyph beside the closed island's and a peek's text: 12 pt. */ static let strip = TypeStyle(style: .callout, weight: .semibold)
+        /** A mark in a compact peek's wing or a closed strip, filling Peek.wingArtwork (20 pt); one size for notices, strips and agent marks so a mark never resizes as a strip becomes a notice. Icon.strip stays for glyphs inline with text. */ static let wing = TypeStyle(style: .title2, weight: .medium)
         /** A shortcut tile's glyph in its 40 pt circle: 17 pt. */ static let tile = TypeStyle(style: .title2, weight: .medium)
         /** Previous and next, shuffle: 17 pt. */ static let transport = TypeStyle(style: .title2, weight: .semibold)
         /** Play and pause: 26 pt. */ static let transportPrimary = TypeStyle(style: .largeTitle, weight: .semibold)
@@ -121,6 +135,23 @@ enum NotchDesign {
         /** See Opacity.secondary. */ static let secondary = Color.white.opacity(Opacity.secondary)
         /** See Opacity.tertiary. */ static let tertiary = Color.white.opacity(Opacity.tertiary)
         /** Text and glyphs on Fill.inverse. */ static let onInverse = Color.black
+        /// Placeholders and instructions that must stay legible: tertiary, rising to 0.6 under Increase Contrast. A ShapeStyle, so use it in foregroundStyle.
+        static let hint = HintInk()
+        /// Hint ink as a Color for views that already read colorSchemeContrast.
+        static func hint(_ contrast: ColorSchemeContrast) -> Color { contrast == .increased ? secondary : tertiary }
+        /// White unless white would fall under 4.5 to 1 on `fill`, then Ink.onInverse. Use on any coloured fill: pills, tile glyphs, toggle faces, tints.
+        static func onFill(_ fill: Color) -> Color {
+            guard let rgb = NSColor(fill).usingColorSpace(.sRGB) else { return primary }
+            func linear(_ c: CGFloat) -> CGFloat { c <= 0.03928 ? c / 12.92 : pow((c + 0.055) / 1.055, 2.4) }
+            let luminance = 0.2126 * linear(rgb.redComponent) + 0.7152 * linear(rgb.greenComponent) + 0.0722 * linear(rgb.blueComponent)
+            return 1.05 / (luminance + 0.05) < 4.5 ? onInverse : primary
+        }
+    }
+    /// See Ink.hint.
+    struct HintInk: ShapeStyle {
+        func resolve(in environment: EnvironmentValues) -> Color {
+            environment.colorSchemeContrast == .increased ? Ink.secondary : Ink.tertiary
+        }
     }
     /// One accent and three signals. Nothing else is coloured but content.
     enum Palette {
@@ -180,11 +211,17 @@ enum NotchDesign {
     }
     /// Content motion. The silhouette's own springs live in Geometry.
     enum Motion {
-        /** Press release, toggles, hover lift, selection moving: quick, no overshoot. */ static let snappy = Spring(response: 0.25, dampingFraction: 1)
+        /** Press release, toggles, hover wash timing, selection moving: quick, no overshoot. */ static let snappy = Spring(response: 0.25, dampingFraction: 1)
         /** Content that moves or resizes: rows, page content, a thumb settling. */ static let smooth = Spring(response: 0.4, dampingFraction: 1)
         /** Only after momentum or a commit: a launch, a success landing, a released swipe. */ static let bouncy = Spring(response: 0.4, dampingFraction: 0.8)
-        /** Opacity cross-fades: the one motion Reduce Motion keeps. */ static let fade = Animation.easeOut(duration: 0.18)
-        /** Anything leaving: faster than it came, and never ease in. */ static let exit = Animation.easeOut(duration: 0.12)
+        /** Opacity cross-fades: the one motion Reduce Motion keeps. */ static let fade = easeOut(0.18)
+        /** Anything leaving: faster than it came, and never ease in. */ static let exit = easeOut(0.12)
+        /** A hover wash and a dimmed value fading: 0.15 s ease out. */ static let hover = easeOut(0.15)
+        /** A symbol swapping for another in place (play to pause): 0.25 s, no bounce. */ static let symbolMorph = Spring(response: 0.25, dampingFraction: 1)
+        /** A closed-island width that follows a live value (volume keys): a quick settle, under 300 ms. */ static let steady = Spring(response: 0.25, dampingFraction: 1)
+        /** Detail text or a level changing under a peek: 0.14 s ease out. */ static let valueChange = easeOut(0.14)
+        /** A tint or palette following new artwork, a slow ambient change (never user-initiated): 0.6 s. */ static let ambient = easeOut(0.6)
+        /** Two views replacing each other in place: 0.18 s, the same as fade. */ static let replaceDuration: TimeInterval = 0.18
         /** No transient animation runs longer than this, as Live Activities. */ static let ceiling: TimeInterval = 2
         /// Apple's strong ease out for something entering on a fixed time.
         static func easeOut(_ duration: TimeInterval) -> Animation { .timingCurve(0.23, 1, 0.32, 1, duration: duration) }
@@ -200,7 +237,13 @@ enum NotchDesign {
         /** NotchCommitButton held past its threshold, about to fire. */ static let armedScale: CGFloat = 1.04
         /** Travel before a press becomes a drag, in points. */ static let dragThreshold: CGFloat = 4
         /** NotchSuccessMorph: how long the done state holds before the control returns. */ static let successMorphDuration: TimeInterval = 1.2
-        /** NotchFuseButton: the burn before a destructive action commits; Escape or a click undoes it. */ static let fuseDuration: TimeInterval = 2.5
+        /** NotchFuseButton: the burn before a destructive action commits; Escape or a click undoes it. Two seconds linear, inside Motion.ceiling. */ static let fuseDuration: TimeInterval = 2.0
+        /** The one-shot nudge a control gives when its result lands (a kick): 0.3 s. */ static let kickDuration: TimeInterval = 0.3
+        /** A slung control's burst: 0.35 s. */ static let slingBurst: TimeInterval = 0.35
+        /** A sling following the pointer. */ static let slingTrack = Animation.interactiveSpring(response: 0.1, dampingFraction: 0.9)
+        /** A sling's recoil spring: 0.38 s, a little bounce. */ static let slingRecoil = Spring(response: 0.38, dampingFraction: 0.76)
+        /** The fuse button's face changing between idle and burning: 0.2 s ease out. */ static let fuseFace = Motion.easeOut(0.2)
+        /** A value's number or label cross-fading: 0.15 s ease out. */ static let valueFade = Motion.easeOut(0.15)
         /** NotchFuseButton: the burning rim's width. */ static let fuseLineWidth: CGFloat = 1.5
         /** NotchCommitButton: particles in the burst when it fires. */ static let burstParticleCount = 8
         /** NotchCommitButton: particle diameter, in points. */ static let burstParticleSize: CGFloat = 3
@@ -234,6 +277,7 @@ enum NotchDesign {
         /** Compact peek: the widest a wing beside the camera may grow. */ static let wingMaximum: CGFloat = 96
         /** Compact peek: the narrowest wing, its curved end and some air. */ static let wingMinimum: CGFloat = 36
         /** Compact peek: a glyph or cover in a wing. */ static let wingArtwork: CGFloat = 20
+        /** Content waits this long inside a peek before it fades in. Zero: a volume, brightness, keyboard light or Copied notice answers on the first frame with the grow, no blur, as the system HUD does; keyboard-initiated moments never wait. */ static let contentRevealDelay: TimeInterval = 0
         /** Tall peek: the band grown below the strip. */ static let bandHeight: CGFloat = 60
         /** Tall peek: the band is the resting island's width but never narrower than this. */ static let bandMinimumWidth: CGFloat = 300
         /** Tall peek: never wider than this; text truncates, the island does not widen for it. */ static let bandMaximumWidth: CGFloat = 360

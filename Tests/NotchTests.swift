@@ -2660,9 +2660,10 @@ enum NotchTests {
                         .hasPrefix("·")
                      && endText == "→\u{2009}" + meeting.end.formatted(.dateTime.hour().minute().locale(posix)),
                      "the time beside the clock is when the next event starts or when the current one ends")
-        suite.expect(NotchCalendarSupport.countdownText(until: now.addingTimeInterval(hour), now: now) == "60:00"
-                     && NotchCalendarSupport.countdownText(until: now.addingTimeInterval(61), now: now) == "1:01"
-                     && NotchCalendarSupport.countdownText(until: now, now: now) == "0:00",
+        suite.expect(NotchCalendarSupport.countdownText(until: now.addingTimeInterval(hour), now: now, locale: posix) == "60 min"
+                     && NotchCalendarSupport.countdownText(until: now.addingTimeInterval(61), now: now, locale: posix) == "2 min"
+                     && NotchCalendarSupport.countdownText(until: now.addingTimeInterval(45), now: now, locale: posix) == "45 sec"
+                     && NotchCalendarSupport.countdownText(until: now, now: now, locale: posix) == "0 sec",
                      "the compact clock includes seconds and never shows negative time")
         let physical = NotchGeometry(screen: CGRect(x: 0, y: 0, width: 1440, height: 900),
                                      safeAreaTop: 32, cameraWidth: 180, compactSideRoom: 120)
