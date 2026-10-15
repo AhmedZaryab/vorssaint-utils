@@ -41,30 +41,30 @@ private struct NotchDownloadsSetupView: View {
 
     var body: some View {
         ViewThatFits(in: .vertical) {
-            VStack(spacing: 12) {
+            VStack(spacing: NotchDesign.Spacing.medium) {
                 glyph
                 copy.multilineTextAlignment(.center)
                 actions
             }
-            HStack(spacing: 16) {
+            HStack(spacing: NotchDesign.Spacing.large) {
                 glyph
-                VStack(alignment: .leading, spacing: 10) {
+                VStack(alignment: .leading, spacing: NotchDesign.Spacing.medium) {
                     copy.multilineTextAlignment(.leading)
                     actions
                 }
             }
         }
         .frame(maxWidth: 360)
-        .padding(12)
+        .padding(NotchDesign.Spacing.medium)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private var glyph: some View {
         Image(systemName: downloads.folderUnavailable ? "exclamationmark.triangle" : "arrow.down.circle")
-            .font(.system(size: 26, weight: .light))
-            .foregroundStyle(.white.opacity(0.65))
-            .frame(width: 56, height: 56)
-            .background(.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .font(NotchDesign.Icon.hero.font)
+            .foregroundStyle(NotchDesign.Ink.secondary)
+            .frame(width: NotchDesign.Control.heroGlyph, height: NotchDesign.Control.heroGlyph)
+            .background(NotchDesign.Fill.card, in: RoundedRectangle(cornerRadius: NotchDesign.Radius.card, style: .continuous))
             .accessibilityHidden(true)
     }
 
@@ -73,8 +73,8 @@ private struct NotchDownloadsSetupView: View {
         // folder to choose.
         Text(downloads.folderUnavailable ? text.folderUnavailable
              : offersSwitchOnly ? text.downloadsTitle : enabled ? text.downloadsHint : text.downloadsDescription)
-            .font(.system(size: 12))
-            .foregroundStyle(downloads.folderUnavailable ? Color.orange : .white.opacity(0.65))
+            .font(NotchDesign.Typography.callout.font)
+            .foregroundStyle(downloads.folderUnavailable ? NotchDesign.Palette.warning : NotchDesign.Ink.secondary)
             .fixedSize(horizontal: false, vertical: true)
     }
 
@@ -95,28 +95,49 @@ private struct NotchDownloadsSetupView: View {
     }
 
     private var chooseActions: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: NotchDesign.Spacing.small) {
             Button(action: downloads.chooseFolder) {
                 Text(text.chooseFolder)
-                    .font(.system(size: 12, weight: .semibold))
-                    .padding(.horizontal, 14)
-                    .frame(height: 28)
-                    .background(.white.opacity(0.14), in: Capsule())
-                    .contentShape(Capsule())
+                    .font(NotchDesign.Typography.callout.font.weight(NotchDesign.Weight.semibold.font))
+                    .foregroundStyle(NotchDesign.Ink.primary)
+                    .padding(.horizontal, NotchDesign.Spacing.medium)
+                    .frame(height: NotchDesign.Control.rowHeight)
+                    .background(NotchDesign.Fill.control, in: Capsule(style: .continuous))
+                    .contentShape(Capsule(style: .continuous))
             }
-            .buttonStyle(NotchButtonStyle(cornerRadius: 14))
+            .buttonStyle(NotchPressStyle(shape: .capsule, washes: false))
             if downloads.folderUnavailable {
                 Button(action: downloads.forgetFolder) {
                     Text(text.clearFolder)
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(.white.opacity(0.7))
-                        .padding(.horizontal, 10)
-                        .frame(height: 28)
-                        .contentShape(Capsule())
+                        .font(NotchDesign.Typography.callout.font.weight(NotchDesign.Weight.medium.font))
+                        .foregroundStyle(NotchDesign.Ink.secondary)
+                        .padding(.horizontal, NotchDesign.Spacing.medium)
+                        .frame(height: NotchDesign.Control.rowHeight)
+                        .contentShape(Capsule(style: .continuous))
                 }
-                .buttonStyle(NotchButtonStyle(cornerRadius: 14))
+                .buttonStyle(NotchPressStyle(shape: .capsule))
             }
         }
+    }
+}
+
+/// A 28 pt icon plate for the header and the finished rows: press class, a wash
+/// under the pointer, and an optional success morph for results that land in place.
+private struct NotchDownloadsIconButton: View {
+    let symbol: String
+    let title: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .font(NotchDesign.Icon.button.font)
+                .foregroundStyle(NotchDesign.Ink.secondary)
+                .frame(width: NotchDesign.Control.iconButton, height: NotchDesign.Control.iconButton)
+        }
+        .buttonStyle(NotchPressStyle(shape: .rounded(NotchDesign.Radius.control)))
+        .help(title)
+        .accessibilityLabel(title)
     }
 }
 
@@ -133,26 +154,24 @@ struct NotchDownloadsView: View {
             if !enabled || downloads.folderName == nil || downloads.folderUnavailable {
                 NotchDownloadsSetupView()
             } else {
-                HStack {
+                HStack(spacing: NotchDesign.Spacing.xSmall) {
                     Label(downloads.folderName ?? text.downloadsTitle, systemImage: "folder")
+                        .font(NotchDesign.Typography.callout.font)
+                        .foregroundStyle(NotchDesign.Ink.secondary)
                         .lineLimit(1).truncationMode(.middle)
-                    Spacer()
-                    Menu {
-                        Button(text.chooseFolder, action: downloads.chooseFolder)
-                        Button(text.clearFolder, action: downloads.forgetFolder)
-                    } label: { Image(systemName: "ellipsis.circle") }
-                    .menuStyle(.borderlessButton)
-                    .fixedSize()
-                    .accessibilityLabel(FeatureStrings.notch(l10n.language).events)
+                    Spacer(minLength: NotchDesign.Spacing.small)
+                    NotchDownloadsIconButton(symbol: "folder.badge.gearshape", title: text.chooseFolder,
+                                             action: downloads.chooseFolder)
+                    NotchFuseButton(text.clearFolder, symbol: "xmark.circle", doneAnnouncement: text.clearFolder,
+                                    shape: .rounded(NotchDesign.Radius.control), onCommit: downloads.forgetFolder)
                 }
-                .font(.caption).foregroundStyle(.secondary)
-                .frame(height: 20)
+                .frame(height: NotchDesign.Control.rowHeight)
                 if downloads.items.isEmpty {
                     NotchEmptyView(symbol: "arrow.down.circle", message: text.waiting)
                         .frame(maxHeight: .infinity)
                 } else {
                     ScrollView {
-                        LazyVStack(spacing: 8) {
+                        LazyVStack(spacing: NotchDesign.Spacing.gutter) {
                             ForEach(downloads.items) { item in
                                 downloadCard(item)
                             }
@@ -167,65 +186,101 @@ struct NotchDownloadsView: View {
         .onDisappear { if !preview { downloads.cancelNotchFolderChoice() } }
     }
 
+    /// A row in Safari's downloads shape: the file's plate, name over status,
+    /// the reading at the trailing edge, progress as a meter while it runs.
     private func downloadCard(_ item: NotchDownloadItem) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 8) {
-                let fileLabel = HStack(spacing: 8) {
+        VStack(alignment: .leading, spacing: NotchDesign.Spacing.xSmall) {
+            HStack(spacing: NotchDesign.Spacing.small) {
+                let fileLabel = HStack(spacing: NotchDesign.Spacing.small) {
                     Image(systemName: item.completed ? "checkmark.circle.fill" : "arrow.down.circle")
-                        .foregroundStyle(item.completed ? .green : .white)
+                        .font(NotchDesign.Icon.button.font)
+                        .foregroundStyle(item.completed ? NotchDesign.Palette.positive : NotchDesign.Ink.primary)
+                        .frame(width: NotchDesign.Control.iconButton, height: NotchDesign.Control.iconButton)
+                        .background(NotchDesign.Fill.control,
+                                    in: RoundedRectangle(cornerRadius: NotchDesign.Radius.control, style: .continuous))
                         .accessibilityHidden(true)
-                    Text(item.name).font(.system(size: 12, weight: .medium)).lineLimit(1).truncationMode(.middle)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                    VStack(alignment: .leading, spacing: NotchDesign.Spacing.line) {
+                        Text(item.name).font(NotchDesign.Typography.title.font)
+                            .foregroundStyle(NotchDesign.Ink.primary)
+                            .lineLimit(1).truncationMode(.middle)
+                        Text(item.completed ? text.saved : item.active ? text.inProgress : "")
+                            .font(NotchDesign.Typography.callout.font)
+                            .foregroundStyle(NotchDesign.Ink.secondary).lineLimit(1)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 if item.completed {
                     Button {
                         if !NSWorkspace.shared.open(item.url) { NSSound.beep() }
                     } label: {
-                        fileLabel.frame(minHeight: 28).contentShape(Rectangle())
+                        fileLabel.frame(minHeight: NotchDesign.Control.minimumHit).contentShape(Rectangle())
                     }
-                    .buttonStyle(NotchButtonStyle(cornerRadius: 6, lifts: false))
+                    .buttonStyle(NotchPressStyle(shape: .rounded(NotchDesign.Radius.control), lifts: false))
                     .help(l10n.s.shelfActionOpen)
                     .accessibilityHint(l10n.s.shelfActionOpen)
-                    NotchIconButton(symbol: "folder", title: l10n.s.mediaOpenInFinder) {
+                    NotchDownloadsIconButton(symbol: "folder", title: l10n.s.mediaOpenInFinder) {
                         NSWorkspace.shared.activateFileViewerSelecting([item.url])
                     }
                     if AppFeature.shelf.isAvailable {
-                        NotchIconButton(symbol: "tray.and.arrow.down", title: FeatureStrings.notch(l10n.language).files) {
-                            _ = ShelfService.shared.addFiles([item.url])
-                        }
+                        ShelfAddButton(url: item.url, title: FeatureStrings.notch(l10n.language).files)
                     }
                 } else {
                     fileLabel
                     if let fraction = item.fraction {
                         Text(fraction, format: .percent.precision(.fractionLength(0)))
-                            .font(.caption).monospacedDigit()
+                            .font(NotchDesign.Typography.readout.font).monospacedDigit()
+                            .foregroundStyle(NotchDesign.Ink.primary)
+                            .contentTransition(.numericText())
                     }
                 }
             }
-            if item.completed {
-                Text(text.saved).font(.caption).foregroundStyle(.secondary)
-            } else {
+            if !item.completed {
                 if let fraction = item.fraction {
-                    NotchMeter(value: fraction)
+                    NotchMeter(value: fraction, height: NotchDesign.Control.meter, tint: NotchDesign.Palette.accent)
+                        .animation(NotchDesign.Motion.smooth.animation, value: fraction)
                 } else if item.active {
                     ProgressView().controlSize(.small)
                 }
                 HStack {
-                    Text(item.active ? text.inProgress : "")
                     Spacer()
                     if let bytes = item.receivedBytes, bytes > 0 {
                         Text(ByteCountFormatter.string(fromByteCount: bytes, countStyle: .file))
                     } else if item.fraction == nil {
                         Text(text.totalUnknown)
                     }
-                }.font(.caption2).foregroundStyle(.secondary).lineLimit(1)
+                }.font(NotchDesign.Typography.caption.font).monospacedDigit()
+                    .foregroundStyle(NotchDesign.Ink.secondary).lineLimit(1)
             }
         }
-        .padding(12)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .background(.white.opacity(0.07), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .padding(NotchDesign.Spacing.cardPadding)
+        .frame(maxWidth: .infinity, alignment: .topLeading)
+        .background(NotchDesign.Fill.card,
+                    in: RoundedRectangle(cornerRadius: NotchDesign.Radius.card, style: .continuous))
         .clipped()
         .accessibilityElement(children: .contain)
+    }
+}
+
+/// Adds a finished download to the shelf; the glyph morphs to a check where it
+/// stands, since the result lands in place.
+private struct ShelfAddButton: View {
+    let url: URL
+    let title: String
+    @State private var added = 0
+
+    var body: some View {
+        Button {
+            if ShelfService.shared.addFiles([url]) { added += 1 }
+        } label: {
+            Image(systemName: "tray.and.arrow.down")
+                .notchSuccessMorph(trigger: added)
+                .font(NotchDesign.Icon.button.font)
+                .foregroundStyle(NotchDesign.Ink.secondary)
+                .frame(width: NotchDesign.Control.iconButton, height: NotchDesign.Control.iconButton)
+        }
+        .buttonStyle(NotchPressStyle(shape: .rounded(NotchDesign.Radius.control)))
+        .help(title)
+        .accessibilityLabel(title)
     }
 }
 
@@ -250,7 +305,7 @@ struct NotchDownloadStrip: View {
         let item = downloads.items.first { $0.active && !$0.completed }
         Button { service.openActivity(.downloads) } label: {
             HStack(spacing: 0) {
-                HStack(spacing: 6) {
+                HStack(spacing: NotchDesign.Spacing.xSmall) {
                     if geometry.compactActivityWingWidth >= 40 {
                         Image(systemName: "arrow.down.circle.fill").font(.system(size: iconSize))
                         if NotchDownloadSupport.showsCompactName(in: geometry) {
@@ -260,16 +315,17 @@ struct NotchDownloadStrip: View {
                     }
                 }
                 .padding(.leading, geometry.compactActivityWingWidth >= 40 ? iconInset : 0)
-                .padding(.trailing, 4)
+                .padding(.trailing, NotchDesign.Spacing.xxSmall)
                 // Each wing anchors to its own edge, so the silhouette's curve
                 // decides the margin instead of the content's own width.
                 .frame(width: geometry.compactActivityWingWidth, alignment: .leading).clipped()
                 Color.clear.frame(width: geometry.compactActivityCameraGap)
-                HStack(spacing: 6) {
+                HStack(spacing: NotchDesign.Spacing.xSmall) {
                     // The name widens both wings; the bar fills the side the
                     // percentage alone would leave as a band of black.
                     if NotchDownloadSupport.showsCompactName(in: geometry), let fraction = item?.fraction {
-                        NotchMeter(value: fraction, height: 4).padding(.leading, 4)
+                        NotchMeter(value: fraction, height: NotchDesign.Control.meter, tint: NotchDesign.Palette.accent)
+                            .padding(.leading, NotchDesign.Spacing.xxSmall)
                     } else {
                         Spacer(minLength: 0)
                     }

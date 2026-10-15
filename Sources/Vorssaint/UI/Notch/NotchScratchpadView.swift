@@ -16,12 +16,13 @@ struct NotchScratchpadView: View {
     @ObservedObject private var l10n = L10n.shared
     @State private var loadFailed = false
     @State private var copied = false
+    @State private var copyCount = 0
     @State private var hoveredPadID: UUID?
     @State private var editor = EditorHandle()
     @AppStorage(DefaultsKey.scratchpadTextSize) private var storedTextSize = ScratchpadSupport.defaultTextSize
     private var text: ScratchpadFeatureStrings { FeatureStrings.scratchpad(l10n.language) }
     private var textSize: CGFloat { CGFloat(ScratchpadSupport.sanitizedTextSize(storedTextSize)) }
-    private static let editorInset = NSSize(width: 6, height: 6)
+    private static let editorInset = NSSize(width: NotchDesign.Spacing.xSmall, height: NotchDesign.Spacing.xSmall)
 
     /// Holds the editor's text view so a tab change can aim the caret at it
     /// and a clear can go through its undo. Weak, since the view belongs to
@@ -37,20 +38,20 @@ struct NotchScratchpadView: View {
             if loadFailed {
                 NotchEmptyView(symbol: "exclamationmark.triangle", message: text.loadFailed)
             } else {
-                VStack(spacing: 6) {
+                VStack(spacing: NotchDesign.Spacing.xSmall) {
                     toolbar
                     if pad.saveFailed {
                         Label(text.saveFailed, systemImage: "exclamationmark.triangle")
-                            .font(.system(size: 10.5)).foregroundStyle(.white.opacity(0.6))
+                            .font(NotchDesign.Typography.caption.font).foregroundStyle(NotchDesign.Ink.secondary)
                             .fixedSize(horizontal: false, vertical: true)
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
                     ZStack(alignment: .topLeading) {
                         PlainTextEditor(text: $pad.text, fontSize: textSize,
-                                        textColor: .white,
+                                        textColor: NSColor(NotchDesign.Ink.primary),
                                         textContainerInset: Self.editorInset,
                                         usesFindBar: true) { view in
-                            view.insertionPointColor = .white
+                            view.insertionPointColor = NSColor(NotchDesign.Palette.accent)
                             editor.view = view
                             DispatchQueue.main.async { focusEditor() }
                         }
@@ -63,7 +64,7 @@ struct NotchScratchpadView: View {
                         } else if pad.text.isEmpty {
                             Text(text.placeholder)
                                 .font(.system(size: textSize))
-                                .foregroundStyle(.white.opacity(0.35))
+                                .foregroundStyle(NotchDesign.Ink.tertiary)
                                 .padding(.leading, Self.editorInset.width + PlainTextEditor.lineFragmentPadding)
                                 .padding(.top, Self.editorInset.height)
                                 .allowsHitTesting(false)
@@ -71,7 +72,7 @@ struct NotchScratchpadView: View {
                         }
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .modifier(NotchControlSurface(cornerRadius: 12, interactive: false))
+                    .modifier(NotchControlSurface(cornerRadius: NotchDesign.Radius.card, interactive: false))
                 }
             }
         }
@@ -118,7 +119,7 @@ struct NotchScratchpadView: View {
     private var tabStrip: some View {
         ScrollViewReader { proxy in
             ScrollView(.horizontal) {
-                HStack(spacing: 4) {
+                HStack(spacing: NotchDesign.Spacing.xxSmall) {
                     ForEach(pad.pads) { entry in tab(entry).id(entry.id) }
                 }
             }
@@ -129,7 +130,7 @@ struct NotchScratchpadView: View {
             }
             .onChange(of: pad.selectedPadID) { _, selected in
                 guard let selected else { return }
-                withAnimation(.easeOut(duration: 0.15)) { proxy.scrollTo(selected, anchor: .center) }
+                withAnimation(NotchDesign.Motion.snappy.animation) { proxy.scrollTo(selected, anchor: .center) }
             }
         }
     }
@@ -139,7 +140,7 @@ struct NotchScratchpadView: View {
     }
 
     private var toolbar: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: NotchDesign.Spacing.xxSmall) {
             // The island has one row to spend. The marks take the tab strip's
             // place while they are up rather than squeezing in beside it, and
             // the chip stays put so the same click puts the tabs back.
@@ -148,26 +149,26 @@ struct NotchScratchpadView: View {
             } else {
                 tabStrip
             }
-            NotchIconButton(symbol: "textformat",
-                            title: text.formatMarks,
-                            selected: pad.marksExpanded) {
-                withAnimation(.easeOut(duration: 0.15)) { pad.toggleMarks() }
+            ToolbarButton(symbol: "textformat", title: text.formatMarks, selected: pad.marksExpanded) {
+                withAnimation(NotchDesign.Motion.snappy.animation) { pad.toggleMarks() }
             }
             .disabled(pad.isPreviewing)
-            NotchIconButton(symbol: "plus",
-                            title: pad.canCreatePad
-                                ? text.newPad
-                                : String(format: text.padLimitFormat, ScratchpadDocument.maximumPadCount)) {
+            ToolbarButton(symbol: "plus",
+                          title: pad.canCreatePad
+                              ? text.newPad
+                              : String(format: text.padLimitFormat, ScratchpadDocument.maximumPadCount)) {
                 pad.createPad(defaultName: text.pageTitle)
             }
             .disabled(!pad.canCreatePad)
-            NotchIconButton(symbol: pad.isPreviewing ? "pencil" : "eye",
-                            title: pad.isPreviewing ? text.editText : text.previewFormatting,
-                            selected: pad.isPreviewing, action: pad.togglePreview)
+            ToolbarButton(symbol: pad.isPreviewing ? "pencil" : "eye",
+                          title: pad.isPreviewing ? text.editText : text.previewFormatting,
+                          selected: pad.isPreviewing, action: pad.togglePreview)
                 .disabled(pad.text.isEmpty)
-            NotchIconButton(symbol: copied ? "checkmark" : "doc.on.doc", title: copied ? text.copied : text.copyAll) {
+            ToolbarButton(symbol: "doc.on.doc", title: copied ? text.copied : text.copyAll,
+                          morphTrigger: copyCount) {
                 pad.copyAll()
                 copied = true
+                copyCount += 1
             }
             .disabled(pad.text.isEmpty)
             Menu {
@@ -190,10 +191,10 @@ struct NotchScratchpadView: View {
                 Button(text.openButton) { service.perform { pad.show(allowsIsland: false) } }
             } label: {
                 Image(systemName: "ellipsis")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.55))
-                    .frame(width: 28, height: 28)
-                    .contentShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
+                    .font(NotchDesign.Icon.button.font)
+                    .foregroundStyle(NotchDesign.Ink.secondary)
+                    .frame(width: NotchDesign.Control.iconButton, height: NotchDesign.Control.iconButton)
+                    .contentShape(RoundedRectangle(cornerRadius: NotchDesign.Radius.control, style: .continuous))
             }
             .menuStyle(.borderlessButton)
             .menuIndicator(.hidden)
@@ -201,7 +202,7 @@ struct NotchScratchpadView: View {
             .help(text.padActions)
             .accessibilityLabel(text.padActions)
         }
-        .frame(height: 24)
+        .frame(height: NotchDesign.Control.rowHeight)
     }
 
     /// The cross shows on the selected tab and under the pointer, as in the
@@ -212,14 +213,14 @@ struct NotchScratchpadView: View {
         return Button { pad.selectPad(entry.id) } label: {
             HStack(spacing: 4) {
                 Text(entry.name)
-                    .font(.system(size: 11, weight: .medium))
+                    .font(NotchDesign.Typography.label.font)
                     .lineLimit(1)
                 if showsClose {
                     Button { requestClose(entry) } label: {
                         Image(systemName: "xmark")
-                            .font(.system(size: 8, weight: .semibold))
-                            .foregroundStyle(.white.opacity(0.6))
-                            .frame(width: 14, height: 14)
+                            .font(NotchDesign.Typography.caption.font)
+                            .foregroundStyle(NotchDesign.Ink.secondary)
+                            .frame(width: NotchDesign.Control.minimumHit / 2, height: NotchDesign.Control.minimumHit / 2)
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
@@ -227,14 +228,15 @@ struct NotchScratchpadView: View {
                     .accessibilityLabel(text.closePad)
                 }
             }
-            .foregroundStyle(selected ? .white : .white.opacity(0.6))
-            .padding(.leading, 10)
-            .padding(.trailing, showsClose ? 5 : 10)
-            .frame(height: 22)
-            .background(.white.opacity(selected ? 0.14 : 0.05), in: Capsule())
-            .contentShape(Capsule())
+            .foregroundStyle(selected ? NotchDesign.Ink.primary : NotchDesign.Ink.secondary)
+            .padding(.leading, NotchDesign.Spacing.small)
+            .padding(.trailing, showsClose ? NotchDesign.Spacing.line : NotchDesign.Spacing.small)
+            .frame(height: NotchDesign.Control.rowHeight - NotchDesign.Spacing.xxSmall)
+            .background(selected ? NotchDesign.Fill.selected : NotchDesign.Fill.card,
+                        in: RoundedRectangle(cornerRadius: NotchDesign.Radius.control, style: .continuous))
+            .contentShape(RoundedRectangle(cornerRadius: NotchDesign.Radius.control, style: .continuous))
         }
-        .buttonStyle(NotchButtonStyle(cornerRadius: 11, lifts: false))
+        .buttonStyle(NotchPressStyle(shape: .rounded(NotchDesign.Radius.control), lifts: false, washes: false))
         .onHover { hovering in
             if hovering { hoveredPadID = entry.id } else if hoveredPadID == entry.id { hoveredPadID = nil }
         }
@@ -284,6 +286,40 @@ struct NotchScratchpadView: View {
             alert.addButton(withTitle: text.cancel)
             guard NotchIslandAlert.run(alert, above: service.presentationWindow) == .alertFirstButtonReturn else { return }
             _ = pad.closePad(entry.id)
+        }
+    }
+
+    /// A 28 pt toolbar plate on the press class: a wash under the pointer, the
+    /// press settling on mouse down, the chosen state on Fill.selected. A copy
+    /// button passes `morphTrigger` and its glyph becomes a check where it stands.
+    private struct ToolbarButton: View {
+        let symbol: String
+        let title: String
+        var selected = false
+        var morphTrigger: Int?
+        let action: () -> Void
+
+        var body: some View {
+            Button(action: action) {
+                glyph
+                    .font(NotchDesign.Icon.button.font)
+                    .foregroundStyle(selected ? NotchDesign.Ink.primary : NotchDesign.Ink.secondary)
+                    .frame(width: NotchDesign.Control.iconButton, height: NotchDesign.Control.iconButton)
+                    .background(selected ? NotchDesign.Fill.selected : .clear,
+                                in: RoundedRectangle(cornerRadius: NotchDesign.Radius.control, style: .continuous))
+            }
+            .buttonStyle(NotchPressStyle(shape: .rounded(NotchDesign.Radius.control)))
+            .help(title)
+            .accessibilityLabel(title)
+            .accessibilityAddTraits(selected ? .isSelected : [])
+        }
+
+        @ViewBuilder private var glyph: some View {
+            if let morphTrigger {
+                Image(systemName: symbol).notchSuccessMorph(trigger: morphTrigger)
+            } else {
+                Image(systemName: symbol).contentTransition(.symbolEffect(.replace))
+            }
         }
     }
 }
