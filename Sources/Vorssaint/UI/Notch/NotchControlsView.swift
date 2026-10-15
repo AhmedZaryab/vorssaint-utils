@@ -568,6 +568,12 @@ enum NotchTileAccent {
     var glyph: Color { Design.Ink.primary }
 }
 
+/// The group inside a tile: circle, gap, two reserved label lines, with equal
+/// air above and below, so every label in a row starts on one line.
+private enum NotchActionTileMetrics {
+    /** Two lines of the 11 pt label; one-line labels sit at the top of it. */ static let labelBlock: CGFloat = 28
+}
+
 /// A glyph in its own circle over a two-line label, the shape every shortcut
 /// rail in the island shares. A live reading, such as a running timer's
 /// clock, takes the first line and leaves the title one line below it.
@@ -604,9 +610,10 @@ struct NotchActionTile: View {
                     }
                 label
                     .frame(maxWidth: .infinity)
-                    .frame(height: 28, alignment: .top)
+                    .frame(height: NotchActionTileMetrics.labelBlock, alignment: .top)
             }
             .padding(.horizontal, Design.Spacing.xxSmall)
+            .padding(.vertical, Design.Spacing.xxSmall)
             .frame(maxWidth: .infinity)
             .frame(height: NotchLayout.shortcutHeight)
             .contentShape(RoundedRectangle(cornerRadius: Design.Radius.card, style: .continuous))
