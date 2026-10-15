@@ -51,6 +51,8 @@ struct NotchCommitButton: View {
     var launches: Bool
     /// The glyph and its particles: white, or the music tint.
     var tint: Color
+    /// The burst's particles; nil keeps them the glyph's colour. Music passes the cover colour here only.
+    var burstTint: Color?
     /// Fires from anywhere in the window, as Space does for play and pause.
     var keyboardShortcut: KeyboardShortcut?
     let action: () -> Void
@@ -73,7 +75,7 @@ struct NotchCommitButton: View {
     init(_ title: String, symbol: String, kick: NotchCommitKick = .morph, hint: String? = nil,
          dragToFire: Bool = false, size: CGFloat = Metrics.commitSide, glyph: NotchDesign.TypeStyle? = nil,
          symbolSize: CGFloat? = nil, filled: Bool = false,
-         launches: Bool = true, tint: Color = .white, keyboardShortcut: KeyboardShortcut? = nil,
+         launches: Bool = true, tint: Color = .white, burstTint: Color? = nil, keyboardShortcut: KeyboardShortcut? = nil,
          action: @escaping () -> Void) {
         self.title = title
         self.symbol = symbol
@@ -86,6 +88,7 @@ struct NotchCommitButton: View {
         self.filled = filled
         self.launches = launches
         self.tint = tint
+        self.burstTint = burstTint
         self.keyboardShortcut = keyboardShortcut
         self.action = action
     }
@@ -117,7 +120,7 @@ struct NotchCommitButton: View {
             .animation(Metrics.pressIn, value: shownArmed)
             .modifier(NotchPresentedOffset(pull: shownPull, probe: presented))
             if let burst {
-                NotchBurstView(burst: burst, side: side, tint: tint).allowsHitTesting(false)
+                NotchBurstView(burst: burst, side: side, tint: burstTint ?? tint).allowsHitTesting(false)
             }
         }
         .frame(width: side, height: side)

@@ -27,6 +27,9 @@ struct NotchQueueView: View {
                 NotchIconButton(symbol: "arrow.clockwise", title: text.refresh) { service.refreshQueue() }
                     .disabled(service.queueLoading || service.queueActionPending)
             }
+            // The rows inset their content by Spacing.small inside the wash; the heading sits on the same line.
+            .padding(.leading, NotchDesign.Spacing.small)
+            .padding(.trailing, NotchDesign.Spacing.xSmall)
             if service.queueActionFailed {
                 Text(text.actionFailed).font(NotchDesign.Typography.callout.font).foregroundStyle(NotchDesign.Palette.warning)
             }
@@ -65,8 +68,12 @@ struct NotchQueueView: View {
                 }
                 .buttonStyle(NotchPressStyle(shape: .rounded(NotchDesign.Radius.control), lifts: false))
                 .accessibilityLabel(name)
-                NotchIconButton(symbol: "play.fill", title: "\(text.playNow): \(item.title)") { if !busy { service.playQueued(item) } }
-                    .padding(.trailing, NotchDesign.Spacing.xSmall)
+                NotchCommitButton("\(text.playNow): \(item.title)", symbol: "play.fill", kick: .forward,
+                                  size: NotchDesign.Control.iconButton, glyph: NotchDesign.Icon.button,
+                                  tint: NotchDesign.Ink.primary, burstTint: service.artworkTint?.color ?? .white) {
+                    if !busy { service.playQueued(item) }
+                }
+                .padding(.trailing, NotchDesign.Spacing.xSmall)
             }
             .frame(height: NotchQueueMetrics.rowHeight)
         } else {

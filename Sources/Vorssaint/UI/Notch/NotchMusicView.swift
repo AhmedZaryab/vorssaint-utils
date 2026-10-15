@@ -18,10 +18,12 @@ extension NotchDesign {
 private struct NotchMusicPageCover: View {
     let image: NSImage?
     let size: CGFloat
+    /// Nil rounds by the spec's artwork share; the Controls card passes a concentric radius.
+    var cornerRadius: CGFloat?
     @Environment(\.colorSchemeContrast) private var contrast
 
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: NotchDesign.Radius.artwork(side: size), style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: cornerRadius ?? NotchDesign.Radius.artwork(side: size), style: .continuous)
         Group {
             if let image {
                 Image(nsImage: image).resizable().scaledToFill()
@@ -396,7 +398,7 @@ private struct NotchMusicTransport: View {
     private var text: RadialMenuFeatureStrings { FeatureStrings.radialMenu(l10n.language) }
     private var height: CGFloat { compact ? NotchDesign.Control.transportCompact : NotchDesign.Control.transport }
     private var showsPlaying: Bool { requestedPlaying ?? playback.isPlaying }
-    /// The cover's colour for the glyph and its burst; white until artwork is read.
+    /// The cover's colour for the burst only (glyphs stay white); white until artwork is read.
     private var tint: Color { service.artworkTint?.color ?? .white }
 
     var body: some View {
@@ -457,9 +459,10 @@ private struct NotchMusicTransport: View {
     }
 
     private var toggleButton: some View {
-        NotchCommitButton(text.mediaPlayPause, symbol: showsPlaying ? "pause.fill" : "play.fill", kick: .morph,
+        NotchCommitButton(showsPlaying ? l10n.s.actionPause : l10n.s.actionPlay,
+                          symbol: showsPlaying ? "pause.fill" : "play.fill", kick: .morph,
                           size: height, glyph: NotchDesign.Icon.transportPrimary,
-                          launches: !showsPlaying, tint: tint,
+                          launches: !showsPlaying, tint: NotchDesign.Ink.primary, burstTint: tint,
                           keyboardShortcut: preview ? nil : KeyboardShortcut(.space, modifiers: [])) {
             if service.canPerform(.toggle) {
                 // Only a player the island writes to directly answers fast enough
@@ -486,7 +489,8 @@ private struct NotchMusicTransport: View {
 
     private func playbackButton(_ symbol: String, title: String, command: NotchMusicService.Command) -> some View {
         NotchCommitButton(title, symbol: symbol, kick: command == .previous ? .backward : .forward,
-                          size: height, glyph: NotchDesign.Icon.transport, tint: tint) {
+                          size: height, glyph: NotchDesign.Icon.transport,
+                          tint: NotchDesign.Ink.primary, burstTint: tint) {
             service.send(command, context: playback.commandContext)
         }
         .disabled(!service.canPerform(command))
@@ -628,7 +632,9 @@ struct NotchMusicControlsView: View {
                 if isIdle, NotchPreferredPlayer.open() { return }
                 notch.select(.music)
             } label: {
-                NotchMusicPageCover(image: music.artwork, size: max(40, height - 2 * NotchDesign.Spacing.cardPadding))
+                NotchMusicPageCover(image: music.artwork, size: max(40, height - 2 * NotchDesign.Spacing.cardPadding),
+                                    cornerRadius: max(NotchDesign.Radius.small,
+                                                      NotchDesign.Radius.concentric(NotchDesign.Radius.card, inset: NotchDesign.Spacing.cardPadding)))
             }
             .buttonStyle(NotchPressStyle(shape: .rounded(NotchDesign.Radius.control), washes: false))
             .accessibilityLabel(idleOpens ? openTitle : text.mediaNowPlaying)
