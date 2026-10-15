@@ -9,6 +9,7 @@ extension NotchDesign {
         /** A paused cover rests a little smaller than a playing one. */ static let pausedArtworkScale: CGFloat = 0.94
         /** From this player height up the page is roomy: two title lines, a 44 pt transport. */ static let roomyHeight: CGFloat = 140
         /** The scrubber's row beside the times; its hit area overflows into the gaps around it. */ static let timelineRow: CGFloat = 20
+        /** Empty space below the play glyph inside its transport box; the row gives it back so the ink ends where the cover ends. */ static let transportAir: CGFloat = 11
         /** The play and pause plate beside the shuffle plate, smaller than the transport it sits by. */ static let sidePlate: CGFloat = 28
     }
 }
@@ -460,6 +461,8 @@ private struct NotchMusicTransport: View {
             }
         }
         .frame(height: height)
+        // The 44 pt hit boxes stay; the layout drops the air under the glyphs.
+        .padding(.bottom, -NotchDesign.Music.transportAir)
     }
 
     private var toggleButton: some View {
