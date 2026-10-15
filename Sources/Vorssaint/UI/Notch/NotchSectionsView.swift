@@ -68,7 +68,7 @@ struct NotchSectionsView: View {
                 else if edge == .top { service.scrollSections(by: -1) }
             }
             indicator(positions: positions, current: first)
-                .frame(width: NotchLayout.sectionIndicatorWidth, alignment: .trailing)
+                .frame(width: NotchLayout.sectionIndicatorWidth, alignment: .leading)
         }
         .accessibilityHint(text.sectionKeyboardHint)
     }
@@ -85,7 +85,7 @@ struct NotchSectionsView: View {
                             .fill(position == current ? NotchDesign.Ink.primary
                                   : contrast == .increased ? NotchDesign.Ink.secondary : NotchDesign.Ink.tertiary)
                             .frame(width: 6, height: 6)
-                            .frame(width: NotchLayout.sectionIndicatorWidth, height: NotchDesign.Control.minimumHit)
+                            .frame(width: NotchDesign.Control.minimumHit, height: NotchDesign.Control.minimumHit)
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)

@@ -247,6 +247,8 @@ enum NotchLayout {
     static let sectionSpacing: CGFloat = NotchDesign.Spacing.gutter
     /// The gallery's row indicator beside the tiles, with its gap.
     static let sectionIndicatorWidth: CGFloat = 12
+    /// The dots' hit area is minimumHit wide; it starts at the column's left edge and spills into
+    /// the island's side inset, so the tile columns keep their count.
     static let clipboardSearchHeight: CGFloat = 36
     static let clipboardCardHeight: CGFloat = 104
     static let emptyHeight: CGFloat = 140
