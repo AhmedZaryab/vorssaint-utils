@@ -99,6 +99,16 @@ enum NotchCompactTests {
         var lifts = true
         func makeBody(configuration: Configuration) -> some View { configuration.label }
     }
+    enum NotchPressShape {
+        case capsule
+        case rounded(CGFloat)
+    }
+    struct NotchPressStyle: ButtonStyle {
+        var shape: NotchPressShape = .capsule
+        var lifts = true
+        var washes = true
+        func makeBody(configuration: Configuration) -> some View { configuration.label }
+    }
     struct NotchIconButton: View {
         let symbol: String
         let title: String
