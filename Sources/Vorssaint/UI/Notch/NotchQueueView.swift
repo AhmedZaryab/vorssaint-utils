@@ -27,8 +27,6 @@ struct NotchQueueView: View {
                 NotchIconButton(symbol: "arrow.clockwise", title: text.refresh) { service.refreshQueue() }
                     .disabled(service.queueLoading || service.queueActionPending)
             }
-            // The rows inset their content by Spacing.small inside the wash; the heading sits on the same line.
-            .padding(.leading, NotchDesign.Spacing.small)
             .padding(.trailing, NotchDesign.Spacing.xSmall)
             if service.queueActionFailed {
                 Text(text.actionFailed).font(NotchDesign.Typography.callout.font).foregroundStyle(NotchDesign.Palette.warning)
@@ -42,6 +40,8 @@ struct NotchQueueView: View {
                     }
                 }
                 .notchScrollEdgeFade()
+                // The hover plate reaches past the column; resting content stays on its edge.
+                .padding(.horizontal, -NotchDesign.Spacing.small)
             } else if !service.queueLoading {
                 NotchEmptyView(symbol: "list.bullet", message: service.upcoming == nil ? text.queueUnavailable : text.queueEmpty) {
                     NotchPillButton(title: text.openPlayer, prominent: true) { RadialNowPlayingApplication.open(playback.track) }
@@ -64,7 +64,7 @@ struct NotchQueueView: View {
         if canPlay {
             ZStack(alignment: .trailing) {
                 Button { if !busy { service.playQueued(item) } } label: {
-                    label.padding(.trailing, NotchDesign.Control.iconButton + NotchDesign.Spacing.xSmall)
+                    label.padding(.trailing, NotchDesign.Control.iconButton + NotchDesign.Spacing.small)
                 }
                 .buttonStyle(NotchPressStyle(shape: .rounded(NotchDesign.Radius.control), lifts: false))
                 .accessibilityLabel(name)
@@ -73,7 +73,8 @@ struct NotchQueueView: View {
                                   tint: NotchDesign.Ink.primary, burstTint: service.artworkTint?.color ?? .white) {
                     if !busy { service.playQueued(item) }
                 }
-                .padding(.trailing, NotchDesign.Spacing.xSmall)
+                // Centre on the header's refresh glyph: the plate's outdent plus its xSmall inset.
+                .padding(.trailing, NotchDesign.Spacing.small + NotchDesign.Spacing.xSmall)
             }
             .frame(height: NotchQueueMetrics.rowHeight)
         } else {

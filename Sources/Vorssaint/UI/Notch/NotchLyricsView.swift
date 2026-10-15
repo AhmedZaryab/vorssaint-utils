@@ -25,8 +25,7 @@ struct NotchLyricsView: View {
         ZStack(alignment: .topLeading) {
             NotchLyricsBackdrop(palette: palette)
             content
-                .padding(.horizontal, NotchDesign.Spacing.large)
-                .padding(.vertical, NotchDesign.Spacing.small)
+                .padding(NotchDesign.Spacing.cardPadding)
         }
         .environment(\.colorScheme, .dark)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
