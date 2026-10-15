@@ -47,7 +47,7 @@ final class NotchQuickAccessMotion: ObservableObject {
         let animation: Animation? = animated
             ? (reduced ? NotchDesign.Motion.fade
                : visible ? NotchDesign.Geometry.growSpring.animation.delay(delay)
-               : .easeOut(duration: NotchQuickAccessLayout.withdrawalDuration))
+               : NotchDesign.Motion.exit)
             : nil
         withAnimation(animation, completionCriteria: .logicallyComplete) {
             progress = visible ? 1 : 0
@@ -92,7 +92,7 @@ struct NotchQuickAccessView: View {
         let buttons = ZStack(alignment: .topLeading) {
             ForEach(motion.placements) { placement in
                 bubble(placement.button)
-                    .scaleEffect(0.4 + 0.6 * motion.progress)
+                    .scaleEffect(reduceMotion ? 1 : 0.95 + 0.05 * motion.progress)
                     .opacity(Double(motion.progress))
                     .position(placement.center(progress: motion.progress))
             }
@@ -257,7 +257,7 @@ struct NotchQuickAccessDrop: Shape {
         guard phase > 0.001 else { return Path() }
         let anchor = side == .bottom ? rect.height - edge : side == .left ? edge : rect.width - edge
         let center = NotchQuickAccessLayout.center(index: index, progress: phase, edge: anchor, top: top, side: .left)
-        let radius = NotchQuickAccessLayout.diameter / 2 * (0.4 + 0.6 * phase)
+        let radius = NotchQuickAccessLayout.diameter / 2 * (0.95 + 0.05 * min(1, phase))
         var path = Path(ellipseIn: CGRect(x: center.x - radius, y: center.y - radius, width: radius * 2, height: radius * 2))
         // The narrow connection dissolves before the circle finishes moving.
         // Its other end sits under the notch, so there is no visible seam.
