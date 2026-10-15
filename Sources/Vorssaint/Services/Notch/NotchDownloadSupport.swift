@@ -189,7 +189,7 @@ enum NotchDownloadSupport {
     /// languages part the number from its sign, so the narrowest wing cannot
     /// hold the widest reading at full size. It shrinks rather than wrap or
     /// lose a digit.
-    static let percentMinimumScale: CGFloat = 1
+    static let percentMinimumScale: CGFloat = 0.75
 
     static func percentFormat(_ language: AppLanguage) -> FloatingPointFormatStyle<Double>.Percent {
         .percent.precision(.fractionLength(0)).locale(Locale(identifier: language.rawValue))
