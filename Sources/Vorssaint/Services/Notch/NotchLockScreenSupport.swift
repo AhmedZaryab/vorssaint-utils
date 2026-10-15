@@ -101,6 +101,8 @@ enum NotchLockScreenLayout {
     static func clockBottom(screenHeight: CGFloat) -> CGFloat { max(236, screenHeight * 0.247) }
     static let rowGap: CGFloat = 18
     static let rowHeight: CGFloat = 30
+    /// With the timer on: its pane (about 60 pt), the step under it, and one line of readings (about 26 pt).
+    static let paneRowHeight: CGFloat = 100
     /// From the bottom of the display to the player.
     static let loginClearance: CGFloat = 250
     /// The player's room, with space around its pane for the cover's glow.
@@ -115,7 +117,7 @@ enum NotchLockScreenLayout {
     }
 
     /// The line of activities under the clock.
-    static func rowFrame(in screen: CGRect) -> CGRect? {
+    static func rowFrame(in screen: CGRect, height rowHeight: CGFloat = rowHeight) -> CGRect? {
         guard readable(screen) else { return nil }
         let width = min(screen.width - 64, 1000)
         let top = screen.maxY - clockBottom(screenHeight: screen.height) - rowGap
@@ -124,8 +126,8 @@ enum NotchLockScreenLayout {
     }
 
     /// The player's room: under the line of activities, over the login controls.
-    static func playerFrame(in screen: CGRect) -> CGRect? {
-        guard let row = rowFrame(in: screen) else { return nil }
+    static func playerFrame(in screen: CGRect, rowHeight: CGFloat = rowHeight) -> CGRect? {
+        guard let row = rowFrame(in: screen, height: rowHeight) else { return nil }
         let bottom = screen.minY + loginClearance
         let height = row.minY - 10 - bottom
         guard height >= minimumPlayerHeight else { return nil }

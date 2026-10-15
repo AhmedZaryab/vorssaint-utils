@@ -80,8 +80,12 @@ final class NotchLockScreenService {
         // macOS draws the clock and the password field on the main display.
         let main = CGMainDisplayID()
         if let screen = (NSScreen.screens.first(where: { $0.notchDisplayID == main }) ?? NSScreen.screens.first)?.frame {
-            frames.player = NotchLockScreenLayout.playerFrame(in: screen)
-            frames.row = NotchLockScreenLayout.rowFrame(in: screen)
+            // The timer's pane makes the row taller; a display without the room keeps the single line.
+            let tall = NotchTimerSupport.isEnabled() ? NotchLockScreenLayout.paneRowHeight : NotchLockScreenLayout.rowHeight
+            let fits = NotchLockScreenLayout.playerFrame(in: screen, rowHeight: tall) != nil
+            let height = fits ? tall : NotchLockScreenLayout.rowHeight
+            frames.player = NotchLockScreenLayout.playerFrame(in: screen, rowHeight: height)
+            frames.row = NotchLockScreenLayout.rowFrame(in: screen, height: height)
         }
         // The island's own reading of its camera, with the fit the person set.
         let geometry = NotchService.shared.geometry
@@ -117,7 +121,8 @@ final class NotchLockScreenService {
             scene.append(Self.makePanel(frame: frame, interactive: true,
                                         content: NotchLockScreenPlayer(model: model, size: frame.size)))
         }
-        if let frame = frames.row {
+        // No activity gate on means no row to order in.
+        if let frame = frames.row, gates.timer || gates.agents || gates.downloads || gates.countdown || gates.timeLeft || gates.battery || gates.keepAwake {
             scene.append(Self.makePanel(frame: frame, content: NotchLockScreenActivities(model: model, size: frame.size)))
         }
         let island = frames.island.flatMap { frame in
