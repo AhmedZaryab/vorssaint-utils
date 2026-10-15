@@ -1520,9 +1520,8 @@ private final class NotchCanvasView: NSView {
             let animation = CAKeyframeAnimation(keyPath: "opacity")
             let start: Float = kind == .dismiss || currentOpacity == 1 ? 0 : currentOpacity
             // Content waits for the shape: opening, it starts once the
-            // silhouette has covered about 60% of its travel and is sharp as
-            // it arrives; closing, the strip's content waits until the shape
-            // has nearly closed around it. It is laid out at its final size
+            // silhouette has settled and comes into focus; closing, the
+            // strip's content waits until the shape has nearly closed around it. It is laid out at its final size
             // throughout and never scales. Reversals continue from the
             // opacity already on screen. A shape that snaps into place only
             // needs its first frames drawn.
@@ -1585,14 +1584,13 @@ private final class NotchCanvasView: NSView {
         endArrival()
     }
 
-    /// Geometry.contentRevealDelay: the shape is about 60% there.
-    static let revealDelay: CFTimeInterval = 0.12
-    /// Geometry.contentRevealDuration: sharp at 0.30 s, as the shape arrives.
-    static let revealDuration: CFTimeInterval = 0.18
-    /// Geometry.contentRevealBlur, in points.
-    static let revealBlur: CGFloat = 4
-    /// Geometry.contentExitDuration: leaving content fades on an ease out.
-    static let exitDuration: CFTimeInterval = 0.12
+    /// Content waits for the shape to settle before it fades in.
+    static let revealDelay: CFTimeInterval = NotchDesign.Geometry.contentRevealDelay
+    static let revealDuration: CFTimeInterval = NotchDesign.Geometry.contentRevealDuration
+    /// The blur content arrives from, in points.
+    static let revealBlur: CGFloat = NotchDesign.Geometry.contentRevealBlur
+    /// Leaving content fades this fast, on an ease out.
+    static let exitDuration: CFTimeInterval = NotchDesign.Geometry.contentExitDuration
 
     /// Content arrives out of focus and settles with the island, as the
     /// phone's island brings its content in. It never scales: content laid

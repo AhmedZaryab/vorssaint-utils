@@ -117,9 +117,11 @@ cards). The cap of 28 matches the open panel token.
   its target (the incoming speed is capped so a critically damped spring
   cannot cross it), so a collapse never dips inside the housing.
 - Content: laid out at its final size from the first frame, masked by the
-  shape, never scaled. It fades in from a 4 pt blur at 0.12 s (shape about
-  60 percent there) over 0.18 s, sharp at 0.30 s as the shape arrives.
-  Leaving content fades out over 0.12 s on an ease out.
+  shape, never scaled. It waits for the shape to settle
+  (`Geometry.contentRevealDelay`, 0.28 s, the lead's call on the owner's
+  "appears only after the shape has settled") and fades in from a 4 pt blur
+  over 0.18 s, sharp at 0.46 s. Leaving content fades out over 0.12 s on an
+  ease out. All four numbers are NotchDesign tokens.
 - Reduce Motion: the shape lands at its size at once and content cross-fades;
   no blur, no overshoot.
 

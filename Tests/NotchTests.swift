@@ -307,9 +307,12 @@ enum NotchTests {
             result.headerTitleWidth = NotchLayout.headerTitleWidth(module.title(.enUS), button: false)
             return result
         }
-        suite.expect(titled(.camera).headerCameraGap == 0 && titled(.camera).headerTopInset == reported.safeContentTop
+        let reportedSide = (reported.contentWidth - reported.cameraWidth) / 2
+        let cameraFits = NotchLayout.headerTitleWidth(NotchModule.camera.title(.enUS), button: false) <= reportedSide
+        suite.expect((titled(.camera).headerCameraGap == 208) == cameraFits
+                     && titled(.camera).headerTopInset == (cameraFits ? 0 : reported.safeContentTop)
                      && titled(.controls).headerCameraGap == 208 && titled(.controls).headerTopInset == 0,
-                     "Camera mirror takes the row below a 208-point camera in the compact preset while Controls stays beside it")
+                     "beside a 208-point camera in the compact preset a title stays only where it fits whole, as Controls does")
         for silhouette in NotchSilhouette.allCases {
             let plain = NotchGeometry(screen: screen, safeAreaTop: 0, cameraWidth: 0, silhouette: silhouette)
             var titled = plain

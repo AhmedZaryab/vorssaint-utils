@@ -191,25 +191,25 @@ enum NotchLayout {
 
     /// The shoulder, where the island meets the screen's top edge, as a share
     /// of the island's height until it reaches `shoulder`.
-    static let shoulderRatio: CGFloat = 0.2129
+    static let shoulderRatio: CGFloat = NotchDesign.Geometry.shoulderRatio
     /// The shoulder's Bezier handles as a share of its extent, as the cutout draws them.
-    static let shoulderHandle: CGFloat = 0.776
+    static let shoulderHandle: CGFloat = NotchDesign.Geometry.shoulderHandle
     /// The bottom corners' continuous radius as a share of the height until it
     /// reaches `panelCornerRadius`.
-    static let cornerRatio: CGFloat = 0.322
+    static let cornerRatio: CGFloat = NotchDesign.Geometry.closedCornerRatio
     /// The open island's bottom corners, and the cap for an island of any height.
-    static let panelCornerRadius: CGFloat = 28
+    static let panelCornerRadius: CGFloat = NotchDesign.Geometry.panelCornerRadius
     /// The open island's shoulder, and the cap for an island of any height.
-    static let shoulder: CGFloat = 14
+    static let shoulder: CGFloat = NotchDesign.Geometry.shoulderRadius
     /// The body margin on the sides and at the bottom of the open island.
-    static let margin: CGFloat = 16
+    static let margin: CGFloat = NotchDesign.Geometry.margin
     /// Page content starts past the shoulder and the margin.
     static let horizontalInset: CGFloat = shoulder + margin
     static let headerHeight: CGFloat = 36
     /// The open header's title, and a detail's beside its back button. The
     /// island is laid out from their widths and the header draws them.
-    static let headerTitleFont = NSFont.systemFont(ofSize: 16, weight: .semibold)
-    static let detailTitleFont = NSFont.systemFont(ofSize: 15, weight: .semibold)
+    static let headerTitleFont = NotchDesign.Typography.pageTitle.nsFont
+    static let detailTitleFont = NotchDesign.Typography.pageTitle.nsFont
     /// The island reads its geometry many times on every layout, so each
     /// title is measured once per font.
     private static var measuredHeaderTitles: [String: CGFloat] = [:]
@@ -222,7 +222,7 @@ enum NotchLayout {
         return width + (button ? 28 + 6 : 0)
     }
     static let navigationHeight: CGFloat = 36
-    static let spacing: CGFloat = 12
+    static let spacing: CGFloat = NotchDesign.Spacing.section
     static let bottomInset: CGFloat = margin
     static var chromeHeight: CGFloat { headerHeight + spacing + bottomInset }
     /// The island stays a wide strip: pages scroll within the preset's budget.
@@ -2355,11 +2355,11 @@ struct NotchGeometry: Equatable {
     }
     /// The compact peek's wings beside the camera: the narrowest keeps its
     /// curved end and some air, the widest is as far as a peek may reach.
-    static let compactPeekWing: ClosedRange<CGFloat> = 36...96
+    static let compactPeekWing: ClosedRange<CGFloat> = NotchDesign.Peek.wingMinimum...NotchDesign.Peek.wingMaximum
     /// The band a tall peek grows below the strip.
-    static let tallPeekBand: CGFloat = 60
+    static let tallPeekBand: CGFloat = NotchDesign.Peek.bandHeight
     /// How wide a tall peek's band may be, whatever its text.
-    static let tallPeekWidth: ClosedRange<CGFloat> = 300...360
+    static let tallPeekWidth: ClosedRange<CGFloat> = NotchDesign.Peek.bandMinimumWidth...NotchDesign.Peek.bandMaximumWidth
     /// A tall peek: the strip as it rests, with a band below it as wide as
     /// the resting island, within its range and short of the display's edge.
     var tallPeek: CGSize {
@@ -2660,15 +2660,17 @@ enum NotchMotion {
     }
 
     /// Geometry.growSpring: response 0.40 s, damping 0.85.
-    static let growing = Spring(duration: 0.40, bounce: 0.15)
+    static let growing = Spring(duration: NotchDesign.Geometry.growSpring.response,
+                                bounce: NotchDesign.Geometry.growSpring.bounce)
     /// Geometry.shrinkSpring: response 0.30 s, no bounce.
-    static let shrinking = Spring(duration: 0.30, bounce: 0)
+    static let shrinking = Spring(duration: NotchDesign.Geometry.shrinkSpring.response,
+                                  bounce: NotchDesign.Geometry.shrinkSpring.bounce)
     /// A strip that stays on screen and only fits a new reading, as a level
     /// passing 99% or 9%, eases to its width without a swing, either way.
     static let steadyWidth = Spring(duration: 0.5, bounce: 0)
     /// The farthest a side may pass its target. The display always keeps at
     /// least this much free around the island and its floating controls.
-    static let overshootLimit: CGFloat = 8
+    static let overshootLimit: CGFloat = NotchDesign.Geometry.overshootLimit
     /// Sides closer than this to their targets read as settled.
     static let settledDistance: CGFloat = 0.5
 
