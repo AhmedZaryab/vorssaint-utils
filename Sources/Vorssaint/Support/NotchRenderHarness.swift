@@ -67,9 +67,9 @@ enum NotchRenderHarness {
                         try png(image).write(to: file)
                         let ink = inkFraction(image, background: ground)
                         let size = image.size
-                        print(String(format: "%@  %4.0fx%-4.0f pt  ink %5.1f%%  %@", scene.name.padding(toLength: 34, withPad: " ",
-                                                                                                startingAt: 0),
-                                     size.width, size.height, ink * 100, scene.summary))
+                        let label = scene.name.padding(toLength: 34, withPad: " ", startingAt: 0)
+                        print(String(format: "%@  %4.0fx%-4.0f pt  ink %5.1f%%  %@", locale: Locale(identifier: "en_US_POSIX"),
+                                     label, size.width, size.height, ink * 100, scene.summary))
                         if ink < 0.002 && !scene.mayBeEmpty {
                             failures.append("\(scene.name): rendered empty (no pixel differs from the background)")
                         }
