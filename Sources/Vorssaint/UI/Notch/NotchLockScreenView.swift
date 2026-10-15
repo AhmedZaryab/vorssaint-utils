@@ -14,6 +14,8 @@ extension NotchDesign {
         /** The activities line's capsule inset, a line of 15 pt type with room to breathe. */ static let lineInset = EdgeInsets(top: NotchDesign.Spacing.xSmall, leading: NotchDesign.Spacing.large,
                                                                                                                               bottom: NotchDesign.Spacing.xSmall, trailing: NotchDesign.Spacing.large)
         /** Time readouts under the system clock: 15 pt rounded, a step below the clock, digits monospaced. */ static let readout = NotchDesign.TypeStyle(style: .title3, weight: .semibold, rounded: true)
+        /** The timer pane's corner: continuous, the player pane's 34 stepped down for a pane a third its height. */ static let timerPaneRadius: CGFloat = 20
+        /** The timer pane's width: a glyph and name, and a 26 pt countdown, with the pane's inset around them. */ static let timerPaneWidth: CGFloat = 300
         /** The padlock's glyph. */ static let padlock = NotchDesign.Icon.strip
     }
 }
@@ -104,13 +106,22 @@ struct NotchLockScreenIsland: View {
 /// Reduce Transparency makes it solid.
 private struct NotchLockScreenGlass: ViewModifier {
     let cornerRadius: CGFloat
+    /// A capsule takes the half of its own height, never an infinite radius.
+    var capsule = false
     /// Black kept under the glass; Glass.textDim wherever type sits on it, so it holds 4.5 to 1 over a white photo.
     var dim: Double = NotchDesign.Glass.textDim
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @Environment(\.colorSchemeContrast) private var contrast
 
     func body(content: Content) -> some View {
-        let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+        if capsule {
+            styled(content, Capsule(style: .continuous))
+        } else {
+            styled(content, RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+        }
+    }
+
+    private func styled<S: InsettableShape>(_ content: Content, _ shape: S) -> some View {
         content
             .background {
                 if reduceTransparency {
@@ -129,7 +140,7 @@ private struct NotchLockScreenGlass: ViewModifier {
             }
     }
 
-    @ViewBuilder private func glass(_ shape: RoundedRectangle) -> some View {
+    @ViewBuilder private func glass<S: InsettableShape>(_ shape: S) -> some View {
 #if compiler(>=6.2)
         if #available(macOS 26, *) {
             Color.clear
@@ -137,21 +148,48 @@ private struct NotchLockScreenGlass: ViewModifier {
                 .environment(\.appearsActive, true)
                 .materialActiveAppearance(.active)
         } else {
-            NotchLockScreenMaterial(cornerRadius: cornerRadius)
+            NotchLockScreenMaterial(cornerRadius: cornerRadius, capsule: capsule)
         }
 #else
-        NotchLockScreenMaterial(cornerRadius: cornerRadius)
+        NotchLockScreenMaterial(cornerRadius: cornerRadius, capsule: capsule)
 #endif
     }
+}
+
+/// The plate-less line's backing: a vibrant blur that fades out softly at its
+/// edges, so the readings sit on the wallpaper as Apple's clock widgets do,
+/// with no capsule to see. Increase Contrast and Reduce Transparency draw the
+/// dimmed capsule instead.
+private struct NotchLockScreenVibrancy: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSVisualEffectView {
+        let view = NSVisualEffectView()
+        view.material = .hudWindow
+        view.blendingMode = .behindWindow
+        view.state = .active
+        return view
+    }
+
+    func updateNSView(_ view: NSVisualEffectView, context: Context) {}
 }
 
 /// The frosted material has to round its own layer: SwiftUI clips what it
 /// draws, not a material blurring what lies behind the window.
 private struct NotchLockScreenMaterial: NSViewRepresentable {
     let cornerRadius: CGFloat
+    var capsule = false
+
+    /// A capsule rounds to half of its own height once the layout has one.
+    private final class View: NSVisualEffectView {
+        var capsule = false
+        var radius: CGFloat = 0
+        override func layout() {
+            super.layout()
+            layer?.cornerRadius = capsule ? bounds.height / 2 : radius
+        }
+    }
 
     func makeNSView(context: Context) -> NSVisualEffectView {
-        let view = NSVisualEffectView()
+        let view = View()
         view.material = .hudWindow
         view.blendingMode = .behindWindow
         view.state = .active
@@ -160,7 +198,12 @@ private struct NotchLockScreenMaterial: NSViewRepresentable {
     }
 
     func updateNSView(_ view: NSVisualEffectView, context: Context) {
-        view.layer?.cornerRadius = cornerRadius
+        if let view = view as? View {
+            view.capsule = capsule
+            view.radius = cornerRadius
+            view.needsLayout = true
+        }
+        view.layer?.cornerRadius = capsule ? view.bounds.height / 2 : cornerRadius
         view.layer?.cornerCurve = .continuous
         view.layer?.masksToBounds = true
     }
@@ -221,7 +264,7 @@ struct NotchLockScreenPlayer: View {
             if let artist = playback.track.artist ?? playback.track.album {
                 Text(artist)
                     .font(NotchDesign.Typography.callout.font)
-                    .foregroundStyle(NotchDesign.Ink.primary)
+                    .foregroundStyle(NotchDesign.Ink.secondary)
                     .lineLimit(1)
                     .padding(.top, NotchDesign.Spacing.line)
             }
@@ -243,7 +286,7 @@ struct NotchLockScreenPlayer: View {
                     Text(playback.track.title ?? text.mediaNowPlaying)
                         .font(NotchDesign.Typography.pageTitle.font)
                     if let artist = playback.track.artist ?? playback.track.album {
-                        Text(artist).font(NotchDesign.Typography.callout.font).foregroundStyle(NotchDesign.Ink.primary)
+                        Text(artist).font(NotchDesign.Typography.callout.font).foregroundStyle(NotchDesign.Ink.secondary)
                     }
                 }
                 .lineLimit(1)
@@ -338,14 +381,27 @@ struct NotchLockScreenActivities: View {
     var body: some View {
         TimelineView(.periodic(from: .now, by: 1)) { context in
             let items = available(at: context.date)
-            ViewThatFits(in: .horizontal) {
-                line(items, at: context.date)
-                line(Array(items.prefix(3)), at: context.date)
-                line(Array(items.prefix(2)), at: context.date)
-                line(Array(items.prefix(1)), at: context.date)
+            let rest = items.filter { $0 != .timer }
+            // Nothing live: nothing is drawn, not an empty plate.
+            if items.isEmpty {
+                EmptyView()
+            } else {
+                VStack(spacing: NotchDesign.Spacing.medium) {
+                    if items.contains(.timer) {
+                        timerPane
+                    }
+                    if !rest.isEmpty {
+                        ViewThatFits(in: .horizontal) {
+                            line(rest, at: context.date)
+                            line(Array(rest.prefix(3)), at: context.date)
+                            line(Array(rest.prefix(2)), at: context.date)
+                            line(Array(rest.prefix(1)), at: context.date)
+                        }
+                    }
+                }
+                .frame(width: size.width, height: size.height, alignment: .top)
+                .animation(reduceMotion ? NotchDesign.Motion.fade : NotchDesign.Motion.smooth.animation, value: items)
             }
-            .frame(width: size.width, height: size.height)
-            .animation(reduceMotion ? NotchDesign.Motion.fade : NotchDesign.Motion.smooth.animation, value: items)
         }
         .allowsHitTesting(false)
     }
@@ -376,27 +432,65 @@ struct NotchLockScreenActivities: View {
         .lineLimit(1)
         .fixedSize()
         .padding(NotchDesign.LockScreen.lineInset)
-        // Vibrant like Apple's clock widgets, but on the player's dimmed glass: every reading holds 4.5 to 1 over any wallpaper.
-        .modifier(NotchLockScreenGlass(cornerRadius: .infinity))
+        .modifier(NotchLockScreenLineBacking())
+    }
+
+    /// The running timer or stopwatch on a small pane like the player's: the
+    /// glyph and the session's name leading, the countdown trailing, and a
+    /// meter under a timer's.
+    private var timerPane: some View {
+        let session = timer.session
+        let now = timer.now
+        let finished = NotchLockScreenSupport.timerFinished(session, at: now)
+        let text = FeatureStrings.notchActivities(l10n.language)
+        let clock = finished ? text.finished : NotchTimerSupport.clockText(for: session, at: now)
+        let metered = !session.countsUp && !finished && session.duration > 0
+        let fraction = metered ? min(1, max(0, session.reading(at: now) / session.duration)) : 0
+        return VStack(spacing: NotchDesign.Spacing.small) {
+            HStack(spacing: NotchDesign.Spacing.xSmall) {
+                Image(systemName: finished ? "checkmark.circle" : session.isPaused ? "pause.circle"
+                      : session.countsUp ? "stopwatch" : "timer")
+                    .font(NotchDesign.Icon.strip.font)
+                    .contentTransition(.symbolEffect(.replace))
+                Text(text.phase(session.phase))
+                    .font(NotchDesign.Typography.callout.font)
+                    .foregroundStyle(NotchDesign.Ink.secondary)
+                    .lineLimit(1)
+                Spacer(minLength: NotchDesign.Spacing.medium)
+                Text(clock)
+                    .font(NotchDesign.Typography.display.font)
+                    .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+            }
+            if metered {
+                Capsule(style: .continuous)
+                    .fill(NotchDesign.Fill.track)
+                    .frame(height: NotchDesign.Control.meter)
+                    .overlay(alignment: .leading) {
+                        GeometryReader { proxy in
+                            Capsule(style: .continuous)
+                                .fill(NotchDesign.Ink.primary)
+                                .frame(width: proxy.size.width * fraction)
+                        }
+                    }
+            }
+        }
+        .foregroundStyle(NotchDesign.Ink.primary)
+        .padding(.horizontal, NotchDesign.Spacing.large)
+        .padding(.vertical, NotchDesign.Spacing.medium)
+        .frame(width: NotchDesign.LockScreen.timerPaneWidth)
+        .modifier(NotchLockScreenGlass(cornerRadius: NotchDesign.LockScreen.timerPaneRadius))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(text.phase(session.phase))
+        // A finished session is read out, not only drawn as a glyph.
+        .accessibilityValue(finished ? text.finished : clock)
     }
 
     @ViewBuilder private func entry(_ item: NotchLockScreenActivity, at date: Date) -> some View {
         switch item {
         case .timer:
-            let session = timer.session
-            let now = timer.now
-            let finished = NotchLockScreenSupport.timerFinished(session, at: now)
-            let text = FeatureStrings.notchActivities(l10n.language)
-            let clock = finished ? text.finished : NotchTimerSupport.clockText(for: session, at: now)
-            HStack(spacing: NotchDesign.Spacing.xSmall) {
-                Image(systemName: finished ? "checkmark.circle" : session.isPaused ? "pause.circle"
-                      : session.countsUp ? "stopwatch" : "timer")
-                    .contentTransition(.symbolEffect(.replace))
-                Text(session.mode == .pomodoro && !finished ? text.phase(session.phase) + " " + clock : clock)
-            }
-            .accessibilityElement(children: .combine)
-            .accessibilityLabel(text.phase(session.phase))
-            .accessibilityValue(clock)
+            EmptyView()
         case .calendar:
             if let countdown = calendar.countdown {
                 let text = FeatureStrings.notchCalendar(l10n.language)
@@ -434,9 +528,11 @@ struct NotchLockScreenActivities: View {
                 let text = FeatureStrings.notchLockStatus(l10n.language)
                 HStack(spacing: NotchDesign.Spacing.xSmall) {
                     Image(systemName: info.isCharging ? "battery.100percent.bolt" : info.percent <= 20 ? "battery.25percent" : "battery.75percent")
-                        .foregroundStyle(info.percent <= 20 && !info.isCharging ? NotchDesign.Palette.critical : NotchDesign.Ink.primary)
+                        .foregroundStyle(info.percent <= 20 && !info.isCharging ? NotchDesign.Palette.critical : NotchDesign.Ink.secondary)
                     Text(Double(info.percent) / 100, format: .percent.precision(.fractionLength(0)))
                 }
+                .font(NotchDesign.Typography.callout.font)
+                .foregroundStyle(NotchDesign.Ink.secondary)
                 .accessibilityElement(children: .combine)
                 .accessibilityLabel(text.battery)
                 .accessibilityValue((Double(info.percent) / 100).formatted(.percent.precision(.fractionLength(0))))
@@ -451,6 +547,8 @@ struct NotchLockScreenActivities: View {
                     Image(systemName: NotchKeepAwakeSupport.openSymbol)
                 }
             }
+            .font(NotchDesign.Typography.callout.font)
+            .foregroundStyle(NotchDesign.Ink.secondary)
             .accessibilityElement(children: .combine)
             .accessibilityLabel(text.keepAwake)
             .accessibilityValue(awake.endDate.map {
@@ -469,6 +567,28 @@ struct NotchLockScreenActivities: View {
             }
             .accessibilityElement(children: .combine)
             .accessibilityValue(fraction.map { $0.formatted(.percent.precision(.fractionLength(0))) } ?? FeatureStrings.notchFiles(l10n.language).inProgress)
+        }
+    }
+}
+
+/// Plate-less and vibrant like Apple's clock widgets: a vibrant blur that
+/// fades out at its edges behind the readings. Increase Contrast and Reduce
+/// Transparency keep the dimmed capsule.
+private struct NotchLockScreenLineBacking: ViewModifier {
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @Environment(\.colorSchemeContrast) private var contrast
+
+    func body(content: Content) -> some View {
+        if reduceTransparency || contrast == .increased {
+            content.modifier(NotchLockScreenGlass(cornerRadius: 0, capsule: true))
+        } else {
+            content
+                .shadow(color: .black.opacity(0.35), radius: 6, y: 1)
+                .background {
+                    NotchLockScreenVibrancy()
+                        .opacity(0.5)
+                        .mask(Capsule(style: .continuous).fill(.black).padding(-4).blur(radius: 8))
+                }
         }
     }
 }
