@@ -171,7 +171,7 @@ enum NotchNotificationSupport {
 enum NotchNotificationBannerLayout {
     static let iconSize: CGFloat = 22
     static let spacing: CGFloat = 8
-    static let wingRange: ClosedRange<CGFloat> = NotchNotice.minimumWing...190
+    static let wingRange: ClosedRange<CGFloat> = NotchNotice.minimumWing...NotchDesign.Peek.wingMaximum
     /// The inset from the island's curved end, and a little air so the
     /// fitted text never truncates where SwiftUI rounds its width.
     static let inset: CGFloat = 16
@@ -179,9 +179,6 @@ enum NotchNotificationBannerLayout {
     /// The fonts the banner draws with, so it is measured in the same ones.
     static let titleFont = NSFont.systemFont(ofSize: 11, weight: .semibold)
     static let messageFont = NSFont.systemFont(ofSize: 11)
-
-    /// A strip tall enough for two lines wraps a long message onto a second.
-    static func messageLines(stripHeight: CGFloat) -> Int { stripHeight >= 30 ? 2 : 1 }
 
     /// The sender and the message each take a side as wide as they need. A
     /// message that wraps takes the width its lines need once wrapped at the

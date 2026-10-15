@@ -35,11 +35,11 @@ struct NotchAgentStrip: View {
                 let budget = geometry.compactActivityContentHeight - NotchLayout.compactEdgeGap * 2
         // The mark is the peek's one wing artwork, smaller only when several agents share the wing.
         let iconSize = min(working.count > 1 ? 14.0 : NotchDesign.Peek.wingArtwork, max(8, budget))
-        let textSize = NotchDesign.Typography.stripPrimary.nsFont.pointSize * 0.72
+        let textBox = NotchDesign.Typography.stripPrimary.nsFont.capHeight
         let iconInset = !geometry.compactActivityUsesFooter
             ? geometry.compactActivityEdgeInset(boxHeight: iconSize + 4, radius: (iconSize + 4) / 2) : 0
         let textInset = !geometry.compactActivityUsesFooter
-            ? geometry.compactActivityEdgeInset(boxHeight: textSize * 0.72, radius: 0) : 0
+            ? geometry.compactActivityEdgeInset(boxHeight: textBox, radius: 0) : 0
         HStack(spacing: 0) {
             Button { service.openActivity(.agents) } label: {
                 HStack(spacing: 1) {
@@ -63,7 +63,7 @@ struct NotchAgentStrip: View {
                                 .monospacedDigit()
                                 .foregroundStyle(NotchDesign.Ink.primary)
                                 .lineLimit(1)
-                                .minimumScaleFactor(0.6)
+                                .minimumScaleFactor(NotchDesign.Typography.stripPrimary.minimumScale)
                                 // A reading that gains a digit, like an hour
                                 // passing, needs wider wings; the service
                                 // measures the same reading.
@@ -158,7 +158,7 @@ struct NotchAgentRestingWing: View {
                     .monospacedDigit()
                     .foregroundStyle(NotchDesign.Ink.secondary)
                     .lineLimit(1)
-                    .minimumScaleFactor(0.7)
+                    .minimumScaleFactor(NotchDesign.Typography.stripSecondary.minimumScale)
             }
         }
     }

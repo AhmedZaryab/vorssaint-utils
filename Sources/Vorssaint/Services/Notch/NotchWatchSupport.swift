@@ -144,7 +144,7 @@ enum NotchWatchSupport {
     /// Text recognition gets slower with size and gains nothing past this.
     static let maximumRecognitionSide = 900
     static let headlineLength = 22
-    static let stripWingRange: ClosedRange<CGFloat> = 56...150
+    static let stripWingRange: ClosedRange<CGFloat> = 56...NotchDesign.Peek.wingMaximum
     /// An area without text shows itself, this wide, where its reading would be.
     static let thumbnailWidth: CGFloat = 40
 

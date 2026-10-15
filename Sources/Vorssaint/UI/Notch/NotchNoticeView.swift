@@ -3,24 +3,38 @@
 
 import SwiftUI
 
+extension NotchDesign {
+    /// Peek marks, in one place so a state change never resizes a mark.
+    enum PeekMark {
+        /// A symbol that fills the 20 pt wing artwork, as the timer strip's glyph does, so the
+        /// "Time is up" mark is the size of the timer's (Icon.strip is for glyphs inline with text).
+        static let wingGlyph = Font.system(size: Peek.wingArtwork, weight: .medium)
+    }
+}
+
+extension NotchDesign.TypeStyle {
+    /// The least a line of this style may scale down to: 10 pt, the floor (docs/design/NOTCH-DESIGN.md 5, 14).
+    var minimumScale: CGFloat { min(1, 10 / nsFont.pointSize) }
+}
+
 /// Feedback keeps the central camera area clear on physical and simulated notches.
 struct NotchNoticeView: View {
     let notice: NotchNotice
     let geometry: NotchGeometry
+    /// A tall peek on the hanging island draws only its band; the live strip is drawn above it.
+    var reservesStrip = true
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var wings: NotchNoticeWings { notice.wings(in: geometry) }
     private var tint: Color {
         switch notice.event {
         // A warning reads as one in any agent's color; other AI notices wear it.
-        case .agents: return notice.symbol.hasPrefix("exclamationmark") ? .orange : notice.agent?.tint ?? .white
-        // The timer's notice keeps the orange its strip and page wear.
-        case .timer: return .orange
-        default: return .white
+        case .agents: return notice.symbol.hasPrefix("exclamationmark") ? NotchDesign.Palette.warning : notice.agent?.tint ?? NotchDesign.Ink.primary
+        // Words stay white; the timer's glyph wears the one accent, never the warning orange.
+        case .timer: return NotchDesign.Palette.accent
+        default: return NotchDesign.Ink.primary
         }
     }
-    /// The words of a timer's notice share its orange too.
-    private var textTint: Color { notice.event == .timer ? .orange : .white }
 
     @ViewBuilder var body: some View {
         if notice.tall {
@@ -30,20 +44,14 @@ struct NotchNoticeView: View {
         }
     }
 
-    /// The tall peek: the strip as it rests, then a band with the agent's mark,
-    /// what happened and what it took. Nothing beside the camera widens.
+    /// The tall peek: the strip as it rests (drawn above by NotchView, or reserved here
+    /// on a capsule), then a band with the mark, what happened and what it took.
+    /// Nothing beside the camera widens.
     private var tallBody: some View {
         VStack(spacing: 0) {
-            Color.clear.frame(height: geometry.stripHeight)
-            NotchTallPeekRow(primary: notice.title, secondary: notice.detail, hasLive: warns) {
-                if let agent = notice.agent {
-                    // The mark at the plate's size, with no container behind it.
-                    NotchAgentMark(provider: agent, size: Self.markSize(agent, fitting: NotchDesign.Peek.artwork))
-                } else {
-                    Image(systemName: notice.symbol)
-                        .font(.system(size: NotchDesign.Peek.artwork * 0.6, weight: .medium))
-                        .foregroundStyle(NotchDesign.Ink.primary)
-                }
+            if reservesStrip { Color.clear.frame(height: geometry.stripHeight) }
+            NotchTallPeekRow(primary: tallPrimary, secondary: tallSecondary, hasLive: warns) {
+                tallMark
             } live: {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .font(NotchDesign.Icon.strip.font)
@@ -53,6 +61,25 @@ struct NotchNoticeView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(notice.accessibilityText)
+    }
+
+    private var tallPrimary: String { notice.notification?.compactTitle ?? notice.title }
+    private var tallSecondary: String { notice.notification?.compactDetail ?? notice.detail }
+
+    @ViewBuilder private var tallMark: some View {
+        if let content = notice.notification {
+            NotchNotificationAppIcon(app: content.app, size: NotchDesign.Peek.artwork)
+        } else if let agent = notice.agent {
+            // The mark at the plate's size, with no container behind it.
+            NotchAgentMark(provider: agent, size: Self.markSize(agent, fitting: NotchDesign.Peek.artwork))
+        } else if notice.event == .track {
+            NotchTrackArtwork(size: NotchDesign.Peek.artwork)
+                .clipShape(RoundedRectangle(cornerRadius: NotchDesign.Radius.card, style: .continuous))
+        } else {
+            Image(systemName: notice.symbol)
+                .font(.system(size: NotchDesign.Peek.artwork * 0.6, weight: .medium))
+                .foregroundStyle(NotchDesign.Ink.primary)
+        }
     }
 
     /// NotchAgentMark scales its glyph per agent (its `markScale` is private to
@@ -78,7 +105,7 @@ struct NotchNoticeView: View {
                 .frame(width: wings.trailing, height: geometry.stripHeight)
                 .clipped()
         }
-        .foregroundStyle(.white)
+        .foregroundStyle(NotchDesign.Ink.primary)
         .frame(height: geometry.stripHeight)
         // Each side is as wide as what it shows, so the island reaches
         // further toward the wider one and the camera's gap stays over it.
@@ -97,27 +124,16 @@ struct NotchNoticeView: View {
     }
 
     @ViewBuilder private var leading: some View {
-        if let content = notice.notification {
-            HStack(spacing: NotchNotificationBannerLayout.spacing) {
-                NotchNotificationAppIcon(app: content.app, size: min(NotchNotificationBannerLayout.iconSize, geometry.stripHeight - 4))
-                Text(content.compactTitle)
-                    .font(Font(NotchNotificationBannerLayout.titleFont as CTFont))
-                    .lineLimit(1)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-        } else if notice.showsGlyphAndWord {
+        if notice.showsGlyphAndWord || notice.isHUD {
             glyph
                 .frame(width: NotchDesign.Peek.wingArtwork, height: NotchDesign.Peek.wingArtwork)
                 .frame(maxWidth: .infinity, alignment: .leading)
         } else {
+            // Battery, accessory and microphone notices keep their own layout.
             HStack(spacing: 8) {
                 Group {
-                    // A notice about the agent itself wears its mark, and a
-                    // warning keeps a symbol that says what happened.
                     if notice.event == .agents, let agent = notice.agent, notice.symbol == agent.symbol {
                         NotchAgentMark(provider: agent, size: 13)
-                    } else if notice.event == .track {
-                        NotchTrackArtwork(size: min(18, geometry.stripHeight - 6))
                     } else {
                         Image(systemName: notice.symbol)
                             .font(.system(size: 14, weight: .medium))
@@ -127,10 +143,10 @@ struct NotchNoticeView: View {
                 .frame(width: 18)
                 Text(notice.level == nil ? notice.title : notice.detail)
                     .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(textTint)
+                    .foregroundStyle(NotchDesign.Ink.primary)
                     .monospacedDigit()
                     .lineLimit(1)
-                    .truncationMode(notice.event == .track ? .tail : .middle)
+                    .truncationMode(.middle)
                     .contentTransition(.numericText())
             }
             .frame(maxWidth: .infinity, alignment: notice.readsFromEnds ? .leading : .trailing)
@@ -144,11 +160,9 @@ struct NotchNoticeView: View {
         let side = NotchDesign.Peek.wingArtwork
         if notice.event == .agents, let agent = notice.agent, notice.symbol == agent.symbol {
             NotchAgentMark(provider: agent, size: Self.markSize(agent, fitting: side))
-        } else if notice.event == .track {
-            NotchTrackArtwork(size: side)
         } else {
             Image(systemName: notice.symbol)
-                .font(NotchDesign.Icon.strip.font)
+                .font(NotchDesign.PeekMark.wingGlyph)
                 .foregroundStyle(tint)
         }
     }
@@ -157,19 +171,26 @@ struct NotchNoticeView: View {
         if notice.showsGlyphAndWord {
             Text(notice.title)
                 .font(NotchDesign.Typography.stripPrimary.font)
-                .foregroundStyle(textTint)
+                .foregroundStyle(NotchDesign.Ink.primary)
                 .monospacedDigit()
                 .lineLimit(1)
                 .truncationMode(.tail)
                 .frame(maxWidth: .infinity, alignment: .trailing)
-        } else if let content = notice.notification {
-            // At the far end, as far from it as the sender is from the other
-            // one, with the air that fits it beside the camera.
-            Text(content.compactDetail)
-                .font(Font(NotchNotificationBannerLayout.messageFont as CTFont))
-                .foregroundStyle(.white.opacity(0.85))
-                .lineLimit(NotchNotificationBannerLayout.messageLines(stripHeight: geometry.stripHeight))
-                .frame(maxWidth: .infinity, alignment: .trailing)
+        } else if notice.isHUD, let level = notice.level {
+            // The meter fills the wing, the percent keeps its widest reading's width.
+            HStack(spacing: NotchDesign.Spacing.xxSmall) {
+                NotchMeter(value: level, height: NotchDesign.Control.meter, tint: NotchDesign.Ink.primary)
+                    .frame(maxWidth: .infinity)
+                Text(notice.detail)
+                    .font(NotchDesign.Typography.readout.font)
+                    .monospacedDigit()
+                    .foregroundStyle(NotchDesign.Ink.primary)
+                    .lineLimit(1)
+                    .contentTransition(.numericText())
+                    .frame(width: NotchNotice.hudReadingWidth, alignment: .trailing)
+            }
+            .animation(reduceMotion ? nil : NotchDesign.Motion.fade, value: level)
+            .transaction { $0.disablesAnimations = false }
         } else if let level = notice.level {
             NotchMeter(value: level, height: 5, tint: tint)
                 .animation(reduceMotion ? nil : .easeOut(duration: 0.14), value: level)
@@ -177,7 +198,7 @@ struct NotchNoticeView: View {
         } else {
             Text(notice.detail)
                 .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(textTint.opacity(0.8))
+                .foregroundStyle(NotchDesign.Ink.primary.opacity(0.8))
                 .lineLimit(1)
                 .truncationMode(notice.event == .accessory ? .middle : .tail)
                 .frame(maxWidth: .infinity, alignment: .trailing)
@@ -238,16 +259,18 @@ struct NotchExpandedLevelView: View {
     let notice: NotchNotice
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: NotchDesign.Spacing.small) {
             Image(systemName: notice.symbol)
-                .frame(width: 18)
-            NotchMeter(value: notice.level ?? 0, height: 5, tint: .white)
+                .font(NotchDesign.Icon.strip.font)
+                .frame(width: NotchDesign.Peek.wingArtwork)
+            NotchMeter(value: notice.level ?? 0, height: NotchDesign.Control.meter, tint: NotchDesign.Ink.primary)
                 .frame(maxWidth: 96)
             Text(notice.detail)
+                .font(NotchDesign.Typography.readout.font)
                 .monospacedDigit()
                 .fixedSize()
         }
-        .font(.system(size: 11, weight: .medium))
+        .foregroundStyle(NotchDesign.Ink.primary)
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(notice.accessibilityText)

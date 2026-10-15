@@ -107,14 +107,23 @@ enum NotchRenderScenes {
                              }),
             peek("30-peek-agent-finished", "an agent finished, with its time and spend", NotchNotice(
                 event: .agents, title: agents.finished(AgentProvider.claude.displayName),
-                detail: AgentFormat.duration(754, locale: locale) + " · " + AgentFormat.cost(1.84, locale: locale),
+                detail: NotchNotice.wrapUpDuration(754, locale: locale) + " · " + AgentFormat.cost(1.84),
                 symbol: AgentProvider.claude.symbol, agent: .claude, tall: true)),
             peek("30-peek-notification", "a message mirrored from Notification Center", NotchNotice(
                 event: .systemNotification, title: content.title, detail: content.body, symbol: "bell.fill",
-                notification: content, notificationID: UUID(uuidString: "6F1C2A3B-0000-4000-8000-0000000000D1"))),
+                notification: content, notificationID: UUID(uuidString: "6F1C2A3B-0000-4000-8000-0000000000D1"),
+                tall: true)),
+            peek("30-peek-track-change", "the track changed, title and artist", NotchNotice(
+                event: .track, title: "Blinding Lights", detail: "The Weeknd", symbol: "music.note", tall: true)),
+            peek("30-peek-agent-limit", "an agent is close to its limit", NotchNotice(
+                event: .agents, title: AgentProvider.claude.displayName + " · " + agents.session,
+                detail: agents.usedShare("92%"), symbol: "exclamationmark.triangle.fill", agent: .claude, tall: true)),
+            peek("30-peek-watch", "a watch fired", NotchNotice(
+                event: .watch, title: FeatureStrings.notchWatch(language).outcome(.settled), detail: "Xcode",
+                symbol: NotchModule.watch.symbol, tall: true)),
             peek("30-peek-download-finished", "a download finished", NotchNotice(
                 event: .download, title: FeatureStrings.notchFiles(language).completed, detail: "Quarterly report.pdf",
-                symbol: "arrow.down.circle.fill")),
+                symbol: "arrow.down.circle.fill", tall: true)),
             peek("30-peek-device-connected", "AirPods connected", NotchNotice(
                 event: .accessory, title: activity.connected, detail: "AirPods Pro",
                 symbol: NotchAccessorySupport.symbol(name: "AirPods Pro", majorClass: 0x04, minorClass: 0x06))),
@@ -286,10 +295,10 @@ enum NotchRenderScenes {
             layers.append(AnyView(place(NotchLockScreenPlayer(model: model, size: frame.size), frame)))
         }
         if let surface = NotchLockScreenLayout.islandSurface(
-            in: screen, cameraWidth: geometry.bareCutout.width, cameraHeight: geometry.bareCutout.height,
+            in: screen, cameraWidth: geometry.bareCamera.width, cameraHeight: geometry.bareCamera.height,
             wing: geometry.lockScreenMusicGeometry.compactActivityWingWidth) {
             layers.append(AnyView(place(NotchLockScreenIsland(model: model, size: surface.size,
-                                                              cameraWidth: geometry.bareCutout.width,
+                                                              cameraWidth: geometry.bareCamera.width,
                                                               geometry: geometry.lockScreenMusicGeometry), surface)))
         }
         let view = ZStack(alignment: .topLeading) { ForEach(layers.indices, id: \.self) { layers[$0] } }

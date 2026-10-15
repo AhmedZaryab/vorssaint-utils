@@ -67,16 +67,57 @@ struct NotchView: View {
             // and lays out its own margins from the canvas.
             let base = service.baseSurfaceSize
             VStack(spacing: 0) {
-                baseSurface.frame(width: base.width, height: base.height)
+                baseSurface().frame(width: base.width, height: base.height)
                 NotchSongPeekBand(model: peek)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             }
+        } else if service.tallNoticeKeepsStrip, let notice = service.notice {
+            // A tall notice keeps the live strip exactly as it was (11.2) and
+            // grows its band below, as the song band does.
+            let strip = service.stripBehindNoticeSize
+            VStack(spacing: 0) {
+                baseSurface(showingNotice: false).frame(width: strip.width, height: strip.height)
+                noticeButton(notice, reservesStrip: false)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            }
         } else {
-            baseSurface
+            baseSurface()
         }
     }
 
-    @ViewBuilder private var baseSurface: some View {
+    /// The notice as one button: the strip's words, or a tall peek's band.
+    @ViewBuilder private func noticeButton(_ notice: NotchNotice, reservesStrip: Bool = true) -> some View {
+        Button {
+            service.activateNotice(notice)
+        } label: {
+            Group {
+                if floats, !notice.tall {
+                    // A departing notice keeps its own row while the capsule closes.
+                    NotchCapsuleNoticeView(notice: notice, geometry: service.geometry,
+                                           size: service.notice == nil ? service.capsuleNoticeSurface(notice)
+                                               : service.surfaceSize)
+                } else {
+                    NotchNoticeView(notice: notice, geometry: service.geometry, reservesStrip: reservesStrip)
+                }
+            }
+            // Beside a camera the notice reaches further toward its
+            // wider side, and takes clicks all the way to its end.
+            .contentShape(Rectangle().offset(x: floats ? 0
+                : service.geometry.noticeShift(notice.wings(in: service.geometry))))
+        }
+        // A floating capsule lights up under the pointer. Beside a
+        // camera the wash would outline the housing, so the notch keeps
+        // its notices plain, as its other strips are.
+        .buttonStyle(NotchPressStyle(shape: .rounded(14), lifts: false, washes: floats))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(notice.accessibilityText)
+        .accessibilityAddTraits(.isButton)
+        .accessibilityAction { service.activateNotice(notice) }
+        .accessibilityHint(text.open)
+        .transition(.opacity)
+    }
+
+    @ViewBuilder private func baseSurface(showingNotice: Bool = true) -> some View {
         if service.fullscreenCompact {
             Color.clear.accessibilityHidden(true)
         } else if let options = service.captureControls {
@@ -109,7 +150,7 @@ struct NotchView: View {
                 }
                 .padding(.horizontal, canvas.margin)
                 .padding(.top, service.geometry.safeContentTop)
-        } else if let notice = service.notice ?? (service.peeking ? nil : service.departingNotice) {
+        } else if showingNotice, let notice = service.notice ?? (service.peeking ? nil : service.departingNotice) {
             if service.noticeExpanded, let content = notice.notification {
                 NotchNotificationPreviewView(notice: notice, content: content, service: service)
                     .padding(.horizontal, NotchLayout.horizontalInset)
@@ -117,34 +158,7 @@ struct NotchView: View {
                     .padding(.bottom, NotchLayout.bottomInset)
                     .frame(width: service.surfaceSize.width, height: service.surfaceSize.height, alignment: .top)
             } else {
-                Button {
-                    service.activateNotice(notice)
-                } label: {
-                    Group {
-                        if floats, !notice.tall {
-                            // A departing notice keeps its own row while the capsule closes.
-                            NotchCapsuleNoticeView(notice: notice, geometry: service.geometry,
-                                                   size: service.notice == nil ? service.capsuleNoticeSurface(notice)
-                                                       : service.surfaceSize)
-                        } else {
-                            NotchNoticeView(notice: notice, geometry: service.geometry)
-                        }
-                    }
-                    // Beside a camera the notice reaches further toward its
-                    // wider side, and takes clicks all the way to its end.
-                    .contentShape(Rectangle().offset(x: floats ? 0
-                        : service.geometry.noticeShift(notice.wings(in: service.geometry))))
-                }
-                // A floating capsule lights up under the pointer. Beside a
-                // camera the wash would outline the housing, so the notch keeps
-                // its notices plain, as its other strips are.
-                .buttonStyle(NotchPressStyle(shape: .rounded(14), lifts: false, washes: floats))
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel(notice.accessibilityText)
-                .accessibilityAddTraits(.isButton)
-                .accessibilityAction { service.activateNotice(notice) }
-                .accessibilityHint(text.open)
-                .transition(.opacity)
+                noticeButton(notice)
             }
         } else if service.peeking {
             HStack {

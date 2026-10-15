@@ -356,7 +356,7 @@ final class NotchWatchService: ObservableObject {
         let notch = NotchService.shared
         let onPage = notch.expanded && notch.selected == .watch
         let shown = onPage || notch.show(NotchNotice(event: .watch, title: title, detail: target.appName,
-                                                     symbol: NotchModule.watch.symbol))
+                                                     symbol: NotchModule.watch.symbol, tall: true))
         // Hidden in a full-screen app or while the Mac is locked, the island
         // cannot speak up, and the person is counting on hearing about it.
         if !shown { Notifier.post(title: title, body: target.windowTitle ?? target.appName) }

@@ -74,9 +74,9 @@ struct NotchCapsuleNoticeView: View {
     private var tint: Color {
         switch notice.event {
         // A warning reads as one in any agent's color; other AI notices wear it.
-        case .agents: return notice.symbol.hasPrefix("exclamationmark") ? .orange : notice.agent?.tint ?? .white
-        case .timer: return .orange
-        default: return .white
+        case .agents: return notice.symbol.hasPrefix("exclamationmark") ? NotchDesign.Palette.warning : notice.agent?.tint ?? NotchDesign.Ink.primary
+        case .timer: return NotchDesign.Palette.accent
+        default: return NotchDesign.Ink.primary
         }
     }
 
@@ -126,9 +126,8 @@ struct NotchCapsuleNoticeView: View {
     private var messageRow: some View {
         HStack(spacing: CapsuleLayout.spacing) {
             mark
-            // A timer's notice keeps the orange its strip wears.
             Text(notice.title).capsuleTitle().layoutPriority(1)
-                .foregroundStyle(notice.event == .timer ? Color.orange : .white)
+                .foregroundStyle(NotchDesign.Ink.primary)
             if !notice.detail.isEmpty {
                 Text(notice.detail).capsuleDetail()
                     .truncationMode(notice.event == .accessory ? .middle : .tail)
