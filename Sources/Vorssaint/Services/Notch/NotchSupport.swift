@@ -244,7 +244,7 @@ enum NotchLayout {
     static let sectionTileHeight: CGFloat = 86
     /// Five fit a spacious island's row beside the indicator, four a compact one's.
     static let sectionTileWidth: CGFloat = 91
-    static let sectionSpacing: CGFloat = 8
+    static let sectionSpacing: CGFloat = NotchDesign.Spacing.gutter
     /// The gallery's row indicator beside the tiles, with its gap.
     static let sectionIndicatorWidth: CGFloat = 12
     static let clipboardSearchHeight: CGFloat = 36

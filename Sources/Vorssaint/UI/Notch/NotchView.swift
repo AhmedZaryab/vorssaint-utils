@@ -14,6 +14,7 @@ struct NotchView: View {
     @Environment(\.colorSchemeContrast) private var contrast
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @Environment(\.notchCanvas) private var canvas
     @State private var headerHovered = false
     private var text: NotchStrings { FeatureStrings.notch(l10n.language) }
 
@@ -98,15 +99,15 @@ struct NotchView: View {
             expanded
         } else if service.dragPlaceholder {
             Label(text.dropHint, systemImage: "tray.and.arrow.down")
-                .font(.system(size: 13, weight: .medium)).foregroundStyle(.white)
+                .font(NotchDesign.Typography.title.font).foregroundStyle(NotchDesign.Ink.primary)
                 .frame(maxWidth: .infinity, minHeight: 52)
                 .overlay {
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .strokeBorder(.white.opacity(0.24),
-                                      style: StrokeStyle(lineWidth: 1, dash: [5, 4]))
+                    RoundedRectangle(cornerRadius: NotchDesign.Radius.card, style: .continuous)
+                        .strokeBorder(contrast == .increased ? NotchDesign.Stroke.increasedContrast : NotchDesign.Ink.secondary,
+                                      style: NotchDesign.Stroke.dropTarget)
                         .allowsHitTesting(false)
                 }
-                .padding(.horizontal, 18)
+                .padding(.horizontal, canvas.margin)
                 .padding(.top, service.geometry.safeContentTop)
         } else if let notice = service.notice ?? (service.peeking ? nil : service.departingNotice) {
             if service.noticeExpanded, let content = notice.notification {
@@ -148,10 +149,10 @@ struct NotchView: View {
         } else if service.peeking {
             HStack {
                 navigation
-                Spacer(minLength: 8)
+                Spacer(minLength: NotchDesign.Spacing.small)
                 NotchIconButton(symbol: "chevron.down", title: text.open) { service.open() }
             }
-            .padding(.horizontal, NotchLayout.horizontalInset).padding(.top, service.geometry.safeContentTop)
+            .padding(.horizontal, canvas.contentInsets.leading).padding(.top, service.geometry.safeContentTop)
         } else if let activity = service.compactActivity {
             if service.showsCompactActivityPicker {
                 let layout = service.compactActivityPickerLayout
@@ -235,7 +236,7 @@ struct NotchView: View {
     private var showsDetail: Bool { service.showingAppPanel }
 
     private var expanded: some View {
-        VStack(spacing: NotchLayout.spacing) {
+        VStack(spacing: NotchDesign.Spacing.section) {
             header.zIndex(1)
             Group {
                 if service.showingSections {
@@ -258,9 +259,9 @@ struct NotchView: View {
             .clipShape(NotchPageClip(top: service.expandedGeometry.headerTopInset
                                         + service.expandedGeometry.headerRowHeight + NotchLayout.spacing))
         }
-        .padding(.horizontal, NotchLayout.horizontalInset)
+        .padding(.horizontal, canvas.contentInsets.leading)
         .padding(.top, service.expandedGeometry.headerTopInset)
-        .padding(.bottom, NotchLayout.bottomInset)
+        .padding(.bottom, canvas.contentInsets.bottom)
         .frame(width: service.expandedSize.width, height: service.expandedSize.height, alignment: .top)
     }
 
@@ -323,14 +324,14 @@ struct NotchView: View {
     }
 
     private var header: some View {
-        HStack(spacing: service.expandedGeometry.headerCameraGap > 0 ? 0 : 6) {
+        HStack(spacing: service.expandedGeometry.headerCameraGap > 0 ? 0 : NotchDesign.Spacing.xSmall) {
             let quickActions = NotchQuickAccessConfiguration.current().actions
-            HStack(spacing: 6) {
+            HStack(spacing: NotchDesign.Spacing.xSmall) {
                 if service.showingSections {
                     NotchIconButton(symbol: "chevron.left", title: l10n.s.obBack, action: service.toggleSections)
                     if service.expandedGeometry.headerCameraGap == 0 {
                         Text(text.sectionsTitle)
-                            .font(.system(size: 16, weight: .semibold))
+                            .font(NotchDesign.Typography.pageTitle.font)
                             .lineLimit(1)
                             .layoutPriority(-1)
                     }
@@ -338,14 +339,14 @@ struct NotchView: View {
                     // stopping a little short of the cutout.
                     NotchSectionSearch(service: service,
                                        maximumFieldWidth: service.expandedGeometry.headerCameraGap > 0 ? .infinity : 150)
-                        .padding(.trailing, service.expandedGeometry.headerCameraGap > 0 ? 6 : 0)
+                        .padding(.trailing, service.expandedGeometry.headerCameraGap > 0 ? NotchDesign.Spacing.xSmall : 0)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 } else if showsDetail || service.modules.isEmpty {
                     if showsDetail {
                         NotchIconButton(symbol: "chevron.left", title: l10n.s.obBack, action: service.goBack)
                     }
                     Text(service.detailTitle)
-                        .font(Font(NotchLayout.detailTitleFont as CTFont))
+                        .font(NotchDesign.Typography.pageTitle.font)
                         .lineLimit(1)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 } else {
@@ -353,7 +354,7 @@ struct NotchView: View {
                         NotchIconButton(symbol: "square.grid.2x2", title: text.sectionsTitle, action: service.toggleSections)
                     }
                     Text(service.selected.title(l10n.language))
-                        .font(Font(NotchLayout.headerTitleFont as CTFont))
+                        .font(NotchDesign.Typography.pageTitle.font)
                         .lineLimit(1)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
@@ -371,7 +372,7 @@ struct NotchView: View {
             if service.expandedGeometry.headerCameraGap > 0 {
                 Color.clear.frame(width: service.expandedGeometry.headerCameraGap)
             }
-            HStack(spacing: 6) {
+            HStack(spacing: NotchDesign.Spacing.xSmall) {
                 if service.selected == .captures, !showsDetail, !service.showingSections,
                    let actions = service.captureActions {
                     actions.fixedSize()
@@ -424,7 +425,7 @@ struct NotchView: View {
     }
 
     private func cameraHeaderActions(compactUpdate: Bool) -> some View {
-        HStack(spacing: 6) {
+        HStack(spacing: NotchDesign.Spacing.xSmall) {
             NotchUpdateControl(action: service.showUpdate, compact: compactUpdate)
             overflowMenu(items: overflowItems(
                 tools: service.selected == .tools && !showsDetail && !service.showingSections && launcher.activeUtility == nil,
@@ -472,11 +473,11 @@ struct NotchView: View {
     /// A native menu drawn in the island's dark appearance, so it reads as part
     /// of it, and each entry carries its glyph.
     private func overflowMenu(items: [NotchMenuItem]) -> some View {
-        NotchMenuButton(title: text.title, items: items, cornerRadius: 8) {
+        NotchMenuButton(title: text.title, items: items, cornerRadius: NotchDesign.Radius.control) {
             Image(systemName: service.pinned ? "pin.fill" : "ellipsis")
-                .font(.system(size: 13, weight: .medium))
-                .frame(width: 28, height: 28)
-                .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .font(NotchDesign.Icon.button.font)
+                .frame(width: NotchDesign.Control.iconButton, height: NotchDesign.Control.iconButton)
+                .contentShape(RoundedRectangle(cornerRadius: NotchDesign.Radius.control, style: .continuous))
         }
     }
 
@@ -488,13 +489,13 @@ struct NotchView: View {
     private func headerActions(quickActions: [NotchQuickAction]) -> some View {
         let updating = updates.state.isInProgress
         let revealed = headerHovered || updating
-        return HStack(spacing: 6) {
+        return HStack(spacing: NotchDesign.Spacing.xSmall) {
             NotchUpdateControl(action: service.showUpdate)
             if service.selected == .tools, !service.showingAppPanel, !service.showingSections,
                !service.modules.isEmpty, launcher.activeUtility == nil {
                 NotchIconButton(symbol: launcher.isEditing ? "checkmark" : "slider.horizontal.3",
                                 title: text.customizeTools, selected: launcher.isEditing) {
-                    withAnimation(.easeOut(duration: 0.15)) { launcher.isEditing.toggle() }
+                    withAnimation(NotchDesign.Motion.animation(NotchDesign.Motion.snappy, reduceMotion: reduceMotion)) { launcher.isEditing.toggle() }
                 }
             }
             if showsCapturesClear { NotchClearCapturesButton() }
@@ -515,28 +516,29 @@ struct NotchView: View {
         .opacity(revealed ? 1 : 0)
         .overlay(alignment: .trailing) {
             if !revealed {
-                HStack(spacing: 5) {
+                HStack(spacing: NotchDesign.Spacing.xxSmall) {
                     if case .available(let version) = updates.state {
                         Circle()
-                            .fill(UpdateServiceSupport.SemanticVersion(raw: version)?.isPrerelease == true ? Color.orange : Color.blue)
+                            .fill(UpdateServiceSupport.SemanticVersion(raw: version)?.isPrerelease == true
+                                  ? NotchDesign.Palette.warning : NotchDesign.Palette.accent)
                             .frame(width: 6, height: 6)
                     }
                     // A kept-open island says so at rest, not only under the pointer.
                     if service.pinned {
                         Image(systemName: "pin.fill")
-                            .font(.system(size: 9, weight: .semibold))
-                            .foregroundStyle(.white.opacity(0.6))
+                            .font(NotchDesign.Typography.caption.font)
+                            .foregroundStyle(NotchDesign.Ink.secondary)
                     }
                     Image(systemName: "ellipsis")
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundStyle(.white.opacity(0.35))
-                        .frame(width: 28, height: 28)
+                        .font(NotchDesign.Icon.button.font)
+                        .foregroundStyle(contrast == .increased ? NotchDesign.Ink.secondary : NotchDesign.Ink.tertiary)
+                        .frame(width: NotchDesign.Control.iconButton, height: NotchDesign.Control.iconButton)
                 }
                 .allowsHitTesting(false)
                 .accessibilityHidden(true)
             }
         }
-        .animation(reduceMotion ? nil : .easeOut(duration: 0.15), value: revealed)
+        .animation(reduceMotion ? nil : NotchDesign.Motion.fade, value: revealed)
     }
 
     private var navigationTitle: String {
@@ -547,19 +549,19 @@ struct NotchView: View {
 
     private var navigation: some View {
         Button(action: service.toggleSections) {
-            HStack(spacing: 9) {
+            HStack(spacing: NotchDesign.Spacing.small) {
                 Image(systemName: "square.grid.2x2")
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.7))
+                    .font(NotchDesign.Icon.button.font)
+                    .foregroundStyle(NotchDesign.Ink.secondary)
                 Text(navigationTitle)
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(NotchDesign.Typography.pageTitle.font)
                     .lineLimit(1)
             }
-            .padding(.horizontal, 10)
+            .padding(.horizontal, NotchDesign.Spacing.medium)
             .frame(height: NotchLayout.navigationHeight)
-            .contentShape(RoundedRectangle(cornerRadius: 12))
+            .contentShape(RoundedRectangle(cornerRadius: NotchDesign.Radius.card, style: .continuous))
         }
-        .buttonStyle(NotchButtonStyle(cornerRadius: 12, lifts: false))
+        .buttonStyle(NotchPressStyle(shape: .rounded(NotchDesign.Radius.card)))
         .accessibilityLabel(text.switchSection)
         .accessibilityValue(navigationTitle)
         .accessibilityIdentifier("notch.navigation")
@@ -740,11 +742,13 @@ struct NotchRestingStrip: View {
                         case .music:
                             if let artwork = music.artwork {
                                 Image(nsImage: artwork).resizable().scaledToFill()
-                                    .frame(width: min(22, geometry.stripHeight - 6), height: min(22, geometry.stripHeight - 6))
-                                    .clipShape(RoundedRectangle(cornerRadius: 5))
+                                    .frame(width: min(NotchDesign.Peek.wingArtwork, geometry.stripHeight - 6),
+                                           height: min(NotchDesign.Peek.wingArtwork, geometry.stripHeight - 6))
+                                    .clipShape(RoundedRectangle(cornerRadius: NotchDesign.Radius.artwork(side: NotchDesign.Peek.wingArtwork),
+                                                                style: .continuous))
                             }
                         case .battery:
-                            Image(systemName: batterySymbol).font(.system(size: 12))
+                            Image(systemName: batterySymbol).font(NotchDesign.Icon.strip.font)
                                 .foregroundStyle(batteryTint)
                                 .padding(.leading, restingBatteryInset)
                         case .agents:
@@ -765,7 +769,7 @@ struct NotchRestingStrip: View {
                             }
                         case .battery:
                             if let percent = service.power.chargePercent {
-                                Text("\(percent)%").font(.system(size: 9, weight: .medium)).monospacedDigit()
+                                Text("\(percent)%").font(NotchDesign.Typography.caption.font).monospacedDigit()
                                     .foregroundStyle(batteryTint)
                                     .lineLimit(1)
                                     .padding(.trailing, restingBatteryInset)
@@ -882,8 +886,8 @@ struct NotchActivityPicker: View {
                 } label: {
                     Label(combination?.title(language) ?? FeatureStrings.notch(language).combineActivities,
                           systemImage: combination == nil ? "plus" : "checkmark")
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundStyle(.white.opacity(combination == nil ? 0.75 : 1))
+                        .font(NotchDesign.Typography.label.font)
+                        .foregroundStyle(combination == nil ? NotchDesign.Ink.secondary : NotchDesign.Ink.primary)
                         .frame(height: NotchActivityPickerLayout.combinationHeight)
                 }
                 .menuStyle(.borderlessButton)
@@ -899,27 +903,29 @@ struct NotchActivityPicker: View {
             ForEach(activities) { activity in
                 let chosen = activity == selected && combination == nil
                 Button { select(activity) } label: {
-                    HStack(spacing: 6) {
+                    HStack(spacing: NotchDesign.Spacing.xSmall) {
                         Image(systemName: activity.symbol)
                         Text(activity.title(language)).lineLimit(1).minimumScaleFactor(0.8)
                     }
-                    .font(.system(size: 12, weight: .medium))
-                    .padding(.horizontal, 10)
+                    .font(NotchDesign.Typography.label.font)
+                    .padding(.horizontal, NotchDesign.Spacing.small)
                     .frame(maxWidth: .infinity)
                     .frame(height: NotchActivityPickerLayout.rowHeight)
-                    .foregroundStyle(chosen ? Color.black : Color.white)
+                    .foregroundStyle(chosen ? NotchDesign.Ink.onInverse : NotchDesign.Ink.primary)
                     .background {
                         ZStack {
-                            RoundedRectangle(cornerRadius: 8).fill(Color.white.opacity(0.12))
+                            RoundedRectangle(cornerRadius: NotchDesign.Radius.control, style: .continuous)
+                                .fill(NotchDesign.Fill.control)
                             if chosen {
-                                RoundedRectangle(cornerRadius: 8).fill(Color.white)
+                                RoundedRectangle(cornerRadius: NotchDesign.Radius.control, style: .continuous)
+                                    .fill(NotchDesign.Fill.inverse)
                                     .matchedGeometryEffect(id: "choice", in: choice)
                             }
                         }
                     }
-                    .contentShape(RoundedRectangle(cornerRadius: 8))
+                    .contentShape(RoundedRectangle(cornerRadius: NotchDesign.Radius.control, style: .continuous))
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(NotchPressStyle(shape: .rounded(NotchDesign.Radius.control), washes: false))
                 .accessibilityLabel(activity.title(language))
                 .accessibilityAddTraits(chosen ? .isSelected : [])
                 .accessibilityIdentifier("notch.activity.\(activity.rawValue)")

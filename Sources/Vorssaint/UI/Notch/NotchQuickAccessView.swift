@@ -41,8 +41,13 @@ final class NotchQuickAccessMotion: ObservableObject {
         generation += 1
         let token = generation
         interactive = false
+        // The drop uses the island's own grow spring and leaves on an ease out,
+        // never an ease in; Reduce Motion keeps only the fade.
+        let reduced = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
         let animation: Animation? = animated
-            ? (visible ? .spring(duration: 0.38, bounce: 0.12).delay(delay) : .easeIn(duration: NotchQuickAccessLayout.withdrawalDuration))
+            ? (reduced ? NotchDesign.Motion.fade
+               : visible ? NotchDesign.Geometry.growSpring.animation.delay(delay)
+               : .easeOut(duration: NotchQuickAccessLayout.withdrawalDuration))
             : nil
         withAnimation(animation, completionCriteria: .logicallyComplete) {
             progress = visible ? 1 : 0
@@ -72,6 +77,7 @@ struct NotchQuickAccessView: View {
     @AppStorage(DefaultsKey.notchLiquidGlassEnabled) private var glass = false
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @Environment(\.colorSchemeContrast) private var contrast
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     /// Increase Contrast keeps the buttons solid beside a lip that barely opens.
     private var followsGlass: Bool {
@@ -107,6 +113,11 @@ struct NotchQuickAccessView: View {
         .accessibilityHidden(!motion.interactive)
     }
 
+    private func glyphInk(action: NotchQuickAction, selected: Bool) -> Color {
+        guard selected else { return NotchDesign.Ink.primary }
+        return action == .control(.recording) ? NotchDesign.Palette.critical : NotchDesign.Palette.accent
+    }
+
     private func bubble(_ button: NotchQuickButton) -> some View {
         let action = button.action ?? .explore
         let isBack = action == .explore && service.showingSections
@@ -140,20 +151,29 @@ struct NotchQuickAccessView: View {
             service.activateQuickAction(action)
         } label: {
             Image(systemName: symbol)
-                .font(.system(size: 17, weight: .medium))
+                .font(NotchDesign.Icon.tile.font)
+                // A button that holds a state shows it: the glyph takes the
+                // accent (the signal red while recording) and its symbol morphs.
+                .foregroundStyle(glyphInk(action: action, selected: selected))
+                .notchSymbolReplace(reduceMotion: reduceMotion)
+                .animation(NotchDesign.Motion.animation(NotchDesign.Motion.snappy, reduceMotion: reduceMotion), value: symbol)
                 .frame(width: NotchQuickAccessLayout.diameter, height: NotchQuickAccessLayout.diameter)
                 // In glass the drop beneath carries the island's shade, which
                 // the window server does not count as the window's own pixels:
                 // a faint fill keeps the whole circle from passing clicks to
                 // the app behind, not just the glyph.
                 .background(followsGlass ? Color.black.opacity(0.02) : Color.black, in: Circle())
+                .shadow(color: followsGlass ? .clear : NotchDesign.Shadow.floating.color,
+                        radius: NotchDesign.Shadow.floating.radius, y: NotchDesign.Shadow.floating.y)
                 .overlay {
-                    Circle().strokeBorder(.white.opacity(selected || contrast == .increased ? 0.6 : 0.16), lineWidth: 0.75)
+                    Circle().strokeBorder(contrast == .increased ? NotchDesign.Stroke.increasedContrast : NotchDesign.Stroke.keyLine,
+                                          lineWidth: contrast == .increased ? NotchDesign.Stroke.increasedContrastWidth
+                                              : NotchDesign.Stroke.hairline)
                         .allowsHitTesting(false)
                 }
                 .contentShape(Circle())
         }
-        .buttonStyle(NotchButtonStyle(cornerRadius: NotchQuickAccessLayout.diameter / 2))
+        .buttonStyle(NotchPressStyle(shape: .capsule))
         .help(title)
         .accessibilityLabel(title)
         .accessibilityAddTraits(selected ? .isSelected : [])

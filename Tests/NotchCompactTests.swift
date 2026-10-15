@@ -82,13 +82,6 @@ enum NotchCompactTests {
         @ViewBuilder var actions: () -> Actions
         var body: some View { VStack { Text(message); actions() } }
     }
-    struct NotchPressStyle: ButtonStyle {
-        var shape: NotchPressShape = .capsule
-        var lifts = true
-        var washes = true
-        func makeBody(configuration: Configuration) -> some View { configuration.label }
-    }
-    enum NotchPressShape { case capsule, rounded(CGFloat) }
     struct NotchControlSurface: ViewModifier {
         let cornerRadius: CGFloat
         var interactive = true
@@ -97,16 +90,6 @@ enum NotchCompactTests {
     struct NotchButtonStyle: ButtonStyle {
         var cornerRadius: CGFloat = 10
         var lifts = true
-        func makeBody(configuration: Configuration) -> some View { configuration.label }
-    }
-    enum NotchPressShape {
-        case capsule
-        case rounded(CGFloat)
-    }
-    struct NotchPressStyle: ButtonStyle {
-        var shape: NotchPressShape = .capsule
-        var lifts = true
-        var washes = true
         func makeBody(configuration: Configuration) -> some View { configuration.label }
     }
     struct NotchIconButton: View {
