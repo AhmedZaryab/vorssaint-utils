@@ -167,7 +167,6 @@ enum NotchRenderScenes {
 
     private static var extras: [NotchRenderScene] {
         [NotchRenderScene(name: "interactions-gallery", summary: "every button and slider in every state",
-                          skipReason: "NotchInteractionsGallery is not in this build, or does not conform to NotchRenderHarnessGallery",
                           content: .view { _ in gallery() })]
     }
 
@@ -290,13 +289,10 @@ enum NotchRenderScenes {
         return (AnyView(view), screen.size)
     }
 
-    /// A gallery another file may add; see `NotchRenderHarnessGallery`.
+    /// The interaction library's gallery, at the width it lays itself out at.
     private static func gallery() -> (AnyView, CGSize)? {
-        let module = String(reflecting: NotchRenderHarness.self).split(separator: ".").first.map(String.init) ?? "Vorssaint"
-        guard let type = _typeByName(module + ".NotchInteractionsGallery") as? any NotchRenderHarnessGallery.Type else {
-            return nil
-        }
-        return type.renderHarnessView()
+        let gallery = NotchInteractionsGallery()
+        return (AnyView(gallery), NSHostingView(rootView: gallery).fittingSize)
     }
 }
 #endif

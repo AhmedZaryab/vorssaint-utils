@@ -13,8 +13,8 @@
 # Output: <output dir>/<name>.png, one per state, plus contact-sheet.png when
 # python3 has Pillow. Names: 01-03 closed island, 04-22 open pages and
 # notices, 30-peek-* closed-island peeks and strips, 40-grow-1..3 the opening,
-# lockscreen-* the lock screen at display size, interactions-gallery when the
-# gallery is in the build.
+# lockscreen-* the lock screen at display size, interactions-gallery the
+# interaction library's gallery.
 # --only picks scenes by full name, by a start of the name (30-peek,
 # lockscreen) or by a start of the name after its number (music picks 04-music).
 set -euo pipefail

@@ -307,11 +307,4 @@ struct RenderError: Error, CustomStringConvertible {
     let description: String
     init(_ description: String) { self.description = description }
 }
-
-/// A development view a separate file may add, which the harness draws as
-/// one more picture whenever the type is in the build. Conforming is all it
-/// takes; the harness finds the type by name at run time.
-protocol NotchRenderHarnessGallery {
-    @MainActor static func renderHarnessView() -> (view: AnyView, size: CGSize)
-}
 #endif

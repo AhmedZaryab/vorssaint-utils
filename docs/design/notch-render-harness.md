@@ -74,7 +74,7 @@ it holds). The growth frames use a dark grey ground so the outline shows.
 | `30-peek-download-progress` | Download strip at 42%. |
 | `40-grow-1` to `40-grow-3` | The island opening from the closed music strip onto the music page: at rest, halfway, settled. |
 | `lockscreen-1-idle` to `lockscreen-8-agents` | The lock screen surfaces at the display's full size (1512 by 982 pt): padlock island alone, music playing, timer running, stopwatch running, timer finished, battery and keep awake lines, calendar countdown, agents working. |
-| `interactions-gallery` | Every button and slider in every state, when the gallery is in the build (see Known gaps). |
+| `interactions-gallery` | The interaction library's gallery: every button and slider in every state. |
 
 ## How it stays the same from run to run
 
@@ -138,11 +138,8 @@ and draws the presented layers.
   read from the live animation and its outline can differ by a pixel or two.
   At that moment the page has not begun to fade in (it waits for the outline),
   so the frame shows the bare outline.
-- **`interactions-gallery`** draws only when a type named
-  `NotchInteractionsGallery` is in the build and conforms to
-  `NotchRenderHarnessGallery` (one static function returning the view and its
-  size). The harness looks it up by name at run time, so nothing else needs
-  wiring. It is skipped, and named as skipped, otherwise.
+- **`interactions-gallery`** shows the gallery's frozen states as laid out;
+  its live controls sit at rest, since nothing presses them.
 - **The lock screen's own clock and password field** belong to macOS and are
   not drawn; the wallpaper is a fixed grey gradient.
 - **Liquid glass and the translucent background** are drawn off, the
