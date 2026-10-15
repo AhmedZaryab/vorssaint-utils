@@ -72,7 +72,8 @@ struct NotchCalendarStrip: View {
         HStack(spacing: 6) {
             Self.dot(countdown.event)
             Text(title)
-                .font(.system(size: 11, weight: .semibold))
+                .font(NotchDesign.Typography.stripPrimary.font)
+                .foregroundStyle(NotchDesign.Ink.primary)
                 .lineLimit(1).truncationMode(.tail)
                 .frame(maxWidth: .infinity, alignment: .leading)
             Self.clock(remaining, ongoing: countdown.ongoing)
@@ -88,7 +89,8 @@ struct NotchCalendarStrip: View {
             HStack(spacing: NotchCalendarSupport.stripTitleSpacing) {
                 Self.dot(countdown.event)
                 Text(title)
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(NotchDesign.Typography.stripPrimary.font)
+                    .foregroundStyle(NotchDesign.Ink.primary)
                     .lineLimit(1).truncationMode(.tail)
             }
             .padding(.leading, inset)
@@ -101,8 +103,8 @@ struct NotchCalendarStrip: View {
                 HStack(spacing: NotchCalendarSupport.stripClockSpacing) {
                     Self.clock(remaining, ongoing: countdown.ongoing)
                     Text(NotchCalendarSupport.timeText(countdown, locale: l10n.language.formattingLocale()))
-                        .font(.system(size: 11, weight: .medium)).monospacedDigit()
-                        .foregroundStyle(.white.opacity(0.55))
+                        .font(NotchDesign.Typography.stripSecondary.font).monospacedDigit()
+                        .foregroundStyle(NotchDesign.Ink.secondary)
                         .fixedSize()
                 }
                 Self.clock(remaining, ongoing: countdown.ongoing)
@@ -160,7 +162,7 @@ struct NotchCalendarStrip: View {
     private static func dot(_ event: NotchCalendarEvent) -> some View {
         Circle().fill(event.color.color).frame(width: NotchCalendarSupport.stripDotWidth,
                                                height: NotchCalendarSupport.stripDotWidth)
-            .overlay { Circle().strokeBorder(.white.opacity(0.5), lineWidth: 0.5) }
+            .overlay { Circle().strokeBorder(NotchDesign.Stroke.increasedContrast, lineWidth: NotchDesign.Stroke.hairline) }
             .accessibilityHidden(true)
     }
 
@@ -168,9 +170,9 @@ struct NotchCalendarStrip: View {
     /// color, so it never reads as a wait for the next one.
     private static func clock(_ remaining: String, ongoing: Bool) -> some View {
         Text(remaining)
-            .font(.system(size: 13, weight: .medium)).monospacedDigit()
+            .font(NotchDesign.Typography.stripPrimary.font).monospacedDigit()
             .lineLimit(1).minimumScaleFactor(0.8)
-            .foregroundStyle(ongoing ? Color.mint : Color.white)
+            .foregroundStyle(ongoing ? NotchDesign.Palette.positive : NotchDesign.Ink.primary)
             .modifier(NotchRollingDigits(value: remaining, countsDown: true, everySecond: false))
     }
 }

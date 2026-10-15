@@ -24,7 +24,7 @@ struct NotchTimerStrip: View {
     private var geometry: NotchGeometry { displayGeometry ?? service.compactActivityGeometry }
     private var companion: NotchCompactActivity? { service.compactCompanion }
     private var iconSize: CGFloat { NotchTimerSupport.stripIconSize(height: geometry.compactActivityContentHeight) }
-    private var textSize: CGFloat { NotchTimerSupport.stripTextSize(height: geometry.compactActivityContentHeight) }
+    private var textSize: CGFloat { NotchDesign.Typography.stripPrimary.nsFont.pointSize * 0.72 }
     private var iconInset: CGFloat {
         guard !geometry.compactActivityUsesFooter else { return 0 }
         if let companion { return NotchCompanionMark.inset(companion, geometry: geometry) }
@@ -50,7 +50,7 @@ struct NotchTimerStrip: View {
                             Image(systemName: timer.session.completed ? "checkmark.circle"
                                   : timer.session.isPaused ? "pause.circle" : timer.session.countsUp ? "stopwatch" : "timer")
                                 .font(.system(size: iconSize, weight: .medium))
-                                .foregroundStyle(.orange)
+                                .foregroundStyle(NotchDesign.Palette.accent)
                         }
                     }
                 }
@@ -84,8 +84,8 @@ struct NotchTimerStrip: View {
             Group {
                 if geometry.compactActivityWingWidth >= 42 {
                     Text(text)
-                        .font(.system(size: textSize, weight: .medium)).monospacedDigit()
-                        .foregroundStyle(.orange)
+                        .font(NotchDesign.Typography.stripPrimary.font).monospacedDigit()
+                        .foregroundStyle(NotchDesign.Ink.primary)
                         .lineLimit(1).minimumScaleFactor(0.65)
                         .modifier(NotchRollingDigits(value: text, countsDown: !timer.session.countsUp, everySecond: false))
                         // A reading that gains or loses a character, like
@@ -147,7 +147,8 @@ struct NotchCompanionMark: View {
             if geometry.compactActivityWingWidth >= 80,
                let fraction = downloads.items.first(where: { $0.active && !$0.completed })?.fraction {
                 Text(fraction, format: .percent.precision(.fractionLength(0)))
-                    .font(.system(size: 10, weight: .medium)).monospacedDigit()
+                    .font(NotchDesign.Typography.stripSecondary.font).monospacedDigit()
+                    .foregroundStyle(NotchDesign.Ink.secondary)
             }
         }
         .lineLimit(1)

@@ -32,10 +32,10 @@ struct NotchAgentStrip: View {
         // walks the preferences for every font, inset and frame.
         let geometry = displayGeometry ?? service.compactActivityGeometry
         let working = working(live)
-        let tint = working.first?.tint ?? .white
-        let budget = geometry.compactActivityContentHeight - NotchLayout.compactEdgeGap * 2
-        let iconSize = min(working.count > 1 ? 11.0 : 14.0, max(8, budget - 4))
-        let textSize = NotchAgentSupport.stripTextSize(height: geometry.compactActivityContentHeight)
+                let budget = geometry.compactActivityContentHeight - NotchLayout.compactEdgeGap * 2
+        // The mark is the peek's one wing artwork, smaller only when several agents share the wing.
+        let iconSize = min(working.count > 1 ? 14.0 : NotchDesign.Peek.wingArtwork, max(8, budget))
+        let textSize = NotchDesign.Typography.stripPrimary.nsFont.pointSize * 0.72
         let iconInset = !geometry.compactActivityUsesFooter
             ? geometry.compactActivityEdgeInset(boxHeight: iconSize + 4, radius: (iconSize + 4) / 2) : 0
         let textInset = !geometry.compactActivityUsesFooter
@@ -59,9 +59,9 @@ struct NotchAgentStrip: View {
                         NotchAgentReadoutTimeline(readout: NotchAgentReadout(rawValue: readout) ?? .elapsed) { date in
                             let text = reading(at: date, live: live)
                             Text(text)
-                                .font(.system(size: textSize, weight: .medium))
+                                .font(NotchDesign.Typography.stripPrimary.font)
                                 .monospacedDigit()
-                                .foregroundStyle(tint)
+                                .foregroundStyle(NotchDesign.Ink.primary)
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.6)
                                 // A reading that gains a digit, like an hour
@@ -141,20 +141,22 @@ struct NotchAgentRestingWing: View {
             if leading {
                 NotchAgentRing(value: used ? limit.window.usedFraction : limit.window.remainingFraction,
                                tint: tint, lineWidth: 2)
-                    .frame(width: 11, height: 11)
+                    .frame(width: 12, height: 12)
             } else {
                 Text(AgentFormat.percent(used ? limit.window.usedFraction : limit.window.remainingFraction))
-                    .font(.system(size: 9, weight: .medium))
+                    .font(NotchDesign.Typography.stripSecondary.font)
                     .monospacedDigit()
+                    .foregroundStyle(NotchDesign.Ink.secondary)
                     .lineLimit(1)
             }
         } else if let provider = AgentProvider.allCases.first(where: snapshot.seen.contains) {
             if leading {
-                NotchAgentMark(provider: provider, size: 10)
+                NotchAgentMark(provider: provider, size: 12)
             } else {
                 Text(AgentFormat.cost(snapshot.usage(.today).total.cost))
-                    .font(.system(size: 9, weight: .medium))
+                    .font(NotchDesign.Typography.stripSecondary.font)
                     .monospacedDigit()
+                    .foregroundStyle(NotchDesign.Ink.secondary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
             }

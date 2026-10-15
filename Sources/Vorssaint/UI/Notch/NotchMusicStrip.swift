@@ -80,7 +80,7 @@ struct NotchMusicStrip: View {
                     // The words grow out from behind the cover, which keeps its place.
                     if named != nil { namedLabel }
                     if wing > 0 {
-                        // Circular corners, like the strip's, so the two stay parallel.
+                        // Continuous corners, like the strip's, so the two stay parallel.
                         NotchMusicCover(artwork: artwork, side: artworkSide, radius: artworkRadius)
                     }
                 }
@@ -138,7 +138,7 @@ struct NotchMusicStrip: View {
                     .transition(.opacity)
             }
         }
-        .animation(reduceMotion ? nil : .easeOut(duration: 0.15), value: showsControl)
+        .animation(reduceMotion ? nil : NotchDesign.Motion.fade, value: showsControl)
     }
 
     /// The song as the pointer asked for it: the title over the artist,
@@ -152,7 +152,7 @@ struct NotchMusicStrip: View {
             if showsArtist, let artist {
                 Text(artist)
                     .font(Font(Layout.artistFont as CTFont))
-                    .foregroundStyle(.white.opacity(0.62))
+                    .foregroundStyle(NotchDesign.Ink.secondary)
                     .lineLimit(1)
                     .truncationMode(.tail)
             }
@@ -164,13 +164,14 @@ struct NotchMusicStrip: View {
     private var trackLabel: some View {
         VStack(spacing: 1) {
             Text(title)
-                .font(.system(size: 11, weight: .semibold))
+                .font(NotchDesign.Typography.stripPrimary.font)
+                .foregroundStyle(NotchDesign.Ink.primary)
                 .lineLimit(1)
                 .truncationMode(.tail)
             if showsArtist, let artist {
                 Text(artist)
-                    .font(.system(size: 9, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.62))
+                    .font(NotchDesign.Typography.stripSecondary.font)
+                    .foregroundStyle(NotchDesign.Ink.secondary)
                     .lineLimit(1)
                     .truncationMode(.tail)
             }
@@ -196,7 +197,7 @@ struct NotchMusicStripButton: View {
             .font(.system(size: size, weight: .semibold))
             .foregroundStyle(tint)
             .contentTransition(.symbolEffect(.replace))
-            .animation(reduceMotion ? nil : .smooth(duration: 0.22), value: playing)
+            .animation(NotchDesign.Motion.animation(NotchDesign.Motion.snappy, reduceMotion: reduceMotion), value: playing)
             // The ink, not the frame, sits on the bars' middle.
             .alignmentGuide(VerticalAlignment.center) {
                 $0[VerticalAlignment.center] + NotchCapsuleLayout.symbolDrop(symbol, size: size, weight: .semibold)
@@ -243,14 +244,14 @@ struct NotchMusicCover: View {
             if let artwork {
                 Image(nsImage: artwork).resizable().scaledToFill()
             } else {
-                Color.black.overlay { Image(systemName: "music.note").foregroundStyle(.secondary) }
+                NotchDesign.Fill.card.overlay { Image(systemName: "music.note").foregroundStyle(NotchDesign.Ink.secondary) }
             }
         }
         .frame(width: side, height: side)
-        .clipShape(RoundedRectangle(cornerRadius: radius, style: .circular))
+        .clipShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
         .overlay {
-            RoundedRectangle(cornerRadius: radius, style: .circular)
-                .strokeBorder(.white.opacity(0.14), lineWidth: 0.5)
+            RoundedRectangle(cornerRadius: radius, style: .continuous)
+                .strokeBorder(NotchDesign.Stroke.artworkEdge, lineWidth: NotchDesign.Stroke.hairline)
         }
     }
 }

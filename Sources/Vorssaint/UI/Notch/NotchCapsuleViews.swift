@@ -334,7 +334,7 @@ struct NotchCapsuleTimerStrip: View {
             NotchCapsuleCompanionMark(companion: companion, geometry: geometry)
         } else {
             NotchCapsuleSymbol(name: timer.session.completed ? "checkmark.circle" : timer.session.isPaused ? "pause.circle"
-                               : timer.session.countsUp ? "stopwatch" : "timer", tint: .orange)
+                               : timer.session.countsUp ? "stopwatch" : "timer", tint: NotchDesign.Palette.accent)
         }
     }
 
@@ -343,7 +343,7 @@ struct NotchCapsuleTimerStrip: View {
                                                  locale: Locale(identifier: l10n.language.rawValue))
         return Text(text)
             .font(Font(CapsuleLayout.readingFont as CTFont))
-            .foregroundStyle(.orange)
+            .foregroundStyle(NotchDesign.Ink.primary)
             .lineLimit(1).fixedSize()
             .modifier(NotchRollingDigits(value: text, countsDown: !timer.session.countsUp, everySecond: false))
             // A reading that gains or loses a character, like 10m becoming
@@ -437,7 +437,7 @@ struct NotchCapsuleAgentStrip: View {
                     let text = reading(at: date, live: live)
                     Text(text)
                         .font(Font(CapsuleLayout.readingFont as CTFont))
-                        .foregroundStyle(working.first?.tint ?? .white)
+                        .foregroundStyle(NotchDesign.Ink.primary)
                         .lineLimit(1).fixedSize()
                         // A reading that gains a digit, like an hour passing,
                         // widens the capsule; the service measures the same.
@@ -581,7 +581,7 @@ struct NotchCapsuleCalendarStrip: View {
                                     Self.clock(remaining, ongoing: countdown.ongoing)
                                     Text(NotchCalendarSupport.timeText(countdown, locale: l10n.language.formattingLocale()))
                                         .font(Font(CapsuleLayout.smallFont as CTFont))
-                                        .foregroundStyle(.white.opacity(0.55))
+                                        .foregroundStyle(NotchDesign.Ink.secondary)
                                         .lineLimit(1).fixedSize()
                                 }
                                 Self.clock(remaining, ongoing: countdown.ongoing)
@@ -613,7 +613,7 @@ struct NotchCapsuleCalendarStrip: View {
     private static func dot(_ event: NotchCalendarEvent) -> some View {
         Circle().fill(event.color.color)
             .frame(width: CapsuleLayout.calendarDotSide, height: CapsuleLayout.calendarDotSide)
-            .overlay { Circle().strokeBorder(.white.opacity(0.5), lineWidth: 0.5) }
+            .overlay { Circle().strokeBorder(NotchDesign.Stroke.increasedContrast, lineWidth: NotchDesign.Stroke.hairline) }
     }
 
     /// Time left in an event under way takes the agenda's "happening now"
@@ -622,7 +622,7 @@ struct NotchCapsuleCalendarStrip: View {
         Text(remaining)
             .font(Font(CapsuleLayout.readingFont as CTFont))
             .lineLimit(1).fixedSize()
-            .foregroundStyle(ongoing ? Color.mint : Color.white)
+            .foregroundStyle(ongoing ? NotchDesign.Palette.positive : NotchDesign.Ink.primary)
             .modifier(NotchRollingDigits(value: remaining, countsDown: true, everySecond: false))
     }
 }
