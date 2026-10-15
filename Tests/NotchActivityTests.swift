@@ -315,11 +315,10 @@ enum NotchActivityTests {
                                              layout: .custom, customWidth: width, customHeight: 400)
                 let setup = geometry.expandedSize(module: .timer)
                 let active = geometry.expandedSize(module: .timer, timerHasSession: true)
-                suite.expect(geometry.contentSize(for: setup).height
-                       == NotchLayout.timer(mode: .timer, hasSession: false, width: geometry.contentWidth, height: geometry.contentBudget)
-                       && geometry.contentSize(for: setup).height >= NotchLayout.timerTopRowHeight + NotchLayout.timerRowSpacing + NotchLayout.timerMinimumRulerHeight
-                       && geometry.contentSize(for: active).height >= 96 && active.height < setup.height,
-                       "timer setup has room for its mode row, ruler and start row; active controls use a shorter horizontal surface")
+                // NOTCH-DESIGN 2.3: setup and a running timer share the canvas.
+                suite.expect(geometry.contentSize(for: setup).height == geometry.contentBudget
+                       && geometry.contentSize(for: active).height == geometry.contentBudget && active == setup,
+                       "timer setup and an active timer draw into the same canvas (NOTCH-DESIGN 2.3)")
                 suite.expect(screen.contains(geometry.frame(for: setup)) && screen.contains(geometry.frame(for: active))
                        && geometry.frame(for: setup).maxY == geometry.frame(for: active).maxY,
                        "starting a timer preserves the screen's top edge and keeps both sizes on screen")
@@ -424,11 +423,11 @@ enum NotchActivityTests {
         let geometry = NotchGeometry(screen: CGRect(x: 0, y: 0, width: 1470, height: 956), safeAreaTop: 32, cameraWidth: 180)
         let setup = geometry.expandedSize(module: .timer, timerMode: .pomodoro)
         let active = geometry.expandedSize(module: .timer, timerHasSession: true, timerMode: .pomodoro)
-        suite.expect(geometry.contentSize(for: setup).height
-               == NotchLayout.timer(mode: .pomodoro, hasSession: false, width: geometry.contentWidth, height: geometry.contentBudget)
-               && geometry.contentSize(for: setup).height <= geometry.contentBudget
-               && geometry.contentSize(for: active).height >= 118,
-               "the Pomodoro setup fits the strip with its readouts under the ruler, and the progress row keeps its own budget")
+        suite.expect(NotchLayout.timer(mode: .pomodoro, hasSession: false, width: geometry.contentWidth, height: geometry.contentBudget)
+               <= geometry.contentBudget
+               && geometry.contentSize(for: setup).height == geometry.contentBudget
+               && geometry.contentSize(for: active).height == geometry.contentBudget,
+               "the Pomodoro setup fits the canvas with its readouts under the ruler (NOTCH-DESIGN 2.3)")
     }
 
     private static func stopwatchContracts(_ suite: TestSuite) {
@@ -553,8 +552,7 @@ enum NotchActivityTests {
                                          cameraWidth: 180, layout: .custom, customWidth: width, customHeight: 400)
             let setup = geometry.expandedSize(module: .timer, timerMode: .stopwatch)
             let active = geometry.expandedSize(module: .timer, timerHasSession: true, timerMode: .stopwatch)
-            suite.expect(geometry.contentSize(for: setup).height
-                   == NotchLayout.timer(mode: .stopwatch, hasSession: false, width: geometry.contentWidth, height: geometry.contentBudget)
+            suite.expect(geometry.contentSize(for: setup).height == geometry.contentBudget
                    && setup.height == geometry.expandedSize(module: .timer).height,
                    "the stopwatch keeps its clock in the countdown's ruler row, so switching between them never resizes the island")
             suite.expect(active == geometry.expandedSize(module: .timer, timerHasSession: true),

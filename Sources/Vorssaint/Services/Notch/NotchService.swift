@@ -734,7 +734,6 @@ final class NotchService: ObservableObject {
         return pageSize(in: expandedGeometry, module: showingAppPanel ? .tools : selected,
                         detail: false, panel: showingAppPanel,
                         detailHeight: nil,
-                        musicExtraHeight: musicExtras && musicDetailVisible ? geometry.musicExtrasHeight : 0,
                         fileMediaHeight: nil,
                         toolCount: launcher.isEditing || launcher.activeUtility != nil ? nil : launcher.visibleItems.count,
                         capturePreviewHeight: captureContent == nil ? nil : captureContentHeight)
@@ -743,7 +742,7 @@ final class NotchService: ObservableObject {
     /// The open island as Settings previews a section: at rest, with no
     /// detail, app panel, capture or media editor in front of the page.
     func previewSize(for module: NotchModule) -> CGSize {
-        pageSize(in: previewGeometry(for: module), module: module, detail: false, panel: false, detailHeight: nil, musicExtraHeight: 0,
+        pageSize(in: previewGeometry(for: module), module: module, detail: false, panel: false, detailHeight: nil,
                  fileMediaHeight: nil, toolCount: QuickLauncherService.shared.visibleItems.count, capturePreviewHeight: nil)
     }
 
@@ -776,7 +775,7 @@ final class NotchService: ObservableObject {
     }
 
     private func pageSize(in geometry: NotchGeometry, module: NotchModule, detail: Bool, panel: Bool,
-                          detailHeight: CGFloat?, musicExtraHeight: CGFloat, fileMediaHeight: CGFloat?, toolCount: Int?,
+                          detailHeight: CGFloat?, fileMediaHeight: CGFloat?, toolCount: Int?,
                           capturePreviewHeight: CGFloat?) -> CGSize {
         let controls = NotchSupport.controls()
         let sliders = controls.filter(\.isLevel).count
@@ -786,7 +785,7 @@ final class NotchService: ObservableObject {
                                      shortcutCount: shortcuts,
                                      sliderCount: sliders, controlsHaveMusic: controls.contains(.music), musicHasContent: NotchMusicService.shared.playback != nil,
                                      musicHasControlsRow: AppFeature.mixer.isAvailable || musicExtras,
-                                     musicExtraHeight: musicExtraHeight, fileMediaHeight: fileMediaHeight,
+                                     fileMediaHeight: fileMediaHeight,
                                      toolCount: toolCount, capturePreviewHeight: capturePreviewHeight,
                                      timerHasSession: NotchTimerService.shared.session.hasSession,
                                      timerMode: NotchTimerService.shared.session.hasSession
@@ -1371,7 +1370,8 @@ final class NotchService: ObservableObject {
 
     func setMusicDetailsVisible(_ visible: Bool) {
         guard visible != musicDetailVisible else { return }
-        mutatePresentation { musicDetailVisible = visible }
+        // Lyrics and the queue open inside the canvas: flag only, no resize.
+        musicDetailVisible = visible
     }
 
     /// The Pomodoro's readouts add a row to the timer's page, so choosing a

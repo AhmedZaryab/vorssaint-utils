@@ -159,7 +159,7 @@ struct NotchPagePreview: View {
         case .calendar: NotchCalendarView(size: size)
         case .controls: NotchControlsView(service: notch, size: size)
         case .mixer: NotchMixerView(size: size)
-        case .music: NotchMusicView(size: size, extrasHeight: notch.geometry.musicExtrasHeight)
+        case .music: NotchMusicView(size: size)
         case .clipboard: NotchClipboardView(service: notch, size: size)
         case .captures: RecentCapturesView(onClose: nil, notchSize: size)
         case .files: NotchFilesView(service: notch)

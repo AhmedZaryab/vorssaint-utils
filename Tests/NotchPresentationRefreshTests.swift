@@ -601,8 +601,9 @@ enum NotchPresentationRefreshContract {
                    "switching Timer, Pomodoro and Stopwatch updates the content height without reopening the island")
         }
         suite.expect(mismatches == 0, "content is invalidated before the native window receives its new size")
-        suite.expect(resizes == 4 && invalidations == resizes,
-               "each mode change with a new size publishes it, and one keeping the size stays quiet")
+        // NOTCH-DESIGN 2.3: no timer mode resizes the island, so none publishes.
+        suite.expect(resizes == 0 && invalidations == resizes,
+               "a timer mode change keeps the canvas and stays quiet")
         for _ in 0..<1000 { service.refreshPresentation() }
         suite.expect(invalidations == resizes, "unchanged presentations do not repeatedly invalidate SwiftUI layout")
 
@@ -616,7 +617,7 @@ enum NotchPresentationRefreshContract {
                "changing the saved setup mode preserves an active timer's layout")
         service.session.cancel()
         service.refreshPresentation()
-        suite.expect(contentSize == service.surfaceSize && contentSize.height > activeSize.height && mismatches == 0,
+        suite.expect(contentSize == service.surfaceSize && contentSize.height == activeSize.height && mismatches == 0,
                "canceling returns to the newly selected setup with synchronized content and window sizes")
 
         let captureID = UUID()

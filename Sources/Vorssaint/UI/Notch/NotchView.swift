@@ -596,7 +596,7 @@ struct NotchView: View {
             case .calendar: NotchCalendarView(size: pageSize)
             case .controls: NotchControlsView(service: service, size: pageSize)
             case .mixer: NotchMixerView(size: pageSize)
-            case .music: NotchMusicView(size: pageSize, extrasHeight: service.geometry.musicExtrasHeight)
+            case .music: NotchMusicView(size: pageSize)
             case .clipboard: NotchClipboardView(service: service, size: pageSize)
             case .captures:
                 if let capture = service.captureContent {

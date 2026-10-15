@@ -86,7 +86,7 @@ enum NotchTests {
         suite.expect(NotchLayout.timer(mode: .pomodoro, hasSession: true, width: 424, height: 180) == 118
                && NotchLayout.timer(mode: .timer, hasSession: true, width: 304, height: tight) == 96,
                "a running session keeps its control row in every layout")
-        // Lyrics and the queue grow the island; the player keeps the height it had.
+        // Split rules (the island itself no longer grows, NOTCH-DESIGN 2.3).
         let musicRow = NotchLayout.musicControlsRowHeight + NotchLayout.rowSpacing
         let extras: CGFloat = 216, resting: CGFloat = 148
         let grown = NotchLayout.musicSplit(height: resting + musicRow + extras, controlsRow: musicRow, extras: extras,
@@ -102,21 +102,22 @@ enum NotchTests {
                      "where the island cannot hold both, the player still yields to the list")
         let closed = NotchLayout.musicSplit(height: resting + musicRow, controlsRow: musicRow, extras: extras, resting: resting, keepsPlayer: false, extraOpen: false)
         suite.expect(closed.player == resting && closed.extra == 0 && closed.showsPlayer, "with nothing open the player takes the page above the controls row")
-        // The page reads the player's height from the geometry; it must be
-        // the room the island keeps for it at rest, under a notch or in a capsule.
+        // NOTCH-DESIGN 2.3: the island is one canvas, so opening lyrics or the
+        // queue never changes its height; the player yields inside it.
         for layout: NotchSize in [.compact, .spacious] {
             for notched in [true, false] {
                 let geometry = NotchGeometry(screen: CGRect(x: 0, y: 0, width: 1440, height: 900), safeAreaTop: notched ? 32 : 0,
                                              cameraWidth: notched ? 210 : 0, layout: layout, silhouette: .capsule)
-                let player = geometry.musicPlayerHeight
-                let rest = geometry.contentSize(for: geometry.expandedSize(module: .music)).height
-                let open = geometry.contentSize(for: geometry.expandedSize(module: .music, musicExtraHeight: geometry.musicExtrasHeight)).height
-                let split = NotchLayout.musicSplit(height: open, controlsRow: musicRow, extras: geometry.musicExtrasHeight,
-                                                   resting: player, keepsPlayer: true)
-                suite.expect(geometry.floats != notched && player == (layout == .spacious ? 148 : 120)
-                             && rest - musicRow == player && split.player == player && split.showsPlayer
-                             && split.extra == geometry.musicExtrasHeight - NotchLayout.rowSpacing,
-                             "the island grows by the list and the player keeps the height it has at rest: \(layout), notched \(notched)")
+                let canvas = geometry.pageCanvas.height
+                let heights = [NotchModule.music, .controls, .timer, .agents, .tools, .mixer, .calendar, .camera]
+                    .map { geometry.expandedSize(module: $0).height }
+                suite.expect(geometry.floats != notched && heights.allSatisfy { $0 == canvas },
+                             "every page is the same height (NOTCH-DESIGN 2.3): \(layout), notched \(notched)")
+                let page = geometry.contentSize(for: geometry.expandedSize(module: .music)).height
+                let open = NotchLayout.musicSplit(height: page, controlsRow: musicRow, extras: .greatestFiniteMagnitude,
+                                                  resting: geometry.musicPlayerHeight, keepsPlayer: false)
+                suite.expect(open.extra > 0 && open.extra <= page - musicRow,
+                             "lyrics and the queue fit inside the music canvas: \(layout), notched \(notched)")
             }
         }
         suite.expect(NotchLayout.musicPlayerHeight(layout: .compact, height: 180) == 120
@@ -1162,9 +1163,10 @@ enum NotchTests {
         suite.expect(homeGeometry.expandedSize(module: .controls, controlsHaveMusic: true)
                == homeGeometry.expandedSize(module: .controls),
                "home playback shares the card row with the levels instead of adding one")
-        suite.expect(homeGeometry.expandedSize(module: .controls, sliderCount: 0, controlsHaveMusic: true).height
-               - homeGeometry.expandedSize(module: .controls, sliderCount: 0).height == NotchLayout.cardHeight + NotchLayout.rowSpacing,
-               "without levels, home playback is the card row and its spacing")
+        // NOTCH-DESIGN 2.3: the home page is the canvas whatever it holds.
+        suite.expect(homeGeometry.expandedSize(module: .controls, sliderCount: 0, controlsHaveMusic: true)
+               == homeGeometry.expandedSize(module: .controls, sliderCount: 0),
+               "without levels, home playback adds no height (NOTCH-DESIGN 2.3)")
 
         suite.expect(!NotchSupport.routesAppPanel(in: defaults) && !NotchSupport.routesQuickPanel(in: defaults)
                && !NotchSupport.routesShelf(in: defaults) && !NotchSupport.routesCaptureControls(in: defaults)
@@ -1837,33 +1839,31 @@ enum NotchTests {
         suite.expect(compact.contentBudget == NotchLayout.compactContentHeight && spacious.contentBudget == NotchLayout.spaciousContentHeight
                && compact.expanded.height < compact.expanded.width && spacious.expanded.height < spacious.expanded.width,
                "both presets are strips wider than they are tall")
-        let musicBase = compact.expandedSize(module: .music)
-        let musicDetails = compact.expandedSize(module: .music, musicExtraHeight: 260)
-        suite.expect(musicDetails.width == musicBase.width && musicDetails.height == musicBase.height + 260
-               && compact.screen.contains(compact.frame(for: musicDetails)),
-               "opening lyrics or the queue adds room while preserving width and screen bounds")
+        // NOTCH-DESIGN 2.3: opening lyrics or the queue does not resize the island.
+        suite.expect(compact.expandedSize(module: .music) == compact.pageCanvas
+               && compact.screen.contains(compact.frame(for: compact.pageCanvas)),
+               "the music page is the canvas, within screen bounds")
         suite.expect(compact.expanded.width >= 440 && spacious.expanded.width > compact.expanded.width,
                "the standard notch has room for side-by-side controls while spacious remains available")
         let idleMusic = compact.expandedSize(module: .music, musicHasContent: false)
-        suite.expect(idleMusic.height < compact.expandedSize(module: .music).height
-               && compact.contentSize(for: idleMusic).height == NotchLayout.musicIdleHeight + NotchLayout.musicControlsRowHeight + NotchLayout.rowSpacing,
-               "empty music keeps its message and volume controls without reserving a full player")
+        suite.expect(idleMusic == compact.pageCanvas,
+               "empty music is the same canvas as the player (NOTCH-DESIGN 2.3)")
         suite.expect(compact.contentSize(for: compact.expandedSize(module: .music, musicHasControlsRow: false)).height
-               == NotchLayout.musicPlayerHeight(layout: .compact, height: NotchLayout.compactContentHeight),
-               "without a mixer or extras the player row is the whole page")
+               == NotchLayout.compactContentHeight,
+               "without a mixer or extras the music page is still the whole canvas (NOTCH-DESIGN 2.3)")
         let fullControls = compact.expandedSize(module: .controls, shortcutCount: 10, sliderCount: 2)
         let fewerShortcuts = compact.expandedSize(module: .controls, shortcutCount: 3, sliderCount: 2)
         let onlyShortcuts = compact.expandedSize(module: .controls, shortcutCount: 3, sliderCount: 0)
         let onlySliders = compact.expandedSize(module: .controls, shortcutCount: 0, sliderCount: 2)
-        suite.expect(fullControls == fewerShortcuts && fewerShortcuts.height > onlyShortcuts.height
-               && fewerShortcuts.height > onlySliders.height,
-               "a compact island runs extra shortcuts sideways and drops the rows nobody enabled")
+        suite.expect(fullControls == fewerShortcuts && fewerShortcuts == onlyShortcuts
+               && fewerShortcuts == onlySliders,
+               "the home page is one canvas whatever rows are enabled (NOTCH-DESIGN 2.3)")
         suite.expect(compact.contentSize(for: fullControls).height == NotchLayout.compactContentHeight
                && spacious.expandedSize(module: .controls, shortcutCount: 10).height
-                   > spacious.expandedSize(module: .controls, shortcutCount: 3).height,
-               "the home page fills the compact strip while a spacious island adds a second shortcut row first")
-        suite.expect(compact.contentSize(for: compact.expandedSize(module: .controls, shortcutCount: 0, sliderCount: 0)).height == NotchLayout.emptyHeight,
-               "hiding every control leaves the empty-state guidance its own row")
+                   == spacious.expandedSize(module: .controls, shortcutCount: 3).height,
+               "the home page fills the strip at every shortcut count (NOTCH-DESIGN 2.3)")
+        suite.expect(compact.contentSize(for: compact.expandedSize(module: .controls, shortcutCount: 0, sliderCount: 0)).height == NotchLayout.compactContentHeight,
+               "hiding every control still leaves the whole canvas for the empty-state guidance (NOTCH-DESIGN 2.3)")
         for width in [360.0, 480.0, 600.0] {
             for height in [NotchSize.heightRange.lowerBound, 640.0] {
                 let geometry = NotchGeometry(screen: frames[0], safeAreaTop: 32, cameraWidth: 210,
@@ -1876,8 +1876,8 @@ enum NotchTests {
                                                            width: geometry.contentWidth, height: geometry.contentBudget)
                         let drawn = NotchLayout.controls(hasCards: sliders > 0, shortcutCount: shortcuts,
                                                          width: content.width, height: content.height)
-                        suite.expect(content.height == min(geometry.contentBudget, planned.height == 0 ? NotchLayout.emptyHeight : planned.height),
-                               "the home page takes the rows it needs and never more than the custom budget")
+                        suite.expect(content.height == geometry.contentBudget,
+                               "the home page is the whole custom canvas (NOTCH-DESIGN 2.3)")
                         suite.expect(planned == drawn, "the page rebuilds the same rows from the height it receives")
                         suite.expect(planned.shortcutRows == 0 || planned.height <= geometry.contentBudget || planned.cardRow == NotchLayout.minimumCardHeight,
                                "a tight budget shortens the card row before it drops the shortcut rail")
@@ -1911,9 +1911,8 @@ enum NotchTests {
                     suite.expect(custom.expandedSize(module: .clipboard).height == min(height, frame.height - 48),
                            "long lists use the chosen height without overflowing a shorter display")
                     suite.expect(custom.contentSize(for: custom.expandedSize(module: .music)).height
-                           == min(available, NotchLayout.musicPlayerHeight(layout: .custom, height: available)
-                                  + NotchLayout.musicControlsRowHeight + NotchLayout.rowSpacing),
-                           "custom sizes keep the player row and its volume controls, shrinking the artwork before anything scrolls")
+                           == custom.contentSize(for: custom.expandedSize(module: .clipboard)).height,
+                           "custom sizes draw music into the whole canvas, the player shrinking inside it (NOTCH-DESIGN 2.3)")
                     suite.expect(custom.contentSize(for: custom.expandedSize(module: .music, musicHasContent: false)).height
                            >= min(available, NotchLayout.musicIdleHeight + NotchLayout.musicControlsRowHeight),
                            "empty music keeps its message and volume controls at every custom height")
@@ -1947,9 +1946,8 @@ enum NotchTests {
                 suite.expect(geometry.frame(for: geometry.musicStrip).maxY == frame.maxY,
                        "the lateral music strip remains attached to the same top edge")
                 suite.expect(geometry.contentSize(for: geometry.expandedSize(module: .music)).height
-                       == NotchLayout.musicPlayerHeight(layout: .compact, height: NotchLayout.compactContentHeight)
-                           + NotchLayout.musicControlsRowHeight + NotchLayout.rowSpacing,
-                       "compact music is one artwork-high player row over its volume controls")
+                       == NotchLayout.compactContentHeight,
+                       "compact music draws into the whole canvas (NOTCH-DESIGN 2.3)")
                 let quiet = geometry.restingSize(showsContent: false)
                 let shoulders = geometry.isNotched ? NotchLayout.shoulder(height: quiet.height) * 2 : 0
                 suite.expect(quiet.width == geometry.cameraWidth + shoulders && quiet.height <= geometry.menuBarHeight,
