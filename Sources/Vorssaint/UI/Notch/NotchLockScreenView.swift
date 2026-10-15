@@ -66,7 +66,6 @@ struct NotchLockScreenIsland: View {
 
     var body: some View {
         let wing = max(0, (size.width - cameraWidth) / 2)
-        let padlockSide = min(geometry.compactMusicArtworkSide, wing)
         let playing = model.showsMusic(music.playback) && music.playback?.isPlaying == true
         NotchShape(attached: true, radius: NotchLayout.surfaceRadius(height: size.height))
             .fill(.black)
@@ -78,8 +77,8 @@ struct NotchLockScreenIsland: View {
                         .contentTransition(.symbolEffect(.replace))
                         .symbolEffect(.bounce, options: .speed(1.4), value: reduceMotion ? false : model.padlockOpen)
                         .animation(NotchDesign.Motion.animation(NotchDesign.Motion.snappy, reduceMotion: reduceMotion), value: model.padlockOpen)
-                        .frame(width: padlockSide, height: padlockSide)
-                        .padding(.leading, max(0, min(geometry.compactMusicArtworkInset, wing - padlockSide)))
+                        // At its own width, led by the bars' inset, so the wings mirror: no cover-sized box around the ink.
+                        .padding(.leading, max(0, min(geometry.compactMusicBarsInset - NotchLockScreenLayoutExtra.padlockBearing, wing - NotchLayout.compactMusicBarsWidth)))
                         .frame(width: wing, height: size.height, alignment: .leading)
                     Spacer(minLength: 0)
                     NotchEqualizerBars(isPlaying: playing, bars: NotchLayout.compactMusicBarCount,
@@ -257,7 +256,7 @@ struct NotchLockScreenPlayer: View {
                 .padding(.top, NotchDesign.Spacing.large)
             transport(playback)
         }
-        .pane()
+        .pane(bottomTrim: NotchLockScreenLayoutExtra.transportAir)
     }
 
     /// A short display lays the cover beside the title, as the island's own
@@ -281,7 +280,7 @@ struct NotchLockScreenPlayer: View {
                 .padding(.top, NotchDesign.Spacing.medium)
             transport(playback)
         }
-        .pane()
+        .pane(bottomTrim: NotchLockScreenLayoutExtra.transportAir)
     }
 
     private func cover(size: CGFloat, playback: NotchPlayback) -> some View {
@@ -332,13 +331,25 @@ struct NotchLockScreenPlayer: View {
     }
 }
 
+/// Lock screen values no token names.
+private enum NotchLockScreenLayoutExtra {
+    /// The air a 44 pt transport box leaves under a 26 pt play glyph; trimmed from the pane's bottom padding
+    /// (the hit box stays) so the ink sits as far from the glass as the cover does at the top.
+    static let transportAir: CGFloat = (NotchDesign.Control.transport - 26) / 2
+    /// One height for every activity entry, so a line never grows with the agent mark's frame.
+    static let entryHeight: CGFloat = 16
+    /// The padlock symbol's own side bearing, measured in the render (ink starts 2 pt inside its box), taken off its lead.
+    static let padlockBearing: CGFloat = 2
+}
+
 private extension View {
     /// The player's pane, as wide as the timeline needs and no wider.
-    func pane() -> some View {
+    func pane(bottomTrim: CGFloat = 0) -> some View {
         foregroundStyle(.white)
             .multilineTextAlignment(.center)
             .padding(.horizontal, NotchDesign.LockScreen.paneInset)
-            .padding(.vertical, NotchDesign.Spacing.xLarge)
+            .padding(.top, NotchDesign.Spacing.xLarge)
+            .padding(.bottom, NotchDesign.Spacing.xLarge - bottomTrim)
             .frame(width: NotchLockScreenLayout.paneWidth)
             .modifier(NotchLockScreenGlass(cornerRadius: NotchDesign.LockScreen.paneRadius))
             .fixedSize(horizontal: false, vertical: true)
@@ -407,6 +418,7 @@ struct NotchLockScreenActivities: View {
         HStack(spacing: NotchDesign.Spacing.xxLarge) {
             ForEach(items) { item in
                 entry(item, at: date)
+                    .frame(height: NotchLockScreenLayoutExtra.entryHeight)
                     .transition(.opacity)
             }
         }
@@ -499,7 +511,9 @@ struct NotchLockScreenActivities: View {
             // a screen anyone can walk up to.
             HStack(spacing: NotchDesign.Spacing.xSmall) {
                 HStack(spacing: 1) {
-                    ForEach(working) { NotchAgentGlyph(provider: $0, size: 13) }
+                    // Framed at the mark's drawn width, so its ink meets the line's edge like the reading does.
+                    ForEach(working) { NotchAgentGlyph(provider: $0, size: 13)
+                        .frame(width: 13 * ($0 == .claude ? 1.45 : 1.2), height: NotchLockScreenLayoutExtra.entryHeight) }
                 }
                 Text(working.map(\.displayName).joined(separator: " · ") + " " + reading)
             }
