@@ -565,16 +565,9 @@ enum NotchTileAccent {
         }
     }
 
-    /// Ink on the filled circle. Stands in for `Design.Ink.onFill(_:)` (the tokens run):
-    /// white unless it falls under 4.5:1 on the person's accent or the signal red, then `Ink.onInverse`.
-    var glyph: Color {
-        let base: NSColor = self == .alert ? .systemRed : .controlAccentColor
-        guard let c = base.usingColorSpace(.sRGB) else { return Design.Ink.primary }
-        func lin(_ v: CGFloat) -> CGFloat { v <= 0.03928 ? v / 12.92 : pow((v + 0.055) / 1.055, 2.4) }
-        let l = 0.2126 * lin(c.redComponent) + 0.7152 * lin(c.greenComponent) + 0.0722 * lin(c.blueComponent)
-        let ratio = 1.05 / (l + 0.05)
-        return ratio >= 4.5 ? Design.Ink.primary : Design.Ink.onInverse
-    }
+    /// Ink on the filled circle: white always, like Control Center's on tiles. White on the
+    /// system accent is 3:1 or better for a glyph (accessibility.md, bold and glyph threshold).
+    var glyph: Color { Design.Ink.primary }
 }
 
 /// The group inside a tile: circle, gap, two reserved label lines, with equal
@@ -597,6 +590,8 @@ struct NotchActionTile: View {
     /// A shorter title for the line under a reading when `title` does not
     /// fit whole; help and VoiceOver keep `title`.
     var compactTitle: String?
+    /// Spoken after the reading, such as the event a calendar tile counts down to.
+    var detail: String?
     var active = false
     var accent: NotchTileAccent = .selection
     let action: () -> Void
@@ -629,27 +624,27 @@ struct NotchActionTile: View {
         }
         .buttonStyle(NotchPressStyle(shape: .rounded(Design.Radius.card)))
         .accessibilityLabel(title)
-        .accessibilityValue(reading ?? "")
+        .accessibilityValue([reading, detail].compactMap { $0 }.joined(separator: ", "))
         .accessibilityAddTraits(active ? .isSelected : [])
-        .help(title)
+        .help(detail.map { "\(title): \($0)" } ?? title)
     }
 
     @ViewBuilder private var label: some View {
         if let reading {
             VStack(spacing: Design.Spacing.line) {
+                ViewThatFits(in: .horizontal) {
+                    readingTitle(title)
+                    if let compactTitle { readingTitle(compactTitle) }
+                }
                 // A later day's start with a 12-hour clock, such as Spanish
                 // "dom, 10:45 p. m.", needs up to 91 pt on a 68 pt line. The
                 // smaller optical size spaces its letters wider, so scaling
                 // alone would still cut it off.
                 Text(reading).font(Design.Typography.readout.font).monospacedDigit()
-                    .foregroundStyle(Design.Ink.primary)
+                    .foregroundStyle(Design.Ink.secondary)
                     .allowsTightening(true)
                     .minimumScaleFactor(Design.SpecTime.scale(Design.Typography.readout, preferred: 0.7))
                     .modifier(NotchRollingDigits(value: reading, countsDown: readingCountsDown))
-                ViewThatFits(in: .horizontal) {
-                    readingTitle(title)
-                    if let compactTitle { readingTitle(compactTitle) }
-                }
             }
             .lineLimit(1)
             .minimumScaleFactor(Design.SpecTime.scale(Design.Typography.label, preferred: 0.85))
@@ -664,7 +659,7 @@ struct NotchActionTile: View {
 
     private func readingTitle(_ text: String) -> some View {
         Text(text).font(Design.Typography.label.font)
-            .foregroundStyle(Design.Ink.secondary)
+            .foregroundStyle(Design.Ink.primary)
     }
 }
 
@@ -724,11 +719,11 @@ private struct NotchCalendarTile: View {
         let title = event?.title.trimmingCharacters(in: .whitespacesAndNewlines)
         return NotchActionTile(
             symbol: NotchControlItem.calendar.symbol,
-            title: title.map { $0.isEmpty ? FeatureStrings.notchCalendar(l10n.language).untitled : $0 }
-                ?? NotchControlItem.calendar.title(l10n),
+            title: NotchControlItem.calendar.title(l10n),
             reading: event.map {
                 NotchCalendarSupport.tileStartText($0.start, now: now, locale: l10n.language.formattingLocale())
-            }) { service.select(.calendar) }
+            },
+            detail: title.map { $0.isEmpty ? FeatureStrings.notchCalendar(l10n.language).untitled : $0 }) { service.select(.calendar) }
     }
 }
 
