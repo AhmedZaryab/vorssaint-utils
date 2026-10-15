@@ -39,8 +39,8 @@ enum NotchDesign {
         /** Growth on both axes together, one spring, anchored at the top centre. */ static let growSpring = Spring(response: 0.40, dampingFraction: 0.85)
         /** Shrink on both axes together, no overshoot. */ static let shrinkSpring = Spring(response: 0.30, dampingFraction: 1)
         /** The farthest a growing side may pass its target, in points. */ static let overshootLimit: CGFloat = 8
-        /** Content waits for the shape: growSpring reaches 99% of its travel at 0.29 s. */ static let contentRevealDelay: TimeInterval = 0.28
-        /** Content then fades in over this. It never scales, so it is never squished. */ static let contentRevealDuration: TimeInterval = 0.18
+        /** Content starts with the shape about 60% there, faint and blurred, so it is sharp as the shape arrives at 0.29 s. */ static let contentRevealDelay: TimeInterval = 0.12
+        /** Content then fades in over this, fully in by 0.3 s. It never scales, so it is never squished. */ static let contentRevealDuration: TimeInterval = 0.18
         /** The blur content arrives from, in points; none under Reduce Motion. */ static let contentRevealBlur: CGFloat = 4
         /** Content leaves this fast, ease out; the shrink starts halfway through it. */ static let contentExitDuration: TimeInterval = 0.12
         /** Under Reduce Motion the silhouette resizes on an ease out this long, no spring. */ static let reducedMotionResize: TimeInterval = 0.2
@@ -195,8 +195,7 @@ enum NotchDesign {
     enum Interaction {
         /** NotchPressStyle: the scale on mouse down, landed within pressDuration. */ static let pressScale: CGFloat = 0.97
         /** How fast the press lands, ease out; release springs back on Motion.snappy. */ static let pressDuration: TimeInterval = 0.1
-        /** NotchPressStyle hover lift, for tiles and artwork liftMinimumSide and up. */ static let hoverScale: CGFloat = 1.02
-        /** Smaller controls never lift; they only take Fill.hover. */ static let liftMinimumSide: CGFloat = 40
+        /** NotchPressStyle under the pointer: 1, because macOS highlights with Fill.hover and never lifts (lift is iPadOS). */ static let hoverScale: CGFloat = 1
         /** NotchCommitButton held past its threshold, about to fire. */ static let armedScale: CGFloat = 1.04
         /** Travel before a press becomes a drag, in points. */ static let dragThreshold: CGFloat = 4
         /** NotchSuccessMorph: how long the done state holds before the control returns. */ static let successMorphDuration: TimeInterval = 1.2
@@ -235,6 +234,8 @@ enum NotchDesign {
         /** Compact peek: the narrowest wing, its curved end and some air. */ static let wingMinimum: CGFloat = 36
         /** Compact peek: a glyph or cover in a wing. */ static let wingArtwork: CGFloat = 20
         /** Tall peek: the band grown below the strip. */ static let bandHeight: CGFloat = 60
+        /** Tall peek: the band is the resting island's width but never narrower than this. */ static let bandMinimumWidth: CGFloat = 300
+        /** Tall peek: never wider than this; text truncates, the island does not widen for it. */ static let bandMaximumWidth: CGFloat = 360
         /** Tall peek: the cover or glyph plate in the band. */ static let artwork: CGFloat = 32
         /** Tall peek: band inset under the strip; sides and bottom use Geometry.margin. */ static let bandTop: CGFloat = Spacing.medium
         /** The optional trailing live element: equaliser, ring, amount. */ static let trailingSide: CGFloat = 20
