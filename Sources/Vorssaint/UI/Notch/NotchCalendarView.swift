@@ -214,7 +214,7 @@ struct NotchCalendarView: View {
         } else {
             LazyVStack(alignment: .leading, spacing: NotchDesign.Spacing.section) {
                 ForEach(groups, id: \.day) { group in
-                    VStack(alignment: .leading, spacing: NotchDesign.Spacing.xSmall) {
+                    VStack(alignment: .leading, spacing: NotchDesign.Spacing.gutter) {
                         if selectedDay == nil { dayLabel(group.day, now: now) }
                         ForEach(group.events) { event in
                             NotchCalendarEventRow(event: event, day: group.day, now: now,
@@ -364,7 +364,7 @@ private struct NotchCalendarEventRow: View {
             details
         }
         .opacity(ended ? NotchDesign.Opacity.secondary : 1)
-        .padding(NotchDesign.Spacing.small)
+        .padding(NotchDesign.Spacing.cardPadding)
         .frame(maxWidth: .infinity, alignment: .topLeading)
         .background(ongoing ? NotchDesign.Fill.control : NotchDesign.Fill.card,
                     in: RoundedRectangle(cornerRadius: NotchDesign.Radius.card, style: .continuous))
