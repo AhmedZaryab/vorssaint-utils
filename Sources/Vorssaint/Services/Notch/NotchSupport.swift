@@ -226,7 +226,8 @@ enum NotchLayout {
     static let bottomInset: CGFloat = margin
     static var chromeHeight: CGFloat { headerHeight + spacing + bottomInset }
     /// The island stays a wide strip: pages scroll within the preset's budget.
-    static let compactContentHeight: CGFloat = 180
+    /// 180 plus the 8 pt the shortcut tile gained for its equal top and bottom air.
+    static let compactContentHeight: CGFloat = 188
     static let spaciousContentHeight: CGFloat = 264
     /// Surfaces that are vertical by nature (the embedded app panel, a metric
     /// detail, a hosted utility) still get a readable page inside a preset.

@@ -51,11 +51,11 @@ enum NotchTests {
         suite.expect(controls == NotchControlsLayout(cardRow: NotchLayout.cardHeight, shortcutRows: 1)
                && controls.height == NotchLayout.compactContentHeight,
                "the default home page is one card row over one shortcut rail, exactly the compact strip")
-        suite.expect(NotchLayout.controls(hasCards: true, shortcutCount: 4, width: 424, height: 154)
-               == NotchControlsLayout(cardRow: 154 - NotchLayout.shortcutHeight - NotchLayout.rowSpacing, shortcutRows: 1)
-               && NotchLayout.controls(hasCards: false, shortcutCount: 0, width: 424, height: 154) == NotchControlsLayout(cardRow: 0, shortcutRows: 0)
-               && NotchLayout.controls(hasCards: true, shortcutCount: 0, width: 424, height: 154).height == NotchLayout.cardHeight
-               && NotchLayout.controls(hasCards: false, shortcutCount: 9, width: 424, height: 154).height == NotchLayout.shortcutHeight,
+        suite.expect(NotchLayout.controls(hasCards: true, shortcutCount: 4, width: 424, height: 162)
+               == NotchControlsLayout(cardRow: 162 - NotchLayout.shortcutHeight - NotchLayout.rowSpacing, shortcutRows: 1)
+               && NotchLayout.controls(hasCards: false, shortcutCount: 0, width: 424, height: 162) == NotchControlsLayout(cardRow: 0, shortcutRows: 0)
+               && NotchLayout.controls(hasCards: true, shortcutCount: 0, width: 424, height: 162).height == NotchLayout.cardHeight
+               && NotchLayout.controls(hasCards: false, shortcutCount: 9, width: 424, height: 162).height == NotchLayout.shortcutHeight,
                "the smallest custom island shortens the cards to keep the rail, and rows nobody enabled cost nothing")
         let wideTimer = NotchLayout.timer(mode: .timer, hasSession: false, width: 424, height: 180)
         let widePomodoro = NotchLayout.timer(mode: .pomodoro, hasSession: false, width: 424, height: 180)
