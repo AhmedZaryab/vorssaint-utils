@@ -2,6 +2,7 @@
 // Copyright (C) 2026 Vorssaint
 
 import Foundation
+import AppKit
 
 /// The interaction library's deterministic parts: the fuse's clock, the
 /// rubber band, the sling's arming and the slider's detents.
@@ -9,6 +10,7 @@ enum NotchInteractionsTests {
     static func run(_ suite: TestSuite) {
         rubberband(suite)
         fuse(suite)
+        fuseEscape(suite)
         detents(suite)
         sling(suite)
         slider(suite)
@@ -42,6 +44,19 @@ enum NotchInteractionsTests {
         suite.expect(NotchInteractionMath.resistedPull(-5, limit: limit) == 0
                      && NotchInteractionMath.rawPull(forResisted: limit * 2, limit: limit).isFinite,
                      "a pull toward the seat or past the limit stays finite")
+    }
+
+    private static func fuseEscape(_ suite: TestSuite) {
+        MainActor.assumeIsolated {
+            suite.expect(!NotchFuseRegistry.escape(), "Escape with no fuse burning passes through")
+            let owner = NSObject()
+            var burning = true
+            NotchFuseRegistry.add(owner) { burning = false; return true }
+            suite.expect(NotchFuseRegistry.escape() && !burning,
+                         "Escape blows out a burning fuse and is consumed")
+            NotchFuseRegistry.remove(owner)
+            suite.expect(!NotchFuseRegistry.escape(), "the next Escape passes through again")
+        }
     }
 
     private static func fuse(_ suite: TestSuite) {

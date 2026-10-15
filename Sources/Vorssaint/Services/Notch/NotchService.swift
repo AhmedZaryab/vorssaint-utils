@@ -3369,6 +3369,9 @@ final class NotchService: ObservableObject {
             // drops the candidate; the island takes the next one.
             if event.type == .keyDown, event.window === self.panel, event.keyCode == 53,
                (self.panel?.firstResponder as? NSTextView)?.hasMarkedText() == true { return event }
+            // A burning fuse takes Escape before anything steps back or closes.
+            if event.type == .keyDown, event.window === self.panel, event.keyCode == 53,
+               MainActor.assumeIsolated({ NotchFuseRegistry.escape() }) { return nil }
             if event.type == .keyDown, event.window === self.panel, self.captureControls == nil {
                 let modifiers = event.modifierFlags.intersection([.command, .control, .option, .shift])
                 if modifiers == .command, event.charactersIgnoringModifiers?.lowercased() == "k" {
