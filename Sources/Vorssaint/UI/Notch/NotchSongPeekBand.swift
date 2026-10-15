@@ -7,11 +7,12 @@ import SwiftUI
 
 /// The next song peek, as the tall peek (docs/design/NOTCH-DESIGN.md 11.2 and
 /// 12): the closed strip as it rests, and below it a band with the cover, the
-/// title over "Up next · Artist", and a small live equaliser. No ring, no
-/// eyebrow. The island grows by exactly `height` (see NotchService.surfaceSize).
+/// title over "Up next · Artist", and a thin ring that fills clockwise over
+/// the seconds the song has left. No eyebrow. The island grows by exactly `height` (see NotchService.surfaceSize).
 struct NotchSongPeekBand: View {
     @ObservedObject var model: SongPeekModel
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @ObservedObject private var music = NotchMusicService.shared
     private let upNext = SpotifyQueueStrings.current.upNext
 
     /// What the closed notch grows by while the peek shows.
@@ -24,8 +25,9 @@ struct NotchSongPeekBand: View {
         NotchTallPeekRow(primary: title, secondary: secondary) {
             cover
         } live: {
-            // Static bars under Reduce Motion.
-            NotchLiveEqualizerBars(isPlaying: !reduceMotion, bars: 3, barWidth: 2, height: 12)
+            NotchSongPeekRing(endsAt: model.endsAt, tint: music.artworkTint?.color ?? .white,
+                              reduceMotion: reduceMotion)
+                .accessibilityHidden(true)
         }
         .frame(height: Self.height)
         .transition(.opacity.animation(reduceMotion ? nil : NotchDesign.Motion.fade))
@@ -56,5 +58,50 @@ struct NotchSongPeekBand: View {
         .overlay(RoundedRectangle(cornerRadius: radius, style: .continuous)
             .strokeBorder(NotchDesign.Stroke.artworkEdge, lineWidth: NotchDesign.Stroke.hairline))
         .accessibilityHidden(true)
+    }
+}
+
+/// The trailing live element: a 2 pt ring on a white 0.16 track that fills
+/// clockwise from 12 o'clock over what is left of the song, with a forward
+/// glyph inside. It reads the clock each frame, so it is always where the song
+/// is and nothing needs interrupting when the track changes; Reduce Motion
+/// steps it once a second.
+private struct NotchSongPeekRing: View {
+    let endsAt: Date
+    let tint: Color
+    let reduceMotion: Bool
+
+    private static let stroke: CGFloat = 2
+
+    var body: some View {
+        Group {
+            if reduceMotion {
+                TimelineView(.periodic(from: .now, by: 1)) { ring(Self.fraction(endsAt, at: $0.date)) }
+            } else {
+                TimelineView(.animation(minimumInterval: 1.0 / 30)) { ring(Self.fraction(endsAt, at: $0.date)) }
+            }
+        }
+        .frame(width: NotchDesign.Peek.trailingSide, height: NotchDesign.Peek.trailingSide)
+    }
+
+    private func ring(_ value: CGFloat) -> some View {
+        ZStack {
+            Circle().inset(by: Self.stroke / 2)
+                .stroke(.white.opacity(0.16), lineWidth: Self.stroke)
+            Circle().inset(by: Self.stroke / 2)
+                .trim(from: 0, to: value)
+                .stroke(tint, style: StrokeStyle(lineWidth: Self.stroke, lineCap: .round))
+                .rotationEffect(.degrees(-90))
+            Image(systemName: "forward.fill")
+                .font(NotchDesign.Icon.strip.font)
+                .imageScale(.small)
+                .foregroundStyle(NotchDesign.Ink.primary)
+        }
+    }
+
+    private static func fraction(_ endsAt: Date, at date: Date) -> CGFloat {
+        let remaining = endsAt.timeIntervalSince(date)
+        guard remaining.isFinite, remaining > 0 else { return 1 }
+        return CGFloat(max(0, min(1, (SongPeekPolicy.lead - remaining) / SongPeekPolicy.lead)))
     }
 }
