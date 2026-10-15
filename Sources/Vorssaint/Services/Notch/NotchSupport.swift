@@ -2621,6 +2621,9 @@ enum NotchMotion {
         /// Perceptual duration and bounce, as SwiftUI and Core Animation define them.
         var duration: TimeInterval
         var bounce: Double
+        /// A plain ease out of this length instead of a spring: Reduce Motion's
+        /// resize, with no overshoot and no carried speed.
+        var easeOut = false
 
         private var natural: Double { 2 * Double.pi / duration }
         private var damping: Double { 1 - bounce }
@@ -2634,6 +2637,10 @@ enum NotchMotion {
         /// `velocity` (points per second), heading for `to`.
         func value(at time: TimeInterval, from: Double, to: Double, velocity: Double) -> Double {
             guard time > 0 else { return from }
+            if easeOut {
+                let left = max(0, 1 - time / duration)
+                return to + (from - to) * left * left * left
+            }
             let natural = natural, damping = damping, offset = from - to
             if damping >= 1 { return to + exp(-natural * time) * (offset + (velocity + natural * offset) * time) }
             let damped = natural * (1 - damping * damping).squareRoot()
@@ -2656,8 +2663,28 @@ enum NotchMotion {
 
         /// The fastest a side may already head for its target and still
         /// settle without passing it, on a spring that does not bounce.
-        func arrivingSpeedLimit(travel: CGFloat) -> CGFloat { CGFloat(natural) * abs(travel) }
+        func arrivingSpeedLimit(travel: CGFloat) -> CGFloat {
+            easeOut ? 0 : CGFloat(natural) * abs(travel)
+        }
     }
+
+    /// How a resize is presented: a peek grows on its own gentler spring, and
+    /// Reduce Motion swaps every spring for one short ease out.
+    struct Style: Equatable {
+        var peek = false
+        var reduced = false
+        static let panel = Style()
+        static func current(peek: Bool = false) -> Style {
+            Style(peek: peek, reduced: NSWorkspace.shared.accessibilityDisplayShouldReduceMotion)
+        }
+    }
+
+    /// NotchDesign.Peek.grow: a peek's growth, a little gentler than the panel's.
+    static let peekGrowing = Spring(duration: NotchDesign.Peek.grow.response, bounce: NotchDesign.Peek.grow.bounce)
+    /// Geometry.reducedMotionResize: the one resize Reduce Motion allows.
+    static let reducedResize = Spring(duration: NotchDesign.Geometry.reducedMotionResize, bounce: 0, easeOut: true)
+    /// Half of the content's exit (Motion.exit), when a shrink begins.
+    static let shrinkDelay: TimeInterval = NotchDesign.Geometry.contentExitDuration / 2
 
     /// Geometry.growSpring: response 0.40 s, damping 0.85.
     static let growing = Spring(duration: NotchDesign.Geometry.growSpring.response,
@@ -2676,33 +2703,37 @@ enum NotchMotion {
 
     /// The one spring a resize rides: growing when either side grows, with
     /// no more bounce than keeps the longer travel within the limit.
-    static func spring(from: CGSize, to: CGSize) -> Spring {
+    static func spring(from: CGSize, to: CGSize, style: Style = .panel) -> Spring {
+        if style.reduced { return reducedResize }
         let grows = to.width > from.width || to.height > from.height
         guard grows else { return shrinking }
         let travel = max(max(0, to.width - from.width), max(0, to.height - from.height))
-        return growing.limited(travel: travel, limit: overshootLimit)
+        return (style.peek ? peekGrowing : growing).limited(travel: travel, limit: overshootLimit)
     }
 
-    static func spring(from: CGSize, to: CGSize, width: Bool, steady: Bool) -> Spring {
-        steady && width ? steadyWidth : spring(from: from, to: to)
+    static func spring(from: CGSize, to: CGSize, width: Bool, steady: Bool, style: Style = .panel) -> Spring {
+        steady && width && !style.reduced ? steadyWidth : spring(from: from, to: to, style: style)
     }
 
     /// The spring carrying the island's sides, for controls that ride along them.
-    static func sideSpring(from: CGSize, to: CGSize) -> Spring { spring(from: from, to: to) }
+    static func sideSpring(from: CGSize, to: CGSize, style: Style = .panel) -> Spring {
+        spring(from: from, to: to, style: style)
+    }
 
     /// The perceptual duration of the spring that moves the island.
-    static func duration(from: CGSize, to: CGSize) -> TimeInterval {
-        from == to ? growing.duration : spring(from: from, to: to).duration
+    static func duration(from: CGSize, to: CGSize, style: Style = .panel) -> TimeInterval {
+        from == to ? growing.duration : spring(from: from, to: to, style: style).duration
     }
 
     /// The speed the sides may carry into a resize toward `to`: a side
     /// heading for a target it must not pass keeps no more speed than lets
     /// it settle there, and a growing side no more than keeps its swing
     /// within the overshoot limit.
-    static func carriedVelocity(_ velocity: CGSize, from: CGSize, to: CGSize, steady: Bool = false) -> CGSize {
+    static func carriedVelocity(_ velocity: CGSize, from: CGSize, to: CGSize, steady: Bool = false,
+                                style: Style = .panel) -> CGSize {
         func side(_ speed: CGFloat, _ start: CGFloat, _ end: CGFloat, width: Bool) -> CGFloat {
             guard speed.isFinite, speed != 0 else { return 0 }
-            let spring = spring(from: from, to: to, width: width, steady: steady)
+            let spring = spring(from: from, to: to, width: width, steady: steady, style: style)
             let travel = end - start
             // Heading for the target: limited so it lands, or swings no farther than allowed.
             if travel == 0 || speed.sign == travel.sign {
@@ -2729,10 +2760,10 @@ enum NotchMotion {
     }
 
     static func size(at time: TimeInterval, from: CGSize, to: CGSize, steady: Bool = false,
-                     velocity: CGSize = .zero) -> CGSize {
+                     velocity: CGSize = .zero, style: Style = .panel) -> CGSize {
         func side(_ start: CGFloat, _ end: CGFloat, _ speed: CGFloat, width: Bool) -> CGFloat {
             guard start != end || speed != 0 else { return end }
-            let spring = spring(from: from, to: to, width: width, steady: steady)
+            let spring = spring(from: from, to: to, width: width, steady: steady, style: style)
             let value = CGFloat(spring.value(at: time, from: Double(start), to: Double(end), velocity: Double(speed)))
             // A side that shrinks never passes its target, even when the
             // other side's growth gives the shared spring its bounce.
@@ -2744,9 +2775,9 @@ enum NotchMotion {
 
     /// When every side that moves first comes within 1% of its travel from
     /// its target: the island has arrived, though it may still swing.
-    static func arrivalTime(from: CGSize, to: CGSize) -> TimeInterval {
+    static func arrivalTime(from: CGSize, to: CGSize, style: Style = .panel) -> TimeInterval {
         guard from != to else { return 0 }
-        let spring = spring(from: from, to: to)
+        let spring = spring(from: from, to: to, style: style)
         let step = 1.0 / 240
         var time = step
         while time < 2, spring.progress(at: time) < 0.99 { time += step }
@@ -2755,13 +2786,15 @@ enum NotchMotion {
 
     /// When the size and centre stay within `settledDistance` of their targets for good.
     static func settlingTime(from: CGSize, to: CGSize, steady: Bool = false, offset startOffset: CGFloat = 0,
-                             velocity: CGSize = .zero, offsetVelocity: CGFloat = 0) -> TimeInterval {
+                             velocity: CGSize = .zero, offsetVelocity: CGFloat = 0,
+                             style: Style = .panel) -> TimeInterval {
         let step = 1.0 / 240
         var settled = step
         var time = step
         while time < 2 {
-            let size = size(at: time, from: from, to: to, steady: steady, velocity: velocity)
-            let offset = offset(at: time, from: from, to: to, start: startOffset, steady: steady, velocity: offsetVelocity)
+            let size = size(at: time, from: from, to: to, steady: steady, velocity: velocity, style: style)
+            let offset = offset(at: time, from: from, to: to, start: startOffset, steady: steady,
+                                velocity: offsetVelocity, style: style)
             if abs(size.width - to.width) > settledDistance || abs(size.height - to.height) > settledDistance
                 || abs(offset) > settledDistance {
                 settled = time + step
@@ -2775,23 +2808,24 @@ enum NotchMotion {
     /// travels with the width's spring, or eases on its own when two notices
     /// have the same total width but different sides.
     static func offset(at time: TimeInterval, from: CGSize, to: CGSize, start: CGFloat, steady: Bool = false,
-                       velocity: CGFloat = 0) -> CGFloat {
+                       velocity: CGFloat = 0, style: Style = .panel) -> CGFloat {
         guard start != 0 || velocity != 0 else { return 0 }
-        let spring = from.width == to.width ? steadyWidth : spring(from: from, to: to, width: true, steady: steady)
+        let spring = from.width == to.width && !style.reduced
+            ? steadyWidth : spring(from: from, to: to, width: true, steady: steady, style: style)
         return CGFloat(spring.value(at: time, from: Double(start), to: 0, velocity: Double(velocity)))
     }
 
     /// Sizes at a steady rate, ending exactly at `to`, and where each falls
     /// within the duration, including a centre still on its way there.
     static func frames(from: CGSize, to: CGSize, steady: Bool = false, offset: CGFloat = 0,
-                       velocity: CGSize = .zero, offsetVelocity: CGFloat = 0)
+                       velocity: CGSize = .zero, offsetVelocity: CGFloat = 0, style: Style = .panel)
         -> (sizes: [CGSize], keyTimes: [Double], duration: TimeInterval) {
         let duration = settlingTime(from: from, to: to, steady: steady, offset: offset,
-                                    velocity: velocity, offsetVelocity: offsetVelocity)
+                                    velocity: velocity, offsetVelocity: offsetVelocity, style: style)
         let count = max(1, Int((duration * 120).rounded(.up)))
         let keyTimes = (0...count).map { Double($0) / Double(count) }
         let sizes = keyTimes.map {
-            $0 == 1 ? to : size(at: duration * $0, from: from, to: to, steady: steady, velocity: velocity)
+            $0 == 1 ? to : size(at: duration * $0, from: from, to: to, steady: steady, velocity: velocity, style: style)
         }
         return (sizes, keyTimes, duration)
     }
@@ -2804,8 +2838,8 @@ enum NotchMotion {
                height: max(reserved.height, size.height))
     }
 
-    static func envelope(from: CGSize, to: CGSize) -> CGSize {
-        let swing = spring(from: from, to: to).overshoot
+    static func envelope(from: CGSize, to: CGSize, style: Style = .panel) -> CGSize {
+        let swing = spring(from: from, to: to, style: style).overshoot
         func side(_ start: CGFloat, _ end: CGFloat) -> CGFloat {
             guard end > start, swing > 0 else { return max(start, end) }
             return (end + (end - start) * CGFloat(swing)).rounded(.up)
