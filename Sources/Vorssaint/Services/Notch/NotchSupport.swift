@@ -234,7 +234,8 @@ enum NotchLayout {
     static let rowSpacing: CGFloat = 10
     static let cardHeight: CGFloat = 96
     static let minimumCardHeight: CGFloat = 68
-    static let shortcutHeight: CGFloat = 74
+    /// Glyph circle 40 + 6 gap + two reserved label lines 28 + 4 pt of air above and below (NotchActionTile).
+    static let shortcutHeight: CGFloat = 82
     static let shortcutWidth: CGFloat = 76
     static let shortcutSpacing: CGFloat = 8
     static let toolHeight: CGFloat = 72
