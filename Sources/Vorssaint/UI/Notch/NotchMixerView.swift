@@ -233,7 +233,7 @@ private struct NotchMasterFader: View {
     var body: some View {
         VStack(spacing: NotchDesign.Spacing.xSmall) {
             NotchMixerColumnHead(name: l10n.s.mixerSystemOutputTitle) {
-                Toggle(muted ? l10n.s.actionUnmute : l10n.s.actionMute,
+                Toggle(l10n.s.actionMute,
                        isOn: Binding(get: { muted }, set: { adjustOutput(muted: $0) }))
                     .toggleStyle(NotchToggleStyle(on: "speaker.slash.fill", off: "speaker.wave.2.fill",
                                                   shape: .rounded(NotchDesign.Radius.control),
@@ -275,8 +275,8 @@ private struct NotchMicrophoneFader: View {
                 // The mute is its own feature; without it the column keeps the
                 // plain icon the options row shows.
                 if AppFeature.micMute.isAvailable {
-                    Toggle(micMute.isMuted ? l10n.s.micUnmuteName : l10n.s.micMuteName,
-                           isOn: Binding(get: { micMute.isMuted }, set: { _ in micMute.toggle() }))
+                    Toggle(l10n.s.micMuteName,
+                           isOn: Binding(get: { micMute.isMuted }, set: { if $0 != micMute.isMuted { micMute.toggle() } }))
                         .toggleStyle(NotchToggleStyle(on: "mic.slash.fill", off: "mic.fill",
                                                       shape: .rounded(NotchDesign.Radius.control),
                                                       tint: NotchDesign.Palette.critical))
@@ -449,8 +449,8 @@ private struct NotchMixerOptions: View {
                 // The mute is its own feature; without it the row keeps the
                 // plain icon the panel's row shows.
                 if AppFeature.micMute.isAvailable {
-                    Toggle(micMute.isMuted ? l10n.s.micUnmuteName : l10n.s.micMuteName,
-                           isOn: Binding(get: { micMute.isMuted }, set: { _ in micMute.toggle() }))
+                    Toggle(l10n.s.micMuteName,
+                           isOn: Binding(get: { micMute.isMuted }, set: { if $0 != micMute.isMuted { micMute.toggle() } }))
                         .toggleStyle(NotchToggleStyle(on: "mic.slash.fill", off: "mic.fill",
                                                       shape: .rounded(Design.Radius.control),
                                                       tint: Design.Palette.critical))
@@ -584,8 +584,8 @@ private struct NotchAppFader: View {
                     .accessibilityLabel(l10n.s.mixerResetTooltip)
                 }
                 .overlay(alignment: .trailing) {
-                    Toggle(muted ? l10n.s.actionUnmute : l10n.s.actionMute,
-                           isOn: Binding(get: { muted }, set: { _ in mixer.toggleMute(app) }))
+                    Toggle(l10n.s.actionMute,
+                           isOn: Binding(get: { muted }, set: { if $0 != muted { mixer.toggleMute(app) } }))
                         .toggleStyle(NotchToggleStyle(on: "speaker.slash.fill", off: "speaker.wave.2.fill",
                                                       shape: .rounded(Design.Radius.control),
                                                       tint: Design.Palette.critical))
@@ -611,7 +611,7 @@ private struct NotchAppFader: View {
                 .clipShape(RoundedRectangle(cornerRadius: Design.Radius.control, style: .continuous))
             if app.isPlaying {
                 Circle().fill(Design.Palette.positive).frame(width: 8, height: 8)
-                    .overlay(Circle().stroke(.black, lineWidth: 1.5))
+                    .overlay { Circle().stroke(.black, lineWidth: 1.5) }
                     .offset(x: 2, y: 2)
                     .accessibilityHidden(true)
             }
