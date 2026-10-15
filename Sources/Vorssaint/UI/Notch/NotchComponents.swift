@@ -7,6 +7,7 @@ import SwiftUI
 /// Feedback is local to a visible control. No recurring work is needed.
 /// The pointer lifts a control slightly and a press settles it back, which is
 /// what makes the panel feel physical rather than painted on.
+@available(*, deprecated, message: "use NotchPressStyle")
 struct NotchButtonStyle: ButtonStyle {
     var cornerRadius: CGFloat = 10
     var lifts = true
