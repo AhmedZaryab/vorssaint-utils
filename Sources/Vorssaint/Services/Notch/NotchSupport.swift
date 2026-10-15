@@ -1447,6 +1447,10 @@ enum NotchQuickAccessLayout {
 enum NotchEvent: String, CaseIterable {
     case volume, brightness, battery, clipboard, capture, systemNotification, keyboardLight, timer, accessory, download, agents, track, microphone, watch
 
+    /// Answers to a key press the user makes many times a day: the reading is
+    /// on the first frame, with no staged reveal.
+    var answersKeyPress: Bool { self == .volume || self == .brightness || self == .keyboardLight || self == .clipboard }
+
     var preferenceKey: String {
         switch self {
         case .microphone: return DefaultsKey.notchMicrophone
@@ -2618,6 +2622,19 @@ struct NotchSessionState {
 /// that shrinks never passes its target, which for a resting island is the
 /// housing it hugs. A new target starts from the size on screen and keeps
 /// the speed each side already had, so a reversal turns instead of stopping.
+/// True only while a key press is being answered: those changes land at once,
+/// with no transition and no resize spring.
+enum NotchKeyboardMoment {
+    private(set) static var active = false
+
+    static func answer(_ body: () -> Void) {
+        let was = active
+        active = true
+        defer { active = was }
+        body()
+    }
+}
+
 enum NotchMotion {
     /// Departing content has faded out by 0.12 s; the view then swaps it for
     /// the next content, which fades in once the swap is on screen.

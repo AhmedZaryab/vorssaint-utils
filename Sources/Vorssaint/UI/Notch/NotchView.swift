@@ -334,6 +334,7 @@ struct NotchView: View {
                             .font(NotchDesign.Typography.pageTitle.font)
                             .lineLimit(1)
                             .layoutPriority(-1)
+                            .accessibilityAddTraits(.isHeader)
                     }
                     // Beside the camera the field takes the rest of its side,
                     // stopping a little short of the cutout.
@@ -348,6 +349,7 @@ struct NotchView: View {
                     Text(service.detailTitle)
                         .font(NotchDesign.Typography.pageTitle.font)
                         .lineLimit(1)
+                        .accessibilityAddTraits(.isHeader)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 } else {
                     if !quickActions.contains(.explore) {
@@ -356,6 +358,7 @@ struct NotchView: View {
                     Text(service.selected.title(l10n.language))
                         .font(NotchDesign.Typography.pageTitle.font)
                         .lineLimit(1)
+                        .accessibilityAddTraits(.isHeader)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
@@ -488,7 +491,8 @@ struct NotchView: View {
     /// which reached the screen without its animation once the island was key.
     private func headerActions(quickActions: [NotchQuickAction]) -> some View {
         let updating = updates.state.isInProgress
-        let revealed = headerHovered || updating
+        // Keyboard and VoiceOver users cannot hover, so the actions stay in view for them.
+        let revealed = headerHovered || updating || NSWorkspace.shared.isVoiceOverEnabled || NSApp.isFullKeyboardAccessEnabled
         return HStack(spacing: NotchDesign.Spacing.xSmall) {
             NotchUpdateControl(action: service.showUpdate)
             if service.selected == .tools, !service.showingAppPanel, !service.showingSections,
@@ -538,7 +542,7 @@ struct NotchView: View {
                 .accessibilityHidden(true)
             }
         }
-        .animation(reduceMotion ? nil : NotchDesign.Motion.fade, value: revealed)
+        .animation(NotchDesign.Motion.fade, value: revealed)
     }
 
     private var navigationTitle: String {

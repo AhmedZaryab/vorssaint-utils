@@ -158,6 +158,8 @@ final class NotchService: ObservableObject {
     @Published var highlightedSection: NotchModule? { didSet { revealHighlightedSection() } }
     /// The gallery's first visible row; the rows above it have stepped away.
     @Published private(set) var sectionRow = 0
+    /// The gallery's last move came from the keyboard: it lands at once and the focus ring shows. The wheel and the pointer clear it.
+    @Published private(set) var sectionKeyDriven = false
     @Published private(set) var modules: [NotchModule] = []
     @Published private(set) var notice: NotchNotice?
     @Published private(set) var noticeExpanded = false
@@ -1575,6 +1577,7 @@ final class NotchService: ObservableObject {
     func showSectionRow(_ row: Int) {
         let limits = sectionRowLimits
         let next = NotchSectionPaging.clamped(row, rows: limits.rows, visible: limits.visible)
+        sectionKeyDriven = false
         guard next != sectionRow else { return }
         sectionRow = next
         provideHapticFeedback()
@@ -1585,6 +1588,7 @@ final class NotchService: ObservableObject {
     private func handleSectionKey(_ event: NSEvent) -> Bool {
         guard showingSections,
               (panel?.firstResponder as? NSTextView)?.hasMarkedText() != true else { return false }
+        sectionKeyDriven = true
         let modifiers = event.modifierFlags.intersection([.command, .control, .option, .shift])
         if event.keyCode == 48, modifiers.isEmpty || modifiers == .shift {
             highlightedSection = NotchSupport.adjacentModule(to: highlightedSection, modules: filteredSections,
@@ -1593,7 +1597,7 @@ final class NotchService: ObservableObject {
         }
         guard modifiers.isEmpty else { return false }
         if event.keyCode == 36 || event.keyCode == 76 {
-            if let target = highlightedSection, filteredSections.contains(target) { select(target) }
+            if let target = highlightedSection, filteredSections.contains(target) { NotchKeyboardMoment.answer { select(target) } }
             return true
         }
         let direction: QuickToolsSupport.GridDirection
@@ -1638,7 +1642,7 @@ final class NotchService: ObservableObject {
         switch action {
         case .createPad: pad.createPad(defaultName: FeatureStrings.scratchpad(L10n.shared.language).pageTitle)
         case .closeSelectedPad: scratchpadCloseSerial += 1
-        case .hidePad: collapse()
+        case .hidePad: NotchKeyboardMoment.answer { collapse() }
         case .find: requestScratchpadFind(.showFindInterface)
         case .findNext: requestScratchpadFind(.nextMatch)
         case .findPrevious: requestScratchpadFind(.previousMatch)
@@ -2025,7 +2029,7 @@ final class NotchService: ObservableObject {
         // Slider and key bursts only replace the displayed value. They never
         // restart a window resize or enqueue another layout animation.
         let transition: NotchContentTransition = !noticeCanPresent ? .none
-            : notice == nil ? .reveal : notice?.event != incoming.event || noticeExpanded ? .replace : .none
+            : notice == nil ? (incoming.event.answersKeyPress ? .none : .reveal) : notice?.event != incoming.event || noticeExpanded ? .replace : .none
         // The same notice with a new reading only fits its width, steadily.
         noticeFitsInPlace = noticeCanPresent && !noticeExpanded && !keepsPreview && notice?.event == incoming.event
         mutatePresentation(transitionContent: transition) {
@@ -2260,7 +2264,9 @@ final class NotchService: ObservableObject {
         var transaction = Transaction(animation: nil)
         transaction.disablesAnimations = true
         withTransaction(transaction, change)
-        refreshPresentation(transitionContent: transitionContent)
+        // A key press lands at once: no cross-fade, no resize spring.
+        let keyed = NotchKeyboardMoment.active
+        refreshPresentation(animated: !keyed, transitionContent: keyed ? .none : transitionContent)
     }
 
     private func finishMusicDeparture() {
@@ -3375,22 +3381,22 @@ final class NotchService: ObservableObject {
             if event.type == .keyDown, event.window === self.panel, self.captureControls == nil {
                 let modifiers = event.modifierFlags.intersection([.command, .control, .option, .shift])
                 if modifiers == .command, event.charactersIgnoringModifiers?.lowercased() == "k" {
-                    self.toggleSections()
+                    NotchKeyboardMoment.answer { self.toggleSections() }
                     return nil
                 }
                 if modifiers == [.command, .option],
                    let module = NotchSupport.moduleShortcut(event.charactersIgnoringModifiers ?? "", modules: self.modules) {
-                    self.select(module)
+                    NotchKeyboardMoment.answer { self.select(module) }
                     return nil
                 }
                 if event.keyCode == 48, modifiers == .control || modifiers == [.control, .shift],
                    let module = NotchSupport.adjacentModule(to: self.selected, modules: self.modules,
                                                            backwards: modifiers.contains(.shift)) {
-                    self.select(module)
+                    NotchKeyboardMoment.answer { self.select(module) }
                     return nil
                 }
                 if event.keyCode == 53, self.showingSections {
-                    self.toggleSections()
+                    NotchKeyboardMoment.answer { self.toggleSections() }
                     return nil
                 }
                 if self.handleSectionKey(event) { return nil }
@@ -3414,7 +3420,7 @@ final class NotchService: ObservableObject {
                 if let editor = self.panel?.firstResponder as? NSTextView, editor.isFieldEditor,
                    (editor.delegate as AnyObject?) is MixerPercentNativeTextField { return event }
                 if PlainTextEditor.findBarHasKeyboard(in: self.panel) { return event }
-                self.stepBack()
+                NotchKeyboardMoment.answer { self.stepBack() }
                 return nil
             }
             let click = clicks.contains(NSEvent.EventTypeMask(rawValue: 1 << event.type.rawValue))

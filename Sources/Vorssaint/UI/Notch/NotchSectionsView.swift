@@ -62,7 +62,7 @@ struct NotchSectionsView: View {
             .frame(height: NotchLayout.railHeight(rows: visible, rowHeight: NotchLayout.sectionTileHeight,
                                                   spacing: NotchLayout.sectionSpacing), alignment: .top)
             .clipped()
-            .animation(NotchDesign.Motion.animation(NotchDesign.Motion.snappy, reduceMotion: reduceMotion), value: first)
+            .animation(service.sectionKeyDriven ? nil : NotchDesign.Motion.animation(NotchDesign.Motion.snappy, reduceMotion: reduceMotion), value: first)
             .accessibilityScrollAction { edge in
                 if edge == .bottom { service.scrollSections(by: 1) }
                 else if edge == .top { service.scrollSections(by: -1) }
@@ -92,7 +92,7 @@ struct NotchSectionsView: View {
                     .notchPointingCursor()
                 }
             }
-            .animation(NotchDesign.Motion.animation(NotchDesign.Motion.snappy, reduceMotion: reduceMotion), value: current)
+            .animation(service.sectionKeyDriven ? nil : NotchDesign.Motion.animation(NotchDesign.Motion.snappy, reduceMotion: reduceMotion), value: current)
             .accessibilityHidden(true)
         } else {
             Color.clear
@@ -126,7 +126,10 @@ struct NotchSectionsView: View {
             // except under Increase Contrast.
             .background(highlighted ? NotchDesign.Fill.selected : NotchDesign.Fill.card, in: shape)
             .overlay {
-                if contrast == .increased {
+                if highlighted && service.sectionKeyDriven {
+                    // The system's own focus ring: a fill step alone is 1.3:1.
+                    shape.strokeBorder(Color(nsColor: .keyboardFocusIndicatorColor), lineWidth: 2)
+                } else if contrast == .increased {
                     shape.strokeBorder(NotchDesign.Stroke.increasedContrast,
                                        lineWidth: NotchDesign.Stroke.increasedContrastWidth)
                 }
@@ -139,7 +142,7 @@ struct NotchSectionsView: View {
                         .padding(NotchDesign.Spacing.small)
                 }
             }
-            .animation(NotchDesign.Motion.animation(NotchDesign.Motion.snappy, reduceMotion: reduceMotion), value: highlighted)
+            .animation(service.sectionKeyDriven ? nil : NotchDesign.Motion.animation(NotchDesign.Motion.snappy, reduceMotion: reduceMotion), value: highlighted)
             .contentShape(shape)
         }
         .buttonStyle(NotchPressStyle(shape: .rounded(NotchDesign.Radius.card)))

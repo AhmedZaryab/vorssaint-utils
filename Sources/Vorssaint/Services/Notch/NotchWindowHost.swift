@@ -333,14 +333,14 @@ final class NotchWindowHost: NSObject, CAAnimationDelegate {
         animation.keyTimes = motion.keyTimes.map { NSNumber(value: $0) }
         animation.calculationMode = .linear
         animation.duration = motion.duration
-        if withdrawing {
-            animation.beginTime = CACurrentMediaTime() + NotchQuickAccessLayout.withdrawalDuration
-            animation.fillMode = .backwards
-        }
-        // Shrinking: the content leaves first (Motion.exit) and the shape starts
-        // halfway through that, so the island never closes on visible content.
+        // Shrinking: the page leaves as a fading snapshot (Motion.exit) and the
+        // shape starts halfway through that, so the island never closes on
+        // visible content. The quick access rail withdraws with the shape, not
+        // before it. A shrink that interrupts a moving shape never waits: it
+        // turns from where it is, with the speed it has.
         let shrinking = size.width <= start.width && size.height <= start.height && size != start
-        if !withdrawing, !reduced, shrinking, transitionContent == .dismiss || transitionContent == .depart {
+        let interrupting = moving.map { $0.size != .zero || $0.offset != 0 } ?? false
+        if !reduced, !interrupting, shrinking, withdrawing || transitionContent == .dismiss || transitionContent == .depart {
             animation.beginTime = CACurrentMediaTime() + NotchMotion.shrinkDelay
             animation.fillMode = .backwards
         }
@@ -1520,6 +1520,8 @@ private final class NotchCanvasView: NSView {
         contentVisibility.removeAnimation(forKey: "notch.opacity")
         host.layer?.removeAnimation(forKey: kCATransition)
         endArrival()
+        removeExitGhost()
+        if kind == .dismiss, !shapeSnaps, currentOpacity > 0.02 { installExitGhost(from: currentOpacity) }
         CATransaction.begin()
         CATransaction.setDisableActions(true)
         if kind == .replace {
@@ -1572,6 +1574,42 @@ private final class NotchCanvasView: NSView {
         CATransaction.commit()
     }
 
+    private static let exitGhostName = "notch.exitGhost"
+
+    private func removeExitGhost() {
+        layer?.sublayers?.filter { $0.name == Self.exitGhostName }.forEach { $0.removeFromSuperlayer() }
+    }
+
+    /// The page that is closing keeps its pixels on screen while it fades on
+    /// the exit duration. The live view has already swapped to the resting
+    /// strip underneath, so nothing waits for it to unmount.
+    private func installExitGhost(from opacity: Float) {
+        guard let layer, host.bounds.width > 0, host.bounds.height > 0,
+              let rep = host.bitmapImageRepForCachingDisplay(in: host.bounds) else { return }
+        host.cacheDisplay(in: host.bounds, to: rep)
+        guard let image = rep.cgImage else { return }
+        let ghost = CALayer()
+        ghost.name = Self.exitGhostName
+        ghost.frame = host.frame
+        ghost.contents = image
+        ghost.contentsScale = window?.backingScaleFactor ?? 2
+        ghost.zPosition = 1
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        layer.addSublayer(ghost)
+        ghost.opacity = 0
+        CATransaction.commit()
+        let fade = CABasicAnimation(keyPath: "opacity")
+        fade.fromValue = opacity
+        fade.toValue = 0
+        fade.duration = Self.exitDuration
+        fade.timingFunction = CAMediaTimingFunction(name: .easeOut)
+        CATransaction.begin()
+        CATransaction.setCompletionBlock { [weak ghost] in ghost?.removeFromSuperlayer() }
+        ghost.add(fade, forKey: "notch.exitGhost")
+        CATransaction.commit()
+    }
+
     func finishDeparture() {
         guard departsContent else { return }
         CATransaction.begin()
@@ -1590,6 +1628,7 @@ private final class NotchCanvasView: NSView {
     }
 
     func restoreContent() {
+        removeExitGhost()
         CATransaction.begin()
         CATransaction.setDisableActions(true)
         contentVisibility.removeAnimation(forKey: "notch.opacity")
