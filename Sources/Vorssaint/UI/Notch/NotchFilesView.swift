@@ -64,18 +64,18 @@ struct NotchFilesView: View {
                     // The shelf's trash takes the selection first, the whole
                     // shelf only when nothing is selected. Both burn down on a
                     // fuse, so a slip is one press from undone.
-                    if shelf.selection.isEmpty {
-                        NotchFuseButton(l10n.s.shelfClearAll, symbol: "trash", doneAnnouncement: l10n.s.shelfClearAll,
-                                        shape: .rounded(NotchDesign.Radius.control)) { shelf.clear() }
-                            .disabled(archives.isRunning)
-                    } else {
-                        NotchFuseButton(l10n.s.shelfRemoveSelected, symbol: "trash.fill",
-                                        doneAnnouncement: l10n.s.shelfRemoveSelected,
-                                        shape: .rounded(NotchDesign.Radius.control)) {
-                            shelf.removeItems(Array(shelf.selection))
-                        }
-                        .disabled(archives.isRunning)
+                    // One control for both, so selecting during a burn keeps
+                    // the burning fuse and its Undo on screen. The payload is
+                    // read when the fuse is lit, never when it burns out.
+                    let chosen = Array(shelf.selection)
+                    let removesSelection = !chosen.isEmpty
+                    NotchFuseButton(removesSelection ? l10n.s.shelfRemoveSelected : l10n.s.shelfClearAll,
+                                    symbol: removesSelection ? "trash.fill" : "trash",
+                                    doneAnnouncement: removesSelection ? l10n.s.shelfRemoveSelected : l10n.s.shelfClearAll,
+                                    shape: .rounded(NotchDesign.Radius.control)) {
+                        if removesSelection { shelf.removeItems(chosen) } else { shelf.clear() }
                     }
+                    .disabled(archives.isRunning)
                 }
             }
             archiveStatus

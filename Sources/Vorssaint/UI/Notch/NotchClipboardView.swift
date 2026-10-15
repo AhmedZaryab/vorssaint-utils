@@ -45,40 +45,45 @@ struct NotchClipboardView: View {
 
     var body: some View {
         VStack(spacing: NotchLayout.rowSpacing) {
-            HStack(spacing: NotchDesign.Spacing.small) {
-                Image(systemName: "magnifyingglass")
-                    .font(NotchDesign.Icon.button.font)
-                    .foregroundStyle(NotchDesign.Ink.secondary)
-                    .accessibilityHidden(true)
-                TextField(text.search, text: $query).textFieldStyle(.plain)
-                    .font(NotchDesign.Typography.body.font)
-                    .focused($searching)
-                    .accessibilityLabel(text.search)
+            let recent = history.recentEntriesSnapshot
+            HStack(spacing: NotchDesign.Spacing.xSmall) {
+                HStack(spacing: NotchDesign.Spacing.small) {
+                    Image(systemName: "magnifyingglass")
+                        .font(NotchDesign.Icon.button.font)
+                        .foregroundStyle(NotchDesign.Ink.secondary)
+                        .accessibilityHidden(true)
+                    TextField(text.search, text: $query).textFieldStyle(.plain)
+                        .font(NotchDesign.Typography.body.font)
+                        .focused($searching)
+                        .accessibilityLabel(text.search)
+                }
+                .padding(.horizontal, NotchDesign.Spacing.medium)
+                .frame(height: NotchLayout.clipboardSearchHeight)
+                .modifier(ClipboardPlate(radius: NotchDesign.Radius.control,
+                                         fill: searching ? NotchDesign.Fill.selected : NotchDesign.Fill.control))
+                .animation(NotchDesign.Motion.fade, value: searching)
+                .background {
+                    if !preview {
+                        ClipboardSearchKeyMonitor(active: searching) { handleSearchKey($0) }
+                            .frame(width: 0, height: 0)
+                    }
+                }
+                // The actions sit beside the field, not inside its plate, so a
+                // destructive one never reads as part of the text.
                 Toggle(text.pinned, isOn: $pinnedOnly)
                     .toggleStyle(NotchToggleStyle(on: "pin.fill", off: "pin",
                                                   shape: .rounded(NotchDesign.Radius.control)))
                     .help(text.pinned)
+                // The payload is read when the fuse is lit; entries copied while
+                // it burns are not cleared with it.
                 NotchFuseButton(text.clearRecent, symbol: "trash", doneAnnouncement: text.clearRecent,
                                 shape: .rounded(NotchDesign.Radius.control)) {
-                    history.clearRecent(history.recentEntriesSnapshot)
+                    history.clearRecent(recent)
                     copiedID = nil
                 }
-                .disabled(history.recentEntries.isEmpty)
-                .opacity(history.recentEntries.isEmpty ? NotchDesign.Opacity.disabled : 1)
+                .disabled(recent.isEmpty)
                 NotchPlainIconButton(symbol: "arrow.up.forward.app", title: text.title) {
                     service.perform { history.showHistoryWindow(preferNotch: false) }
-                }
-            }
-            .padding(.leading, NotchDesign.Spacing.medium)
-            .padding(.trailing, NotchDesign.Spacing.xxSmall)
-            .frame(height: NotchLayout.clipboardSearchHeight)
-            .modifier(ClipboardPlate(radius: NotchDesign.Radius.control,
-                                     fill: searching ? NotchDesign.Fill.selected : NotchDesign.Fill.control))
-            .animation(NotchDesign.Motion.fade, value: searching)
-            .background {
-                if !preview {
-                    ClipboardSearchKeyMonitor(active: searching) { handleSearchKey($0) }
-                        .frame(width: 0, height: 0)
                 }
             }
             // Typing filters the history as soon as the page opens, as in Explore.
@@ -117,7 +122,8 @@ struct NotchClipboardView: View {
                             }
                         }
                     }
-                    .scrollIndicators(.automatic)
+                    .scrollIndicators(.never)
+                    .notchScrollEdgeFade()
                     .onChange(of: highlightedID) { _, id in
                         // Arrow keys land at once; nothing animates on a keyboard action.
                         guard let id else { return }
@@ -161,6 +167,7 @@ struct NotchClipboardView: View {
     /// The entry fills the card; its actions sit in the bottom row.
     private func card(_ entry: ClipboardHistoryEntry, place: Int) -> some View {
         let radius = NotchDesign.Radius.card
+        let highlighted = highlightedID == entry.id
         return VStack(alignment: .leading, spacing: NotchDesign.Spacing.xxSmall) {
             Button { activate(entry) } label: {
                 preview(entry)
@@ -170,12 +177,13 @@ struct NotchClipboardView: View {
             }
             .buttonStyle(NotchPressStyle(shape: .rounded(NotchDesign.Radius.control), lifts: false))
             .help(permissions.accessibility ? text.clickRowShortcut : text.copy)
-            HStack(spacing: NotchDesign.Spacing.xxSmall) {
+            HStack(spacing: NotchDesign.Spacing.xSmall) {
                 Image(systemName: entry.kind == .image ? "photo" : entry.kind == .files ? "doc" : "text.alignleft")
                     .font(NotchDesign.Typography.caption.font)
                     .foregroundStyle(NotchDesign.Ink.secondary)
                     .accessibilityHidden(true)
                 Text(entry.copiedAt, style: .time)
+                    .environment(\.locale, l10n.language.formattingLocale())
                     .font(NotchDesign.Typography.caption.font)
                     .foregroundStyle(NotchDesign.Ink.secondary).lineLimit(1)
                 Spacer(minLength: 0)
@@ -196,13 +204,19 @@ struct NotchClipboardView: View {
                                 shape: .rounded(NotchDesign.Radius.control)) { remove(entry) }
             }
             .frame(height: NotchDesign.Control.iconButton)
+            // The bezels sit Spacing.xSmall from the card's edge (concentric
+            // with Radius.control), so the row reaches past the text inset.
+            .padding(.trailing, -(NotchDesign.Spacing.cardPadding - NotchDesign.Spacing.xSmall))
         }
         .padding(.horizontal, NotchDesign.Spacing.cardPadding)
         .padding(.top, NotchDesign.Spacing.cardPadding)
-        .padding(.bottom, NotchDesign.Spacing.xxSmall)
+        .padding(.bottom, NotchDesign.Spacing.xSmall)
         .modifier(ClipboardPlate(radius: radius,
-                                 fill: highlightedID == entry.id ? NotchDesign.Fill.selected : NotchDesign.Fill.card))
-        .animation(NotchDesign.Motion.fade, value: highlightedID == entry.id)
+                                 fill: highlighted ? NotchDesign.Fill.selected : NotchDesign.Fill.card,
+                                 keyboardFocus: highlighted))
+        // The highlight only ever moves from the keyboard or a new search
+        // result, and nothing animates on a keyboard action.
+        .transaction(value: highlighted) { $0.animation = nil }
         .clipped()
         .contextMenu { actions(entry) }
         .accessibilityAction(named: Text(text.moveUp)) { move(entry, .up) }
@@ -399,6 +413,9 @@ private struct ClipboardSearchKeyMonitor: NSViewRepresentable {
 private struct ClipboardPlate: ViewModifier {
     let radius: CGFloat
     let fill: Color
+    /// The keyboard's choice: the system focus ring on top of the fill, since
+    /// a fill step alone is 1.3:1 against its neighbours.
+    var keyboardFocus = false
     @Environment(\.colorSchemeContrast) private var contrast
     @Environment(\.notchGlassSurface) private var glassSurface
 
@@ -407,7 +424,11 @@ private struct ClipboardPlate: ViewModifier {
         content
             .background(fill, in: shape)
             .overlay {
-                if contrast == .increased {
+                if keyboardFocus {
+                    shape.strokeBorder(Color(nsColor: .keyboardFocusIndicatorColor),
+                                       lineWidth: NotchDesign.Stroke.increasedContrastWidth * 2)
+                        .allowsHitTesting(false)
+                } else if contrast == .increased {
                     shape.strokeBorder(NotchDesign.Stroke.increasedContrast, lineWidth: NotchDesign.Stroke.increasedContrastWidth)
                         .allowsHitTesting(false)
                 } else if glassSurface {
@@ -425,8 +446,6 @@ struct NotchPlainIconButton: View {
     let title: String
     var successTrigger: Int?
     let action: () -> Void
-    @Environment(\.isEnabled) private var isEnabled
-
     var body: some View {
         Button(action: action) {
             glyph
@@ -436,7 +455,6 @@ struct NotchPlainIconButton: View {
                 .contentShape(Rectangle())
         }
         .buttonStyle(NotchPressStyle(shape: .rounded(NotchDesign.Radius.control)))
-        .opacity(isEnabled ? 1 : NotchDesign.Opacity.disabled)
         .help(title)
         .accessibilityLabel(title)
     }

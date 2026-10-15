@@ -100,9 +100,18 @@ struct ShelfTilesView: NSViewRepresentable {
     /// continue past its edge, so a short strip never scrolls down.
     var sideways = false
 
-    static let tileSize = NSSize(width: 78, height: 88)
-    static let spacing: CGFloat = 10
+    /// Tiles sit on the island's tokens: the gutter between them, Radius.card
+    /// for the tile and Radius.control for its icon well. The group of well
+    /// and label is centred in the tile with equal padding above and below.
+    static let tileSize = NSSize(width: 92, height: 92)
+    static let spacing: CGFloat = NotchDesign.Spacing.gutter
     static let inset: CGFloat = 4
+    /// The island's strip starts on the island margin, so the tile's own edge
+    /// is the page edge; the panel keeps its small inset.
+    static func inset(sideways: Bool) -> CGFloat { sideways ? 0 : inset }
+    static let wellSize = NSSize(width: 76, height: 48)
+    static let wellToLabel = NotchDesign.Spacing.xxSmall
+    static let labelHeight: CGFloat = 24
 
     func makeNSView(context: Context) -> NSScrollView {
         // A view built now has nothing to reveal: the docked shelf rebuilds
@@ -166,19 +175,22 @@ struct ShelfTilesView: NSViewRepresentable {
         guard let document = scroll.documentView else { return }
 
         let tile = Self.tileSize
-        let inset = Self.inset
         let spacing = Self.spacing
         // The document remembers its flow, so a rebuild started by a tile
         // after a merge lays out the same way SwiftUI did.
         let sideways = (document as? FlippedView)?.sideways == true
+        let inset = Self.inset(sideways: sideways)
         let contentWidth = max(scroll.contentSize.width, 276)
         let columns = ShelfTileLayout.columnCount(contentWidth: contentWidth,
                                                    tileWidth: tile.width,
                                                    spacing: spacing,
                                                    inset: inset)
+        // Rows first while everything fits one row; only a longer shelf fills
+        // columns top to bottom and scrolls sideways.
         let rows = sideways
-            ? ShelfTileLayout.rowCount(contentHeight: scroll.contentSize.height, tileHeight: tile.height,
-                                       spacing: spacing, inset: inset)
+            ? (items.count <= columns ? 1
+               : ShelfTileLayout.rowCount(contentHeight: scroll.contentSize.height, tileHeight: tile.height,
+                                          spacing: spacing, inset: inset))
             : max(1, Int(ceil(Double(items.count) / Double(columns))))
         let frame: (Int) -> CGRect = { index in
             sideways
@@ -339,7 +351,7 @@ final class ShelfTileView: NSView, NSDraggingSource {
         self.isPinned = isPinned
         super.init(frame: NSRect(origin: .zero, size: ShelfTilesView.tileSize))
         wantsLayer = true
-        layer?.cornerRadius = 10
+        layer?.cornerRadius = NotchDesign.Radius.card
         syncChrome()
         registerForDraggedTypes(ShelfService.tileDropTypes)
         buildSubviews()
@@ -369,11 +381,27 @@ final class ShelfTileView: NSView, NSDraggingSource {
     }
 
     private func buildSubviews() {
-        if item.isBatch { addStackBackplates() }
 
-        let iconWell = NSView(frame: NSRect(x: 7, y: 6, width: 64, height: 50))
+        let label = NSTextField(labelWithString: item.title)
+        label.font = .systemFont(ofSize: 10)
+        label.alignment = .center
+        label.lineBreakMode = .byCharWrapping
+        label.maximumNumberOfLines = 2
+        label.cell?.truncatesLastVisibleLine = true
+        label.textColor = .secondaryLabelColor
+        let labelWidth = ShelfTilesView.wellSize.width + 8
+        // A fixed two line box, so every tile in a row puts its well at the
+        // same height and the group stays centred top to bottom.
+        let labelHeight = ShelfTilesView.labelHeight
+        let group = ShelfTilesView.wellSize.height + ShelfTilesView.wellToLabel + labelHeight
+        let top = ((ShelfTilesView.tileSize.height - group) / 2).rounded()
+        let wellX = ((ShelfTilesView.tileSize.width - ShelfTilesView.wellSize.width) / 2).rounded()
+
+        let wellFrame = NSRect(x: wellX, y: top, width: ShelfTilesView.wellSize.width, height: ShelfTilesView.wellSize.height)
+        if item.isBatch { addStackBackplates(wellFrame: wellFrame) }
+        let iconWell = NSView(frame: wellFrame)
         iconWell.wantsLayer = true
-        iconWell.layer?.cornerRadius = 8
+        iconWell.layer?.cornerRadius = NotchDesign.Radius.control
         iconWell.layer?.backgroundColor = NSColor.white.withAlphaComponent(0.06).cgColor
         addSubview(iconWell)
 
@@ -381,8 +409,8 @@ final class ShelfTileView: NSView, NSDraggingSource {
         // (or could not be) is still wearing the generic fallback icon, and
         // that wants the generic inset until the real frame arrives.
         let hasThumbnail = item.hasContentThumbnail
-        let imageView = NSImageView(frame: iconWell.bounds.insetBy(dx: hasThumbnail ? 4 : 13,
-                                                                   dy: hasThumbnail ? 4 : 8))
+        let imageView = NSImageView(frame: iconWell.bounds.insetBy(dx: hasThumbnail ? 4 : 20,
+                                                                   dy: hasThumbnail ? 4 : 7))
         imageView.image = item.icon
         imageView.imageScaling = .scaleProportionallyUpOrDown
         imageView.autoresizingMask = [.width, .height]
@@ -390,7 +418,7 @@ final class ShelfTileView: NSView, NSDraggingSource {
 
         if item.isBatch {
             let badge = NSTextField(labelWithString: "\(item.leafCount)")
-            badge.frame = NSRect(x: 50, y: 39, width: 22, height: 15)
+            badge.frame = NSRect(x: iconWell.frame.maxX - 22, y: iconWell.frame.maxY - 15, width: 22, height: 15)
             badge.font = .systemFont(ofSize: 9, weight: .bold)
             badge.alignment = .center
             badge.textColor = .white
@@ -412,13 +440,9 @@ final class ShelfTileView: NSView, NSDraggingSource {
             addSubview(expand)
         }
 
-        let label = NSTextField(labelWithString: item.title)
-        label.frame = NSRect(x: 3, y: 59, width: 72, height: 24)
-        label.font = .systemFont(ofSize: 10)
-        label.alignment = .center
-        label.lineBreakMode = .byTruncatingMiddle
-        label.maximumNumberOfLines = 2
-        label.textColor = .secondaryLabelColor
+        label.frame = NSRect(x: (ShelfTilesView.tileSize.width - labelWidth) / 2,
+                             y: iconWell.frame.maxY + ShelfTilesView.wellToLabel,
+                             width: labelWidth, height: labelHeight)
         addSubview(label)
 
         if isSelected {
@@ -431,14 +455,14 @@ final class ShelfTileView: NSView, NSDraggingSource {
 
         // Shares the corner with the remove button, which takes over on hover.
         if isPinned {
-            let badge = NSImageView(frame: NSRect(x: 58, y: 4, width: 17, height: 17))
+            let badge = NSImageView(frame: NSRect(x: ShelfTilesView.tileSize.width - 21, y: 4, width: 17, height: 17))
             badge.image = NSImage(systemSymbolName: "pin.circle.fill", accessibilityDescription: nil)
             badge.contentTintColor = .controlAccentColor
             pinBadge = badge
             addSubview(badge)
         }
 
-        closeButton = NSButton(frame: NSRect(x: 58, y: 4, width: 17, height: 17))
+        closeButton = NSButton(frame: NSRect(x: ShelfTilesView.tileSize.width - 21, y: 4, width: 17, height: 17))
         closeButton.image = NSImage(systemSymbolName: "xmark.circle.fill", accessibilityDescription: nil)
         closeButton.isBordered = false
         closeButton.bezelStyle = .regularSquare
@@ -489,14 +513,14 @@ final class ShelfTileView: NSView, NSDraggingSource {
         (try? url.resourceValues(forKeys: [.localizedTypeDescriptionKey]))?.localizedTypeDescription
     }
 
-    private func addStackBackplates() {
+    private func addStackBackplates(wellFrame: NSRect) {
         for (index, offset) in [2, 1].enumerated() {
-            let view = NSView(frame: NSRect(x: 7 + CGFloat(offset) * 3,
-                                           y: 6 + CGFloat(offset) * 3,
-                                           width: 64,
-                                           height: 50))
+            let view = NSView(frame: NSRect(x: wellFrame.minX + CGFloat(offset) * 3,
+                                           y: wellFrame.minY + CGFloat(offset) * 3,
+                                           width: wellFrame.width,
+                                           height: wellFrame.height))
             view.wantsLayer = true
-            view.layer?.cornerRadius = 8
+            view.layer?.cornerRadius = NotchDesign.Radius.control
             view.layer?.backgroundColor = NSColor.white.withAlphaComponent(index == 0 ? 0.035 : 0.055).cgColor
             view.layer?.borderWidth = 1
             view.layer?.borderColor = NSColor.white.withAlphaComponent(0.05).cgColor
