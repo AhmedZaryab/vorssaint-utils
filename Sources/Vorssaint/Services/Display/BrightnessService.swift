@@ -383,6 +383,9 @@ final class BrightnessService: ObservableObject {
 
     /// Reads this Mac's keyboard light when a surface that shows it opens.
     func refreshKeyboardLight() {
+#if VORSSAINT_DEVELOPMENT
+        if NotchRenderHarness.isActive { return }
+#endif
         // A read landing mid-drag would show the level the keyboard is still
         // catching up to, so the slider keeps its own value until the write lands.
         guard keyboardLevelWork == nil else { return }
@@ -2865,3 +2868,15 @@ private enum DisplayConfigurationBridge {
         return unsafeBitCast(pointer, to: ConfigureEnabledFn.self)
     }()
 }
+
+#if VORSSAINT_DEVELOPMENT
+// MARK: - Render harness
+
+extension BrightnessService {
+    /// Development only: the built-in display at `level`, never read or written.
+    func applyRenderFixture(level: Double) {
+        displays = [BrightnessDisplay(id: 1, name: "Built-in Display", isBuiltIn: true, method: .system,
+                                      isActive: true, brightness: level, readable: true)]
+    }
+}
+#endif

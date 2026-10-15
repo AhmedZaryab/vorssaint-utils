@@ -97,6 +97,9 @@ final class NotchCalendarService: NSObject, ObservableObject {
     }
 
     func showMonth(_ month: Date?) {
+#if VORSSAINT_DEVELOPMENT
+        if NotchRenderHarness.isActive { return }
+#endif
         visibleMonth = month
         events = []
         refresh()
@@ -141,6 +144,9 @@ final class NotchCalendarService: NSObject, ObservableObject {
     }
 
     func refresh() {
+#if VORSSAINT_DEVELOPMENT
+        if NotchRenderHarness.isActive { return }
+#endif
         task?.cancel()
         refreshTimer?.invalidate(); refreshTimer = nil
         generation = UUID()
@@ -220,3 +226,18 @@ final class NotchCalendarService: NSObject, ObservableObject {
         events = []; countdown = nil; loading = false
     }
 }
+
+#if VORSSAINT_DEVELOPMENT
+// MARK: - Render harness
+
+extension NotchCalendarService {
+    /// Development only: events as if just read, with no calendar behind them.
+    func applyRenderFixture(events: [NotchCalendarEvent], countdown: NotchCalendarCountdown?) {
+        self.events = events
+        self.countdown = countdown
+        loading = false
+        revealing = nil
+        chosenCountdowns = []
+    }
+}
+#endif

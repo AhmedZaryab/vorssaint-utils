@@ -1021,6 +1021,9 @@ final class ClipboardHistoryService: ObservableObject {
     }
 
     private func load() {
+#if VORSSAINT_DEVELOPMENT
+        if NotchRenderHarness.isActive { return }
+#endif
         let fileData = Self.storeURL.flatMap { Self.storedHistoryData(at: $0) }
         var data = fileData
         if data == nil,
@@ -1075,6 +1078,9 @@ final class ClipboardHistoryService: ObservableObject {
     }
 
     private func persist() {
+#if VORSSAINT_DEVELOPMENT
+        if NotchRenderHarness.isActive { return }
+#endif
         let snapshot = entries
         let generation = persistenceGeneration
         let retireLegacyBlob = migrateLegacyBlob
@@ -1844,3 +1850,14 @@ private final class ClipboardPanelSizeLimit: NSObject, NSWindowDelegate {
             visibleFrame: visibleFrame(sender))
     }
 }
+
+#if VORSSAINT_DEVELOPMENT
+// MARK: - Render harness
+
+extension ClipboardHistoryService {
+    /// Development only: history entries held in memory and never saved.
+    func applyRenderFixture(_ entries: [ClipboardHistoryEntry]) {
+        self.entries = entries
+    }
+}
+#endif

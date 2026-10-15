@@ -813,3 +813,14 @@ final class AgentUsageService: ObservableObject {
         }
     }
 }
+
+#if VORSSAINT_DEVELOPMENT
+// MARK: - Render harness
+
+extension AgentUsageService {
+    /// Development only: usage as if read from the logs, which are never opened.
+    func applyRenderFixture(_ snapshot: AgentUsageSnapshot) {
+        self.snapshot = snapshot
+    }
+}
+#endif

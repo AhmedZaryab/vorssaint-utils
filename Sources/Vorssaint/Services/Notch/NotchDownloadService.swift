@@ -385,3 +385,17 @@ final class NotchDownloadService: ObservableObject {
         if items != updated { items = updated }
     }
 }
+
+#if VORSSAINT_DEVELOPMENT
+// MARK: - Render harness
+
+extension NotchDownloadService {
+    /// Development only: downloads as if read from a chosen folder, which is
+    /// never opened or watched.
+    func applyRenderFixture(items: [NotchDownloadItem], folderName: String?) {
+        self.items = items
+        self.folderName = folderName
+        folderUnavailable = false
+    }
+}
+#endif

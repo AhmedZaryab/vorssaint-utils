@@ -3138,3 +3138,42 @@ private final class AirPlayGainEngine: GainEngine {
         return rate > 0 ? rate : 44_100
     }
 }
+
+#if VORSSAINT_DEVELOPMENT
+// MARK: - Render harness
+
+extension AppVolumeMixer {
+    /// One app the render harness lists, as the mixer would read it.
+    struct RenderFixtureApp {
+        let name: String
+        let bundleID: String
+        let volume: Double
+        let isPlaying: Bool
+    }
+
+    /// Development only: apps and outputs as if read from Core Audio,
+    /// which is never asked.
+    func applyRenderFixture(apps fixtures: [RenderFixtureApp], outputs: [(name: String, headphones: Bool)],
+                            volume: Double) {
+        apps = fixtures.enumerated().map { index, fixture in
+            MixerApp(id: "render.\(index)", persistenceID: fixture.bundleID, ownerPid: getpid(), name: fixture.name,
+                     audioObjects: [], isPlaying: fixture.isPlaying, isBypassed: false, universalOutputRouteUID: nil,
+                     selectedOutputDeviceUID: nil, effectiveOutputDeviceUID: nil, outputDeviceUnavailable: false,
+                     volume: fixture.volume)
+        }
+        outputDevices = outputs.enumerated().map { index, output in
+            MixerOutputDevice(id: "render.output.\(index)", uid: "render.output.\(index)", name: output.name,
+                              isDefault: index == 0, isHeadphones: output.headphones, canBeDefaultOutput: true,
+                              canBeDefaultSystemOutput: true, priorityTier: index == 0 ? .builtIn : .hardware,
+                              audioObjectID: 0)
+        }
+        currentOutputDeviceUID = outputDevices.first?.uid
+        currentSystemSoundOutputDeviceUID = outputDevices.first?.uid
+        systemOutputVolume = volume
+        systemOutputMuted = false
+        outputSwitchError = nil
+        needsPermission = false
+        hiddenApps = []
+    }
+}
+#endif

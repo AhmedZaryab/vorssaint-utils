@@ -472,6 +472,11 @@ enum CachedBattery {
     private static var stamp = Date.distantPast
     private static var value: BatteryInfo?
     static func snapshot() -> BatteryInfo? {
+#if VORSSAINT_DEVELOPMENT
+        if NotchRenderHarness.isActive {
+            return BatteryInfo(percent: 82, isCharging: false, isOnBattery: true, isOnExternalPower: false)
+        }
+#endif
         if Date().timeIntervalSince(stamp) > 30 { value = SystemInfo.batterySnapshot(); stamp = Date() }
         return value
     }

@@ -446,6 +446,9 @@ final class NotchMusicService: ObservableObject {
     }
 
     func setQueueVisible(_ visible: Bool) {
+#if VORSSAINT_DEVELOPMENT
+        if NotchRenderHarness.isActive { return }
+#endif
         queueVisible = visible && NotchQueueSupport.isEnabled() && playback != nil
         guard queueVisible else {
             commandWriter.setQueueRequest(nil)
@@ -463,12 +466,18 @@ final class NotchMusicService: ObservableObject {
     }
 
     func syncQueuePreference() {
+#if VORSSAINT_DEVELOPMENT
+        if NotchRenderHarness.isActive { return }
+#endif
         guard !NotchQueueSupport.isEnabled() else { return }
         setQueueVisible(false)
         queueCovers = .init()
     }
 
     func refreshQueue() {
+#if VORSSAINT_DEVELOPMENT
+        if NotchRenderHarness.isActive { return }
+#endif
         guard queueVisible, NotchQueueSupport.isEnabled(), playback != nil else { return }
         let request = UUID()
         queueRequest = request
@@ -546,6 +555,9 @@ final class NotchMusicService: ObservableObject {
 
     @discardableResult
     func send(_ command: Command, context: NotchPlaybackContext?) -> Bool {
+#if VORSSAINT_DEVELOPMENT
+        if NotchRenderHarness.isActive { return false }
+#endif
         switch command {
         case .queue, .queuePlay: guard queueVisible, NotchQueueSupport.isEnabled() else { return false }
         default: break
@@ -606,6 +618,9 @@ final class NotchMusicService: ObservableObject {
     }
 
     func refreshAutomation() {
+#if VORSSAINT_DEVELOPMENT
+        if NotchRenderHarness.isActive { return }
+#endif
         automationTarget = nil
         updateAutomation(for: playback)
     }
@@ -746,3 +761,29 @@ private final class NotchMusicPipeReader {
         }
     }
 }
+
+#if VORSSAINT_DEVELOPMENT
+// MARK: - Render harness
+
+extension NotchMusicService {
+    /// Development only: the render harness's song, with no player behind it.
+    func applyRenderFixture(playback: NotchPlayback?, artwork: NSImage?, tint: NotchArtworkTint?,
+                            upcoming: NotchQueueSnapshot?) {
+        self.playback = playback
+        self.artwork = artwork
+        artworkTint = tint
+        sources = []
+        sourceIsAutomatic = true
+        selectedSourcePID = nil
+        awaitingPlayback = false
+        commandFailed = false
+        commandPending = false
+        automationAvailability = nil
+        requestingAutomation = false
+        self.upcoming = upcoming
+        queueLoading = false
+        queueActionPending = false
+        queueActionFailed = false
+    }
+}
+#endif

@@ -132,6 +132,9 @@ final class Permissions: ObservableObject {
 
     /// Full refresh including Full Disk Access. Runs at launch and on activation.
     func refresh() {
+#if VORSSAINT_DEVELOPMENT
+        if NotchRenderHarness.isActive { return }
+#endif
         refreshActivePermissions()
         refreshNotificationPermission()
         refreshCameraPermission()
@@ -448,3 +451,18 @@ final class Permissions: ObservableObject {
         }
     }
 }
+
+#if VORSSAINT_DEVELOPMENT
+// MARK: - Render harness
+
+extension Permissions {
+    /// Development only: the grants the render harness draws pages with.
+    func applyRenderFixture() {
+        accessibility = true
+        screenRecording = true
+        calendarAccess = .fullAccess
+        requestingCalendar = false
+        calendarRequestFailed = false
+    }
+}
+#endif

@@ -24,6 +24,9 @@ final class NotchLyricsService: ObservableObject {
     private init() {}
 
     func update(playback: NotchPlayback?, visible: Bool) {
+#if VORSSAINT_DEVELOPMENT
+        if NotchRenderHarness.isActive { return }
+#endif
         guard NotchLyricsSupport.isEnabled() else { stop(); return }
         let next = playback.map(NotchMusicIdentity.init)
         let wanted = visible && next != nil
@@ -43,6 +46,9 @@ final class NotchLyricsService: ObservableObject {
     /// Called for actual adapter metadata, including an explicit empty snapshot.
     /// A hidden view supplies no such evidence and must not discard an import.
     func playbackChanged(_ playback: NotchPlayback?) {
+#if VORSSAINT_DEVELOPMENT
+        if NotchRenderHarness.isActive { return }
+#endif
         guard NotchLyricsSupport.isEnabled() else { stop(); return }
         let next = playback.map(NotchMusicIdentity.init)
         guard next != track else { return }
@@ -64,6 +70,9 @@ final class NotchLyricsService: ObservableObject {
     func resetOffset() { memory.resetOffset() }
 
     func hide() {
+#if VORSSAINT_DEVELOPMENT
+        if NotchRenderHarness.isActive { return }
+#endif
         cancel()
         visible = false
         if !NotchLyricsSupport.isEnabled() { memory.clear() }
@@ -71,6 +80,9 @@ final class NotchLyricsService: ObservableObject {
     }
 
     func stop() {
+#if VORSSAINT_DEVELOPMENT
+        if NotchRenderHarness.isActive { return }
+#endif
         cancel()
         visible = false
         online = false
@@ -281,3 +293,21 @@ private final class NotchLyricsDownload: NSObject, URLSessionDataDelegate {
         completion(error == nil && accepted ? data : nil, !missing && (error != nil || !accepted))
     }
 }
+
+#if VORSSAINT_DEVELOPMENT
+// MARK: - Render harness
+
+extension NotchLyricsService {
+    /// Development only: `lyrics` as already loaded for `playback`.
+    func applyRenderFixture(playback: NotchPlayback?, lyrics: NotchLyrics?) {
+        var next = NotchLyricsMemory()
+        if let playback {
+            let identity = NotchMusicIdentity(playback)
+            next.select(identity)
+            next.replace(lyrics, for: identity)
+        }
+        memory = next
+        state = lyrics == nil ? .idle : .ready
+    }
+}
+#endif

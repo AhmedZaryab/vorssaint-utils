@@ -53,7 +53,13 @@ struct NotchMusicView: View {
     @ObservedObject private var shuffle = NotchShuffleService.shared
     @AppStorage(DefaultsKey.notchLyricsEnabled) private var lyricsEnabled = true
     @AppStorage(DefaultsKey.notchQueueEnabled) private var queueEnabled = true
+#if VORSSAINT_DEVELOPMENT
+    // The render harness can open the page with lyrics or the queue showing.
+    @State private var extra: MusicExtra? = NotchRenderHarness.subpage == .lyrics ? .lyrics
+        : NotchRenderHarness.subpage == .queue ? .queue : nil
+#else
     @State private var extra: MusicExtra?
+#endif
     private enum MusicExtra { case lyrics, queue }
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.notchSettingsPreview) private var preview
