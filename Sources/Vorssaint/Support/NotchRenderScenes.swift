@@ -46,7 +46,7 @@ enum NotchRenderScenes {
             NotchRenderScene(name: "02-closed-music", summary: "closed island with a song playing",
                              activities: [.music], check: expecting(.music), content: .island { _ in resting() }),
             NotchRenderScene(name: "03-song-peek", summary: "next song peek band under the closed strip",
-                             activities: [], content: .island { now in
+                             activities: [.music], content: .island { now in
                                  var fixture = resting()
                                  fixture.songPeek = NotchRenderFixtures.songPeek(now: now)
                                  return fixture
@@ -98,7 +98,7 @@ enum NotchRenderScenes {
         let content = NotchRenderFixtures.notifications(now: Date())[0].content
         return [
             NotchRenderScene(name: "30-peek-track", summary: "next song peek, ring part way round",
-                             activities: [], music: false, content: .island { now in
+                             activities: [.music], content: .island { now in
                                  var fixture = resting()
                                  let model = NotchRenderFixtures.songPeek(now: now)
                                  model.endsAt = Date().addingTimeInterval(4)
@@ -113,8 +113,18 @@ enum NotchRenderScenes {
                 event: .systemNotification, title: content.title, detail: content.body, symbol: "bell.fill",
                 notification: content, notificationID: UUID(uuidString: "6F1C2A3B-0000-4000-8000-0000000000D1"),
                 tall: true)),
-            peek("30-peek-track-change", "the track changed, title and artist", NotchNotice(
-                event: .track, title: "Blinding Lights", detail: "The Weeknd", symbol: "music.note", tall: true)),
+            peek("30-peek-track-change", "the track changed, compact: cover and title in the wings", NotchNotice(
+                event: .track, title: "Blinding Lights", detail: "The Weeknd", symbol: "music.note"),
+                 activities: [.music], music: true),
+            peek("30-peek-agent-finished-music", "an agent finished while a song plays: the band under the music strip", NotchNotice(
+                event: .agents, title: agents.finished(AgentProvider.claude.displayName),
+                detail: NotchNotice.wrapUpDuration(754, locale: locale) + " · " + AgentFormat.cost(1.84),
+                symbol: AgentProvider.claude.symbol, agent: .claude, tall: true),
+                 activities: [.music], music: true),
+            peek("30-peek-watch-strip", "a watch fired over the watch strip", NotchNotice(
+                event: .watch, title: FeatureStrings.notchWatch(language).outcome(.settled), detail: "Xcode",
+                symbol: NotchModule.watch.symbol, tall: true),
+                 activities: [.watch]),
             peek("30-peek-agent-limit", "an agent is close to its limit", NotchNotice(
                 event: .agents, title: AgentProvider.claude.displayName + " · " + agents.session,
                 detail: agents.usedShare("92%"), symbol: "exclamationmark.triangle.fill", agent: .claude, tall: true)),
@@ -217,8 +227,9 @@ enum NotchRenderScenes {
         }, content: .island { _ in open(module, extras: subpage == .lyrics || subpage == .queue) })
     }
 
-    private static func peek(_ name: String, _ summary: String, _ notice: NotchNotice) -> NotchRenderScene {
-        NotchRenderScene(name: name, summary: summary, activities: [], music: false,
+    private static func peek(_ name: String, _ summary: String, _ notice: NotchNotice,
+                             activities: NotchRenderFixtures.Activities = [], music: Bool = false) -> NotchRenderScene {
+        NotchRenderScene(name: name, summary: summary, activities: activities, music: music,
                          content: .island { _ in self.notice(notice) })
     }
 
