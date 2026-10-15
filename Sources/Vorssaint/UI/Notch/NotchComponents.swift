@@ -277,8 +277,12 @@ struct NotchRail<Item: Identifiable, Content: View>: View {
     var scrollTarget: Item.ID? = nil
     @ViewBuilder let content: (Item) -> Content
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// The column ordinal last scrolled to; the rail rests at the start.
+    @State private var settledColumn = 0
 
     private var columns: Int { NotchLayout.railColumns(count: items.count, rows: rows) }
+    /// Twice the columns in view: a move this short glides, a longer one jumps.
+    private var glideColumns: Int { 2 * max(1, Int(width / (itemWidth + spacing)) + 1) }
     private var starts: [Int] { Array(stride(from: 0, to: items.count, by: max(1, rows))) }
     private var rowStarts: [Int] { Array(stride(from: 0, to: items.count, by: max(1, columns))) }
     private var fits: Bool {
@@ -311,11 +315,21 @@ struct NotchRail<Item: Identifiable, Content: View>: View {
                 .scrollIndicators(.never)
                 .notchScrollEdgeFade(.horizontal)
                 .onAppear {
-                    if let targetColumn { proxy.scrollTo(targetColumn, anchor: .center) }
+                    if let targetColumn {
+                        proxy.scrollTo(targetColumn, anchor: .center)
+                        settledColumn = targetColumn / max(1, rows)
+                    }
                 }
                 .onChange(of: targetColumn) { _, target in
                     guard let target else { return }
-                    withAnimation(reduceMotion ? nil : NotchDesign.Motion.easeOut(0.16)) {
+                    let ordinal = target / max(1, rows)
+                    // An animated scroll draws every frame between here and the
+                    // target, so it would create the whole history in between,
+                    // a count that varies with the frame rate. A far jump
+                    // lands directly; only a nearby move glides.
+                    let glides = !reduceMotion && abs(ordinal - settledColumn) <= glideColumns
+                    settledColumn = ordinal
+                    withAnimation(glides ? NotchDesign.Motion.easeOut(0.16) : nil) {
                         proxy.scrollTo(target, anchor: .center)
                     }
                 }
