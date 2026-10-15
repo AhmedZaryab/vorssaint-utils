@@ -44,7 +44,7 @@ struct NotchTimerRuler: NSViewRepresentable {
         @objc func changed(_ sender: NSSlider) {
             guard parent.minutes != sender.integerValue else { return }
             parent.minutes = sender.integerValue
-            NotchService.shared.provideHapticFeedback()
+            NotchHaptics.tick()
         }
     }
 }
@@ -154,37 +154,52 @@ final class NotchTimerRulerControl: NSSlider {
         sendAction(action, to: target)
     }
 
+    /// Tick weights: a whole minute is short, a five is taller and carries its number.
+    /// Ticks up to the chosen minute are the accent, the rest a quiet white, and the
+    /// pointer is a white line, so the chosen value reads at a glance.
     override func draw(_ dirtyRect: NSRect) {
+        typealias Design = NotchDesign
         let edgeFade = max(1, bounds.width * 0.12)
         // Drawn for the full ruler height; a shorter island compresses the
         // ticks and pointer below the labels instead of cutting them off.
         let scale = bounds.height / NotchLayout.timerRulerHeight
+        let accent = NSColor.controlAccentColor
+        let rest = NSColor(Design.Fill.track)
+        let labelFont = NSFont.monospacedDigitSystemFont(ofSize: Design.Typography.caption.nsFont.pointSize,
+                                                         weight: Design.Weight.medium.appKit)
+        let enabledAlpha: CGFloat = isEnabled ? 1 : Design.Opacity.disabled
+        let baseline = 66 * scale
         for minute in 1...180 {
             let x = bounds.midX + CGFloat(NotchTimerRulerScale.offset(of: minute, selected: integerValue))
             guard x >= bounds.minX - 16, x <= bounds.maxX + 16 else { continue }
             let fade = min(1, max(0, min(x - bounds.minX, bounds.maxX - x) / edgeFade))
-            let strength = minute <= integerValue ? 1.0 : increasedContrast ? 0.65 : 0.35
-            let color = NSColor.systemOrange.withAlphaComponent(fade * strength * (isEnabled ? 1 : 0.4))
+            let chosen = minute <= integerValue
+            let major = minute.isMultiple(of: 5) || minute == 1
+            let height = (major ? 34 : 20) * scale
+            let color = (chosen ? accent : (increasedContrast ? NSColor(Design.Ink.secondary) : rest))
+                .withAlphaComponent((chosen ? 1 : increasedContrast ? 0.75 : 1) * fade * enabledAlpha)
             color.setFill()
-            NSBezierPath(roundedRect: NSRect(x: x - 2, y: 26 * scale, width: 4, height: 38 * scale), xRadius: 2, yRadius: 2).fill()
-            if minute.isMultiple(of: 5) || minute == 1 {
+            NSBezierPath(roundedRect: NSRect(x: x - 0.75, y: baseline - height, width: 1.5, height: height),
+                         xRadius: 0.75, yRadius: 0.75).fill()
+            if major {
+                let near = minute == integerValue
                 let title = NSAttributedString(string: NotchTimerRulerScale.label(for: minute), attributes: [
-                    .font: NSFont.monospacedDigitSystemFont(ofSize: 14, weight: .medium), .foregroundColor: color
+                    .font: labelFont,
+                    .foregroundColor: NSColor.white.withAlphaComponent(
+                        (near ? 1 : Design.Opacity.secondary) * fade * enabledAlpha)
                 ])
                 title.draw(at: NSPoint(x: x - title.size().width / 2, y: 0))
             }
         }
-        let pointer = NSBezierPath()
-        pointer.move(to: NSPoint(x: bounds.midX, y: 70 * scale))
-        pointer.line(to: NSPoint(x: bounds.midX + 6, y: 80 * scale))
-        pointer.line(to: NSPoint(x: bounds.midX - 6, y: 80 * scale))
-        pointer.close()
-        NSColor.systemOrange.withAlphaComponent(isEnabled ? 1 : 0.4).setFill()
+        let pointer = NSBezierPath(roundedRect: NSRect(x: bounds.midX - 1, y: 22 * scale, width: 2, height: 50 * scale),
+                                   xRadius: 1, yRadius: 1)
+        NSColor.white.withAlphaComponent(enabledAlpha).setFill()
         pointer.fill()
         if window?.firstResponder === self, showsKeyboardFocus {
-            NSColor.systemOrange.setStroke()
-            let focus = NSBezierPath(roundedRect: bounds.insetBy(dx: 1, dy: 1), xRadius: 7, yRadius: 7)
-            focus.lineWidth = 1
+            NSColor.white.withAlphaComponent(NotchInteractionMetrics.focusRingOpacity).setStroke()
+            let focus = NSBezierPath(roundedRect: bounds.insetBy(dx: 1, dy: 1),
+                                     xRadius: Design.Radius.control, yRadius: Design.Radius.control)
+            focus.lineWidth = NotchInteractionMetrics.focusRingWidth
             focus.stroke()
         }
     }

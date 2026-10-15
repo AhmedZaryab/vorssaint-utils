@@ -4,6 +4,7 @@
 import SwiftUI
 
 struct NotchTimerView: View {
+    private typealias Design = NotchDesign
     let size: CGSize
     @ObservedObject private var service = NotchTimerService.shared
     @ObservedObject private var l10n = L10n.shared
@@ -16,6 +17,7 @@ struct NotchTimerView: View {
     @AppStorage(DefaultsKey.notchTimerMinutes) private var savedMinutes = 15
     @Namespace private var modeSelection
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.colorSchemeContrast) private var contrast
     private var text: NotchActivityStrings { FeatureStrings.notchActivities(l10n.language) }
 
     private var wide: Bool { size.width >= NotchLayout.timerWideWidth }
@@ -26,7 +28,7 @@ struct NotchTimerView: View {
             else { setup }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .tint(.orange)
+        .tint(Design.Palette.accent)
     }
 
     /// The mode row over the ruler's row, whatever the mode: the
@@ -38,13 +40,13 @@ struct NotchTimerView: View {
         let rulerHeight = NotchLayout.timerRulerHeight(mode: mode, width: size.width, height: size.height)
         let locale = Locale(identifier: l10n.language.rawValue)
         return VStack(spacing: NotchLayout.timerRowSpacing) {
-            HStack(spacing: 12) {
+            HStack(spacing: Design.Spacing.medium) {
                 modePicker
                 Spacer(minLength: 0)
                 if wide { startButton }
             }
             .frame(height: NotchLayout.timerTopRowHeight)
-            HStack(spacing: 12) {
+            HStack(spacing: Design.Spacing.medium) {
                 switch mode {
                 case .timer:
                     NotchTimerRuler(minutes: timerMinutes, label: text.timer, locale: locale)
@@ -55,19 +57,19 @@ struct NotchTimerView: View {
                 case .stopwatch:
                     Spacer(minLength: 0)
                 }
-                if wide || mode == .stopwatch { clock(setupClock, size: 26) }
+                if wide || mode == .stopwatch { clock(setupClock) }
             }
             .frame(height: rulerHeight)
             if mode == .pomodoro {
-                HStack(spacing: 12) {
-                    if !wide { clock(setupClock, size: 26) }
+                HStack(spacing: Design.Spacing.medium) {
+                    if !wide { clock(setupClock) }
                     pomodoroSettings
                     if !wide { startButton }
                 }
                 .frame(height: wide ? NotchLayout.timerSettingsRowHeight : NotchLayout.timerStartHeight)
             } else if !wide {
-                HStack(spacing: 12) {
-                    if mode == .timer { clock(setupClock, size: 26) }
+                HStack(spacing: Design.Spacing.medium) {
+                    if mode == .timer { clock(setupClock) }
                     Spacer(minLength: 0)
                     startButton
                 }
@@ -76,19 +78,14 @@ struct NotchTimerView: View {
         }
     }
 
+    /// Start is the commit class: it fires on press down, the glyph kicks up and a few
+    /// particles leave the rim. Round, as in Apple's Timer and Stopwatch.
     private var startButton: some View {
-        Button { service.start(mode: mode, minutes: timerMinutes.wrappedValue) } label: {
-            Text(text.start)
-                .font(.system(size: NotchTimerSupport.StartButton.labelSize, weight: .semibold))
-                .lineLimit(1)
-                .padding(.horizontal, NotchTimerSupport.StartButton.padding)
-                .frame(height: NotchLayout.timerStartHeight)
-                .foregroundStyle(.orange)
-                .background(.orange.opacity(0.18), in: Capsule())
-                .contentShape(Capsule())
+        NotchCommitButton(text.start, symbol: "play.fill", kick: .up,
+                          hint: mode == .pomodoro ? text.pomodoroHint : nil,
+                          size: NotchLayout.timerStartHeight, filled: true, tint: Design.Palette.accent) {
+            service.start(mode: mode, minutes: timerMinutes.wrappedValue)
         }
-        .buttonStyle(NotchButtonStyle(cornerRadius: NotchLayout.timerStartHeight / 2))
-        .help(mode == .pomodoro ? text.pomodoroHint : text.start)
     }
 
     private var setupClock: String {
@@ -99,35 +96,40 @@ struct NotchTimerView: View {
         }
     }
 
-    /// Three words in a row, the current one underlined in the ruler's
-    /// orange: a heading beside Start, not a control with a box of its own.
-    /// Each label is as wide as its word, so the longest translation never
+    /// A segmented control on the tokens: a track, one chosen plate that slides between
+    /// the words. Each segment is as wide as its word, so the longest translation never
     /// pushes the three past a narrow island.
     private var modePicker: some View {
-        HStack(spacing: NotchTimerSupport.ModePicker.spacing) {
+        HStack(spacing: 0) {
             ForEach(NotchTimerMode.allCases, id: \.self) { candidate in
                 let selected = mode == candidate
                 Button { NotchService.shared.selectTimerMode(candidate) } label: {
                     Text(title(for: candidate))
-                        .font(.system(size: NotchTimerSupport.ModePicker.labelSize, weight: .medium))
+                        .font(Design.Typography.label.font)
                         .lineLimit(1)
-                        .foregroundStyle(selected ? .white : .white.opacity(0.5))
-                        .padding(.horizontal, NotchTimerSupport.ModePicker.labelPadding)
-                        .frame(height: NotchTimerSupport.ModePicker.height)
-                        .overlay(alignment: .bottom) {
+                        .foregroundStyle(selected ? Design.Ink.primary : Design.Ink.secondary)
+                        .padding(.horizontal, Design.Spacing.medium)
+                        .frame(height: Design.Control.rowHeight)
+                        .background {
                             if selected {
-                                Capsule().fill(.orange).frame(height: 2)
-                                    .padding(.horizontal, NotchTimerSupport.ModePicker.labelPadding)
+                                RoundedRectangle(cornerRadius: Design.Radius.control, style: .continuous)
+                                    .fill(Design.Fill.selected)
                                     .matchedGeometryEffect(id: "selection", in: modeSelection)
                             }
                         }
-                        .contentShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
                 }
-                .buttonStyle(NotchButtonStyle(cornerRadius: 6, lifts: false))
+                .buttonStyle(NotchPressStyle(shape: .rounded(Design.Radius.control), lifts: false))
                 .accessibilityAddTraits(selected ? .isSelected : [])
             }
         }
-        .animation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.8), value: mode)
+        .background(Design.Fill.control, in: RoundedRectangle(cornerRadius: Design.Radius.control, style: .continuous))
+        .overlay {
+            if contrast == .increased {
+                RoundedRectangle(cornerRadius: Design.Radius.control, style: .continuous)
+                    .strokeBorder(Design.Stroke.increasedContrast, lineWidth: Design.Stroke.increasedContrastWidth)
+            }
+        }
+        .animation(Design.Motion.animation(Design.Motion.snappy, reduceMotion: reduceMotion), value: mode)
         .accessibilityElement(children: .contain)
         .accessibilityLabel(text.timer)
     }
@@ -141,40 +143,71 @@ struct NotchTimerView: View {
     }
 
     private var activeTimer: some View {
-        VStack(spacing: 4) {
+        VStack(spacing: Design.Spacing.xxSmall) {
             activeControls
             if service.session.mode == .pomodoro {
                 Text(String(format: text.sessionProgress, service.session.sessionNumber, service.session.configuration.totalSessions))
-                    .font(.system(size: 12, weight: .medium)).monospacedDigit()
-                    .foregroundStyle(.secondary)
+                    .font(Design.Typography.label.font).monospacedDigit()
+                    .foregroundStyle(Design.Ink.secondary)
             }
         }
     }
 
+    /// Cancel on the left, the primary action beside it, the reading on the right.
+    /// Pause and resume is a toggle: running is the accent plate, paused the bare play glyph.
     private var activeControls: some View {
-        HStack(spacing: 16) {
-            HStack(spacing: 10) {
-                if !service.session.completed {
-                    roundButton(symbol: service.session.isPaused ? "play.fill" : "pause.fill",
-                                title: service.session.isPaused ? text.resume : l10n.s.actionPause,
-                                primary: true, action: service.pauseOrResume)
-                } else if service.session.canStartNext {
-                    roundButton(symbol: "play.fill", title: text.start + " " + text.phase(service.session.nextPhase),
-                                primary: true, action: service.startNext)
+        let session = service.session
+        let running = Binding(get: { !service.session.isPaused }, set: { _ in service.pauseOrResume() })
+        return HStack(spacing: Design.Spacing.large) {
+            HStack(spacing: Design.Spacing.medium) {
+                if !session.completed {
+                    cancelButton
+                    Toggle(session.isPaused ? text.resume : l10n.s.actionPause, isOn: running)
+                        .toggleStyle(NotchToggleStyle(on: "pause.fill", off: "play.fill", shape: .capsule,
+                                                      size: roundSide, symbolSize: 20))
+                        .labelsHidden()
+                        .accessibilityLabel(session.isPaused ? text.resume : l10n.s.actionPause)
+                        .help(session.isPaused ? text.resume : l10n.s.actionPause)
+                } else {
+                    doneButton
+                    if session.canStartNext {
+                        NotchCommitButton(text.start + " " + text.phase(session.nextPhase), symbol: "play.fill",
+                                          kick: .up, size: roundSide, symbolSize: 20, filled: true,
+                                          tint: Design.Palette.accent) { service.startNext() }
+                    }
                 }
-                roundButton(symbol: "xmark",
-                            title: service.session.completed ? l10n.s.supportIntroDoneButton : l10n.s.mediaCancel,
-                            primary: false, action: service.cancel)
             }
             Spacer(minLength: 0)
-            if service.session.isRunning {
+            if session.isRunning {
                 TimelineView(.periodic(from: Date(timeIntervalSinceNow: NotchTimerSupport.tickScheduleOffset(
-                    for: service.session, at: service.now)), by: 1)) { _ in reading }
+                    for: session, at: service.now)), by: 1)) { _ in reading }
             } else {
                 reading
             }
         }
         .frame(height: 96)
+    }
+
+    private var roundSide: CGFloat { Design.Control.transport }
+
+    /// A destructive cancel: the fuse burns for its 2.5 s and Escape or a click undoes it.
+    private var cancelButton: some View {
+        NotchFuseButton(l10n.s.mediaCancel, symbol: "xmark", shape: .capsule, onCommit: service.cancel)
+            .frame(width: roundSide, height: roundSide)
+    }
+
+    private var doneButton: some View {
+        Button(action: service.cancel) {
+            Image(systemName: "checkmark")
+                .font(Design.Icon.transport.font)
+                .foregroundStyle(Design.Ink.primary)
+                .frame(width: roundSide, height: roundSide)
+                .background(Design.Fill.control, in: Circle())
+                .contentShape(Circle())
+        }
+        .buttonStyle(NotchPressStyle(shape: .capsule))
+        .accessibilityLabel(l10n.s.supportIntroDoneButton)
+        .help(l10n.s.supportIntroDoneButton)
     }
 
     private var reading: some View {
@@ -183,24 +216,23 @@ struct NotchTimerView: View {
             : service.session.completed ? text.finished : text.phase(service.session.phase)
         let countsDown = !service.session.countsUp
         return ViewThatFits(in: .horizontal) {
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
-                Text(title).font(.system(size: 17, weight: .medium))
-                clock(value, size: 62).modifier(NotchRollingDigits(value: value, countsDown: countsDown))
+            HStack(alignment: .firstTextBaseline, spacing: Design.Spacing.small) {
+                Text(title).font(Design.Typography.title.font).foregroundStyle(Design.Ink.secondary)
+                clock(value).modifier(NotchRollingDigits(value: value, countsDown: countsDown))
             }.fixedSize()
-            VStack(alignment: .trailing, spacing: 0) {
-                Text(title).font(.system(size: 13, weight: .medium))
+            VStack(alignment: .trailing, spacing: Design.Spacing.line) {
+                Text(title).font(Design.Typography.label.font).foregroundStyle(Design.Ink.secondary)
                     .lineLimit(1).minimumScaleFactor(0.7)
-                clock(value, size: 62).modifier(NotchRollingDigits(value: value, countsDown: countsDown))
+                clock(value).modifier(NotchRollingDigits(value: value, countsDown: countsDown))
             }
         }
-        .foregroundStyle(.orange)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(title)
         .accessibilityValue(value)
     }
 
     /// The breaks and the sessions as readouts in the ruler's own language:
-    /// the name small and dim, the value in orange, the usual values behind
+    /// the name small and dim, the value in white, the usual values behind
     /// a native menu. They spread across a wide island and run sideways past
     /// a narrow one.
     private var pomodoroSettings: some View {
@@ -210,7 +242,7 @@ struct NotchTimerView: View {
                 ForEach(readouts) { readout($0).frame(maxWidth: .infinity, alignment: .leading) }
             }
             ScrollView(.horizontal) {
-                HStack(spacing: 14) {
+                HStack(spacing: Design.Spacing.large) {
                     ForEach(readouts) { readout($0) }
                 }
             }
@@ -224,20 +256,21 @@ struct NotchTimerView: View {
         let current = value.wrappedValue
         return NotchMenuButton(title: title, items: option.range.map { choice in
             NotchMenuItem(title: display(option, choice), checked: choice == current) { value.wrappedValue = choice }
-        }) {
-            VStack(alignment: .leading, spacing: 1) {
+        }, cornerRadius: Design.Radius.control) {
+            VStack(alignment: .leading, spacing: Design.Spacing.line) {
                 Text(title)
-                    .font(.system(size: 9.5, weight: .medium)).foregroundStyle(.secondary)
+                    .font(Design.Typography.caption.font).foregroundStyle(Design.Ink.secondary)
                     .lineLimit(1).truncationMode(.tail)
-                HStack(spacing: 3) {
+                HStack(spacing: Design.Spacing.xxSmall) {
                     Text(display(option, current))
-                        .font(.system(size: 12, weight: .semibold)).monospacedDigit().foregroundStyle(.orange)
-                    Image(systemName: "chevron.down").font(.system(size: 7, weight: .semibold)).foregroundStyle(.secondary)
+                        .font(Design.Typography.readout.font).monospacedDigit().foregroundStyle(Design.Ink.primary)
+                    Image(systemName: "chevron.down").font(Design.Typography.caption.font)
+                        .foregroundStyle(Design.Ink.secondary)
                 }
             }
-            .padding(.horizontal, 4)
+            .padding(.horizontal, Design.Spacing.xxSmall)
             .frame(height: NotchLayout.timerSettingsRowHeight)
-            .contentShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+            .contentShape(RoundedRectangle(cornerRadius: Design.Radius.control, style: .continuous))
         }
         .help(title)
         .accessibilityValue(display(option, current))
@@ -278,25 +311,11 @@ struct NotchTimerView: View {
             : String(value)
     }
 
-    private func clock(_ value: String, size: CGFloat) -> some View {
+    /// A reading: the display style, monospaced so it never jitters as the seconds change.
+    private func clock(_ value: String) -> some View {
         Text(value)
-            .font(.system(size: size, weight: .thin)).monospacedDigit()
-            .foregroundStyle(.orange)
+            .font(Design.Typography.display.font).monospacedDigit()
+            .foregroundStyle(Design.Ink.primary)
             .lineLimit(1).minimumScaleFactor(0.5)
-    }
-
-    private func roundButton(symbol: String, title: String, primary: Bool,
-                             action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Image(systemName: symbol)
-                .font(.system(size: 23, weight: .semibold))
-                .foregroundStyle(primary ? .orange : .white)
-                .frame(width: 52, height: 52)
-                .background(primary ? Color.orange.opacity(0.28) : Color.white.opacity(0.18), in: Circle())
-                .contentShape(Circle())
-        }
-        .buttonStyle(NotchButtonStyle(cornerRadius: 26))
-        .accessibilityLabel(title)
-        .help(title)
     }
 }
