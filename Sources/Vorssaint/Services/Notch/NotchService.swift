@@ -2391,7 +2391,9 @@ final class NotchService: ObservableObject {
                                 && UserDefaults.standard.bool(forKey: DefaultsKey.notchHideUntilHover)
                                 && UserDefaults.standard.bool(forKey: DefaultsKey.notchOpenOnHover),
                             usesGlass: !fullscreenCompact && usesGlassSurface,
-                            steady: fitsInPlace)
+                            steady: fitsInPlace,
+                            peek: !expanded && !noticeExpanded && captureControls == nil
+                                && (peeking || notice != nil || songPeekBandActive))
         // The selector lives in a separate full-screen panel. A floating
         // capsule may sit below the display edge, so publish the island's
         // actual bottom inset as the controls collapse or reopen.

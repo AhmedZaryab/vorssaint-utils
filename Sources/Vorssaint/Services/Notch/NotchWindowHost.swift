@@ -166,7 +166,7 @@ final class NotchWindowHost: NSObject, CAAnimationDelegate {
 
     func present(size: CGSize, geometry: NotchGeometry, animated: Bool, transitionContent: NotchContentTransition = .none,
                  quickAccess: NotchQuickAccessConfiguration? = nil, revealFromHidden: Bool = false,
-                 hideWhenSettled: Bool = false, usesGlass: Bool = false, steady: Bool = false) {
+                 hideWhenSettled: Bool = false, usesGlass: Bool = false, steady: Bool = false, peek: Bool = false) {
         // Choosing the capsule or the notch redraws the island at once, even
         // at a size it already has.
         canvas.setFloatingGap(geometry.floatingGap)
@@ -193,7 +193,12 @@ final class NotchWindowHost: NSObject, CAAnimationDelegate {
             frameProbe = probe
             probe.attach(level: panel.level, screen: geometry.screen)
         }
-        let canAnimate = animated && (isPresented || revealing) && !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+        // Reduce Motion still resizes, on one short ease out with no spring;
+        // everything else that moves (controls, blur, glass) stays still.
+        let reduced = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+        let canResize = animated && (isPresented || revealing)
+        let canAnimate = canResize && !reduced
+        let style = NotchMotion.Style(peek: peek, reduced: reduced)
         let previousGutter = quickAccessConfiguration == nil ? 0 : NotchQuickAccessLayout.gutter
         let previousBottom = quickAccessBottomInset(for: targetSize, geometry: currentGeometry)
         let previousFrame = currentGeometry.frame(for: CGSize(width: targetSize.width + previousGutter * 2, height: targetSize.height + previousBottom))
@@ -212,7 +217,7 @@ final class NotchWindowHost: NSObject, CAAnimationDelegate {
         if canvas.backdropPresentation.stripHeight != geometry.stripHeight {
             canvas.backdropPresentation.stripHeight = geometry.stripHeight
         }
-        if canAnimate && changesFrame && (usesGlass || canvas.usesGlass) {
+        if canResize && changesFrame && (usesGlass || canvas.usesGlass) {
             // Glass closing into a black strip shuts as its page leaves, so the
             // empty shell never shows the windows beneath it; opening out of one
             // lets the glass in over the last stretch, as the page fades in.
@@ -223,14 +228,14 @@ final class NotchWindowHost: NSObject, CAAnimationDelegate {
         // A shape still moving keeps its glass until it settles, even when an
         // unanimated refresh lands meanwhile: a click in Settings closes the
         // island and the option it changes syncs preferences mid-close.
-        canvas.setUsesGlass(usesGlass || (((canAnimate && changesFrame) || isAnimating) && canvas.usesGlass))
+        canvas.setUsesGlass(usesGlass || (((canResize && changesFrame) || isAnimating) && canvas.usesGlass))
         guard changesFrame || transitionContent != .none else {
             currentGeometry = geometry
             configureQuickAccess()
             if !isAnimating { quickAccessContainer?.motion.setVisible(quickAccessConfiguration != nil, animated: canAnimate) }
             return
         }
-        if canAnimate { canvas.transitionContent(revealing ? .reveal : transitionContent) }
+        if canResize { canvas.transitionContent(revealing ? .reveal : transitionContent, shapeSnaps: reduced) }
         else if animated && changesFrame && (revealing || transitionContent == .reveal) {
             // Reduce Motion, or a panel that was ordered out, puts the island
             // at its new size at once. Shown at once, the page reached the
@@ -257,7 +262,7 @@ final class NotchWindowHost: NSObject, CAAnimationDelegate {
         targetSize = size
         currentGeometry = geometry
         resizeCount += 1
-        guard canAnimate, sameScreen || revealing, let previousPath else {
+        guard canResize, sameScreen || revealing, let previousPath else {
             settle()
             return
         }
@@ -271,17 +276,17 @@ final class NotchWindowHost: NSObject, CAAnimationDelegate {
         // A resize that interrupts another keeps the speed each side has on
         // screen, so a reversal turns where it is instead of stopping dead.
         let moving = revealing ? nil : canvas.motionVelocity()
-        let velocity = NotchMotion.carriedVelocity(moving?.size ?? .zero, from: start, to: size, steady: steady)
+        let velocity = NotchMotion.carriedVelocity(moving?.size ?? .zero, from: start, to: size, steady: steady, style: style)
         let offsetVelocity = moving?.offset ?? 0
         let motion = NotchMotion.frames(from: start, to: size, steady: steady, offset: startOffset,
-                                        velocity: velocity, offsetVelocity: offsetVelocity)
+                                        velocity: velocity, offsetVelocity: offsetVelocity, style: style)
         let offsets = motion.keyTimes.map {
             $0 == 1 ? 0 : NotchMotion.offset(at: motion.duration * $0, from: start, to: size, start: startOffset,
-                                             steady: steady, velocity: offsetVelocity)
+                                             steady: steady, velocity: offsetVelocity, style: style)
         }
         // Room for the swing past a larger target, for a side still carried
         // past where it was, and for everything already reserved.
-        var envelope = NotchMotion.envelope(from: start, to: size)
+        var envelope = NotchMotion.envelope(from: start, to: size, style: style)
         let reach = zip(motion.sizes, offsets).map { $0.width + 2 * abs($1) }.max() ?? 0
         envelope.width = max(envelope.width, reach.rounded(.up))
         envelope.height = max(envelope.height, (motion.sizes.map(\.height).max() ?? 0).rounded(.up))
@@ -321,7 +326,7 @@ final class NotchWindowHost: NSObject, CAAnimationDelegate {
         // The floating controls emerge once the island reaches its size, while it still swings.
         if quickAccessConfiguration != nil {
             quickAccessContainer?.motion.setVisible(true, animated: canAnimate,
-                                                    delay: NotchMotion.arrivalTime(from: start, to: size))
+                                                    delay: NotchMotion.arrivalTime(from: start, to: size, style: style))
         }
         let animation = CAKeyframeAnimation(keyPath: "path")
         animation.values = paths
@@ -332,11 +337,18 @@ final class NotchWindowHost: NSObject, CAAnimationDelegate {
             animation.beginTime = CACurrentMediaTime() + NotchQuickAccessLayout.withdrawalDuration
             animation.fillMode = .backwards
         }
+        // Shrinking: the content leaves first (Motion.exit) and the shape starts
+        // halfway through that, so the island never closes on visible content.
+        let shrinking = size.width <= start.width && size.height <= start.height && size != start
+        if !withdrawing, !reduced, shrinking, transitionContent == .dismiss || transitionContent == .depart {
+            animation.beginTime = CACurrentMediaTime() + NotchMotion.shrinkDelay
+            animation.fillMode = .backwards
+        }
         animation.delegate = self
         animation.setValue(generation, forKey: "notchGeneration")
         isAnimating = true
         canvas.animate(animation, from: paths.first, motion: (start, size), steady: steady, offset: startOffset,
-                       velocity: velocity, offsetVelocity: offsetVelocity)
+                       velocity: velocity, offsetVelocity: offsetVelocity, style: style)
         CATransaction.commit()
         // The window already has its new frame; its layers go out at once,
         // not at the end of this turn of the run loop, so the screen never
@@ -1371,14 +1383,15 @@ private final class NotchCanvasView: NSView {
         let offset: CGFloat
         let velocity: CGSize
         let offsetVelocity: CGFloat
+        let style: NotchMotion.Style
 
         func size(at time: CFTimeInterval) -> CGSize {
-            NotchMotion.size(at: max(0, time - begin), from: from, to: to, steady: steady, velocity: velocity)
+            NotchMotion.size(at: max(0, time - begin), from: from, to: to, steady: steady, velocity: velocity, style: style)
         }
 
         func offset(at time: CFTimeInterval) -> CGFloat {
             NotchMotion.offset(at: max(0, time - begin), from: from, to: to, start: offset, steady: steady,
-                               velocity: offsetVelocity)
+                               velocity: offsetVelocity, style: style)
         }
     }
     private var motionTimeline: MotionTimeline?
@@ -1397,12 +1410,14 @@ private final class NotchCanvasView: NSView {
     }
 
     func animate(_ animation: CAAnimation, from: CGPath?, motion: (from: CGSize, to: CGSize)? = nil, steady: Bool = false,
-                 offset: CGFloat = 0, velocity: CGSize = .zero, offsetVelocity: CGFloat = 0) {
+                 offset: CGFloat = 0, velocity: CGSize = .zero, offsetVelocity: CGFloat = 0,
+                 style: NotchMotion.Style = .panel) {
         motionStart = nil
         motionStartOffset = 0
         motionTimeline = motion.map {
             MotionTimeline(begin: animation.beginTime > 0 ? animation.beginTime : CACurrentMediaTime(), from: $0.from,
-                           to: $0.to, steady: steady, offset: offset, velocity: velocity, offsetVelocity: offsetVelocity)
+                           to: $0.to, steady: steady, offset: offset, velocity: velocity, offsetVelocity: offsetVelocity,
+                           style: style)
         }
         silhouette.path = silhouettePath(for: contentSize)
         silhouetteSize = contentSize

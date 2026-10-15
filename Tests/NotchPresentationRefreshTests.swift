@@ -132,7 +132,7 @@ enum NotchPresentationRefreshContract {
         }
         func present(size: CGSize, geometry: NotchGeometry, animated: Bool,
                      transitionContent: NotchContentTransition, quickAccess: NotchQuickAccessConfiguration?,
-                     revealFromHidden: Bool, usesGlass: Bool, steady: Bool) {
+                     revealFromHidden: Bool, usesGlass: Bool, steady: Bool, peek: Bool) {
             transitions.append(transitionContent)
             self.steady = steady
             departsContent = transitionContent == .depart
@@ -193,6 +193,7 @@ enum NotchPresentationRefreshContract {
         var departingMusic: NotchCompactMusicSnapshot?
         var musicDepartureWork: DispatchWorkItem?
         var noticeExpanded = false
+        var songPeekBandActive = false
         var notice: Bool?
         var captureControls: CaptureOptions?
         var captureControlsCollapsed = false, captureSelectionInProgress = false
