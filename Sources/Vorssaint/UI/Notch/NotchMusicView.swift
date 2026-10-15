@@ -324,11 +324,13 @@ struct NotchMusicView: View {
 
     private func sourcePicker(_ playback: NotchPlayback?) -> some View {
         let extras = FeatureStrings.notchMusicExtras(l10n.language)
-        let pid = playback?.track.appPID
-        let name = service.sources.first(where: { $0.pid == pid })?.displayName
-            ?? pid.flatMap { NSRunningApplication(processIdentifier: $0)?.localizedName }
-            ?? playback?.track.appBundleIdentifier ?? extras.playbackSource
+        let name = playback.flatMap { pb in
+            service.sources.first(where: { $0.pid == pb.track.appPID })?.displayName
+                ?? pb.track.appPID.flatMap { NSRunningApplication(processIdentifier: $0)?.localizedName }
+                ?? pb.track.appBundleIdentifier
+        } ?? extras.playbackSource
         return Menu {
+          Menu(extras.playbackSource) {
             Button { service.selectSource(nil) } label: {
                 if service.sourceIsAutomatic { Label(extras.automaticSource, systemImage: "checkmark") }
                 else { Text(extras.automaticSource) }
@@ -343,13 +345,19 @@ struct NotchMusicView: View {
                     } else { Text(title) }
                 }
             }
+          }
         } label: {
-            Text(name).lineLimit(1).truncationMode(.tail)
-                .font(NotchDesign.Typography.callout.font)
+            // The player's more menu, like Apple Music's mini player: the
+            // source choice lives inside it instead of showing as a label.
+            Image(systemName: "ellipsis")
+                .font(NotchDesign.Icon.button.font)
                 .foregroundStyle(NotchDesign.Ink.secondary)
+                .frame(width: 28, height: 28)
+                .contentShape(Circle())
         }
         .menuStyle(.borderlessButton)
-        .frame(maxWidth: 110)
+        .menuIndicator(.hidden)
+        .buttonStyle(NotchPressStyle(shape: .capsule))
         .fixedSize()
         .accessibilityLabel(extras.playbackSource)
         .accessibilityValue([service.sourceIsAutomatic ? extras.automaticSource : nil,
