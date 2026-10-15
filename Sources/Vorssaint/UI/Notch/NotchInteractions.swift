@@ -23,7 +23,7 @@ enum NotchInteractionMetrics {
     static let minimumTarget: CGFloat = Design.Control.minimumHit
     static let focusRingWidth: CGFloat = Design.Stroke.focusRingWidth
     static let focusRingGap: CGFloat = Design.Stroke.focusRingGap
-    static let focusRingInk = Design.Stroke.focusRing
+    static let focusRingInk = Design.Stroke.focusRingColor
 
     // Fills, white on the dark island, read straight from Design.Fill.
     static let hoverFill = Design.Fill.hover

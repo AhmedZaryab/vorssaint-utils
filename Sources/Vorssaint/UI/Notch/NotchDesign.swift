@@ -186,8 +186,6 @@ enum NotchDesign {
         /** Artwork's edge, so a dark cover stays apart from the island. */ static let artworkEdge = Color.white.opacity(0.12)
         /** Increase Contrast: every plate and card gets this 1 pt edge. */ static let increasedContrast = Color.white.opacity(0.5)
         /** Width of the Increase Contrast edge. */ static let increasedContrastWidth: CGFloat = 1
-        /** The keyboard focus ring round a control, outside its own outline. */ static let focusRing = Color.white.opacity(0.75)
-        /** Width of the focus ring. */ static let focusRingWidth: CGFloat = 1.5
         /** Gap between a control's edge and its focus ring. */ static let focusRingGap: CGFloat = 2.5
         /** Drop targets only. */ static let dropTarget = StrokeStyle(lineWidth: 1, dash: [5, 4])
     }
