@@ -276,7 +276,7 @@ enum NotchLayout {
     }
     static func calendarMonthRowHeight(height: CGFloat) -> CGFloat {
         let room = height - calendarMonthHeaderHeight - calendarMonthWeekdayHeight - calendarMonthSpacing * 2
-        return min(30, max(16, (room / 6).rounded(.down)))
+        return max(16, (room / 6).rounded(.down))
     }
 
     /// The preview fills the page. A wide strip crops the camera to 16:9 and a

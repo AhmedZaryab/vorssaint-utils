@@ -76,7 +76,7 @@ struct NotchClipboardView: View {
                     .help(text.pinned)
                 // The payload is read when the fuse is lit; entries copied while
                 // it burns are not cleared with it.
-                NotchFuseButton(text.clearRecent, symbol: "trash", doneAnnouncement: text.clearRecent,
+                NotchFuseButton(text.clearRecent, symbol: "trash", 
                                 shape: .rounded(NotchDesign.Radius.control)) {
                     history.clearRecent(recent)
                     copiedID = nil
@@ -195,12 +195,13 @@ struct NotchClipboardView: View {
                 }
                 NotchPlainIconButton(symbol: "doc.on.doc", title: copiedID == entry.id ? text.copied : text.copy,
                                      successTrigger: copyTicks[entry.id, default: 0]) { copy(entry) }
-                Toggle(entry.isPinned ? text.unpin : text.pin,
-                       isOn: Binding(get: { entry.isPinned }, set: { _ in history.togglePin(entry) }))
+                Toggle(text.pin,
+                       isOn: Binding(get: { entry.isPinned },
+                                     set: { if $0 != entry.isPinned { history.togglePin(entry) } }))
                     .toggleStyle(NotchToggleStyle(on: "pin.fill", off: "pin",
                                                   shape: .rounded(NotchDesign.Radius.control)))
                     .help(entry.isPinned ? text.unpin : text.pin)
-                NotchFuseButton(text.delete, symbol: "trash", doneAnnouncement: text.delete,
+                NotchFuseButton(text.delete, symbol: "trash", 
                                 shape: .rounded(NotchDesign.Radius.control)) { remove(entry) }
             }
             .frame(height: NotchDesign.Control.iconButton)

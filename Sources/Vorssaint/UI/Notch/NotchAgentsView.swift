@@ -165,7 +165,7 @@ private struct NotchAgentLimitsCard: View {
                         ForEach(windows) { row($0) }
                     }
                     .opacity(stale ? Design.Opacity.secondary : Design.Opacity.primary)
-                    if windows.count == 1 { caption }
+                    if windows.count == 1 || stale { caption }
                 }
             }
         }
@@ -215,7 +215,7 @@ private struct NotchAgentLimitsCard: View {
                         .foregroundStyle(tint)
                         .accessibilityLabel(text.usedShare(AgentFormat.percent(window.usedFraction)))
                 }
-                Text(AgentFormat.percent(fraction))
+                Text(remaining ? text.left(AgentFormat.percent(fraction)) : text.usedShare(AgentFormat.percent(fraction)))
                     .font(Design.Typography.readout.font)
                     .monospacedDigit()
                     .foregroundStyle(Design.Ink.primary)
