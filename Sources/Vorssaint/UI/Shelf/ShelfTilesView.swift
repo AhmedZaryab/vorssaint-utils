@@ -390,9 +390,9 @@ final class ShelfTileView: NSView, NSDraggingSource {
         label.cell?.truncatesLastVisibleLine = true
         label.textColor = .secondaryLabelColor
         let labelWidth = ShelfTilesView.wellSize.width + 8
-        let measured = label.cell?.cellSize(forBounds: NSRect(x: 0, y: 0, width: labelWidth, height: 1000)).height
-            ?? ShelfTilesView.labelHeight
-        let labelHeight = min(ShelfTilesView.labelHeight, ceil(measured))
+        // A fixed two line box, so every tile in a row puts its well at the
+        // same height and the group stays centred top to bottom.
+        let labelHeight = ShelfTilesView.labelHeight
         let group = ShelfTilesView.wellSize.height + ShelfTilesView.wellToLabel + labelHeight
         let top = ((ShelfTilesView.tileSize.height - group) / 2).rounded()
         let wellX = ((ShelfTilesView.tileSize.width - ShelfTilesView.wellSize.width) / 2).rounded()
