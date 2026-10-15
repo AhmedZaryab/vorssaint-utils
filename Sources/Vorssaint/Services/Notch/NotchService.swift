@@ -1628,7 +1628,7 @@ final class NotchService: ObservableObject {
     func showSectionRow(_ row: Int) {
         let limits = sectionRowLimits
         let next = NotchSectionPaging.clamped(row, rows: limits.rows, visible: limits.visible)
-        sectionKeyDriven = false
+        setSectionKeyDriven(false)
         guard next != sectionRow else { return }
         sectionRow = next
         provideHapticFeedback()
@@ -1636,18 +1636,25 @@ final class NotchService: ObservableObject {
 
     func scrollSections(by rows: Int) { showSectionRow(sectionRow + rows) }
 
+    /// Publishes only a real change, so a letter typed into the search or a
+    /// wheel step on a clamped row does not redraw every page.
+    func setSectionKeyDriven(_ driven: Bool) {
+        if sectionKeyDriven != driven { sectionKeyDriven = driven }
+    }
+
     private func handleSectionKey(_ event: NSEvent) -> Bool {
         guard showingSections,
               (panel?.firstResponder as? NSTextView)?.hasMarkedText() != true else { return false }
-        sectionKeyDriven = true
         let modifiers = event.modifierFlags.intersection([.command, .control, .option, .shift])
         if event.keyCode == 48, modifiers.isEmpty || modifiers == .shift {
+            setSectionKeyDriven(true)
             highlightedSection = NotchSupport.adjacentModule(to: highlightedSection, modules: filteredSections,
                                                              backwards: modifiers == .shift)
             return true
         }
         guard modifiers.isEmpty else { return false }
         if event.keyCode == 36 || event.keyCode == 76 {
+            setSectionKeyDriven(true)
             if let target = highlightedSection, filteredSections.contains(target) { NotchKeyboardMoment.answer { select(target) } }
             return true
         }
@@ -1659,6 +1666,7 @@ final class NotchService: ObservableObject {
         case 126: direction = .up
         default: return false
         }
+        setSectionKeyDriven(true)
         let sections = filteredSections
         guard !sections.isEmpty else { return true }
         // While typing, the side arrows keep editing the query and the

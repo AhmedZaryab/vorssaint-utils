@@ -17,14 +17,25 @@ struct NotchFileDropActions {
 /// around it, fading out before the next content takes its place.
 enum NotchContentTransition { case none, reveal, dismiss, depart, replace }
 
+/// The strong ease out every island fade uses (Motion.fade, Motion.exit): the
+/// built-in easeOut is too weak to feel like a response.
+private func notchStrongEaseOut() -> CAMediaTimingFunction {
+    CAMediaTimingFunction(controlPoints: 0.23, 1, 0.32, 1)
+}
+
 /// The canvas a window host presents, published to its content's environment.
 final class NotchCanvasModel: ObservableObject {
-    @Published private(set) var canvas: NotchCanvas
+    /// Always current, but only a change to what the content reads (margin and
+    /// insets) republishes: the size changes on every resize and nothing draws from it.
+    private(set) var canvas: NotchCanvas
 
     init(_ canvas: NotchCanvas) { self.canvas = canvas }
 
     func update(_ next: NotchCanvas) {
-        if canvas != next { canvas = next }
+        guard canvas != next else { return }
+        let republish = canvas.margin != next.margin || canvas.contentInsets != next.contentInsets
+        if republish { objectWillChange.send() }
+        canvas = next
     }
 }
 
@@ -39,6 +50,8 @@ private struct NotchCanvasReader: View {
 /// The window reserves the transition's bounds once. Core Animation moves
 /// the silhouette independently of SwiftUI layout and the application run loop.
 final class NotchWindowHost: NSObject, CAAnimationDelegate {
+    /// The quick access rail starts this long after the island starts to grow.
+    private static let railStagger: TimeInterval = 0.06
     let panel: NotchPanel
     /// What the content reads as `\.notchCanvas`, at the size being presented.
     let canvasModel: NotchCanvasModel
@@ -326,7 +339,7 @@ final class NotchWindowHost: NSObject, CAAnimationDelegate {
         // The floating controls emerge once the island reaches its size, while it still swings.
         if quickAccessConfiguration != nil {
             quickAccessContainer?.motion.setVisible(true, animated: canAnimate,
-                                                    delay: NotchMotion.arrivalTime(from: start, to: size, style: style))
+                                                    delay: min(Self.railStagger, NotchMotion.arrivalTime(from: start, to: size, style: style)))
         }
         let animation = CAKeyframeAnimation(keyPath: "path")
         animation.values = paths
@@ -1528,8 +1541,8 @@ private final class NotchCanvasView: NSView {
             contentVisibility.opacity = 1
             let transition = CATransition()
             transition.type = .fade
-            transition.duration = 0.18
-            transition.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+            transition.duration = NotchDesign.Motion.replaceDuration
+            transition.timingFunction = notchStrongEaseOut()
             host.layer?.add(transition, forKey: kCATransition)
         } else {
             // Mask only the content pixels. A black overlay would obscure the
@@ -1550,14 +1563,14 @@ private final class NotchCanvasView: NSView {
             animation.keyTimes = keyTimes
             animation.duration = duration
             animation.calculationMode = .linear
-            animation.timingFunctions = [CAMediaTimingFunction(name: .linear), CAMediaTimingFunction(name: .easeOut)]
+            animation.timingFunctions = [CAMediaTimingFunction(name: .linear), notchStrongEaseOut()]
             if kind == .depart {
                 // Departing content shrinks with the shape and stays hidden
                 // until the view has swapped it out, however late that is.
                 animation.values = [currentOpacity, 0]
                 animation.keyTimes = [0, 1]
                 animation.duration = Self.exitDuration
-                animation.timingFunctions = [CAMediaTimingFunction(name: .easeOut)]
+                animation.timingFunctions = [notchStrongEaseOut()]
                 animation.fillMode = .forwards
                 animation.isRemovedOnCompletion = false
                 animation.setValue(true, forKey: Self.departureKey)
@@ -1576,6 +1589,12 @@ private final class NotchCanvasView: NSView {
 
     private static let exitGhostName = "notch.exitGhost"
 
+    private static func holdsFilters(_ layer: CALayer?) -> Bool {
+        guard let layer else { return false }
+        if layer.filters?.isEmpty == false || layer.backgroundFilters?.isEmpty == false || layer.compositingFilter != nil { return true }
+        return layer.sublayers?.contains { holdsFilters($0) } ?? false
+    }
+
     private func removeExitGhost() {
         layer?.sublayers?.filter { $0.name == Self.exitGhostName }.forEach { $0.removeFromSuperlayer() }
     }
@@ -1584,7 +1603,11 @@ private final class NotchCanvasView: NSView {
     /// the exit duration. The live view has already swapped to the resting
     /// strip underneath, so nothing waits for it to unmount.
     private func installExitGhost(from opacity: Float) {
+        // cacheDisplay draws no Core Animation filters, so a page that holds a
+        // blur (the lyrics glows) would flash as hard discs. Such a page just
+        // leaves on the live content fade instead of a ghost.
         guard let layer, host.bounds.width > 0, host.bounds.height > 0,
+              !Self.holdsFilters(host.layer),
               let rep = host.bitmapImageRepForCachingDisplay(in: host.bounds) else { return }
         host.cacheDisplay(in: host.bounds, to: rep)
         guard let image = rep.cgImage else { return }
@@ -1603,7 +1626,7 @@ private final class NotchCanvasView: NSView {
         fade.fromValue = opacity
         fade.toValue = 0
         fade.duration = Self.exitDuration
-        fade.timingFunction = CAMediaTimingFunction(name: .easeOut)
+        fade.timingFunction = notchStrongEaseOut()
         CATransaction.begin()
         CATransaction.setCompletionBlock { [weak ghost] in ghost?.removeFromSuperlayer() }
         ghost.add(fade, forKey: "notch.exitGhost")
@@ -1618,10 +1641,10 @@ private final class NotchCanvasView: NSView {
         animation.fromValue = 0
         animation.toValue = 1
         // The swapped view reaches the screen with a later update.
-        animation.beginTime = CACurrentMediaTime() + 0.06
+        animation.beginTime = CACurrentMediaTime() + NotchDesign.Geometry.contentExitDuration / 2
         animation.fillMode = .backwards
-        animation.duration = 0.14
-        animation.timingFunction = CAMediaTimingFunction(name: .easeOut)
+        animation.duration = NotchDesign.Geometry.contentExitDuration
+        animation.timingFunction = notchStrongEaseOut()
         contentVisibility.removeAnimation(forKey: "notch.opacity")
         contentVisibility.add(animation, forKey: "notch.opacity")
         CATransaction.commit()
@@ -1696,7 +1719,7 @@ private final class NotchCanvasView: NSView {
             let blur = CAKeyframeAnimation(keyPath: "filters.\(Self.arrivalBlurName).inputRadius")
             blur.values = [radius, radius, 0]
             blur.keyTimes = keyTimes
-            blur.timingFunctions = [CAMediaTimingFunction(name: .linear), CAMediaTimingFunction(name: .easeOut)]
+            blur.timingFunctions = [CAMediaTimingFunction(name: .linear), notchStrongEaseOut()]
             blur.beginTime = begin
             blur.duration = duration
             layer.add(blur, forKey: Self.arrivalBlurKey)
