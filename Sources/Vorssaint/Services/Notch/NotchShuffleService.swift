@@ -35,6 +35,9 @@ final class NotchShuffleService: ObservableObject {
     /// Runs when the page opens and whenever its song or player changes, since
     /// shuffle can also be switched in the player itself.
     func refresh(for playback: NotchPlayback?) {
+#if VORSSAINT_DEVELOPMENT
+        if NotchRenderHarness.isActive { return }
+#endif
         let target = playback.flatMap(NotchMusicAutomation.Target.init)
         let requested = UUID()
         generation = requested

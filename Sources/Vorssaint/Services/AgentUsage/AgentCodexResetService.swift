@@ -48,6 +48,9 @@ final class AgentCodexResetService: ObservableObject {
     private init() {}
 
     func refreshIfStale(now: Date = Date()) {
+#if VORSSAINT_DEVELOPMENT
+        if NotchRenderHarness.isActive { return }
+#endif
         // Only the person can sign Codex in or update it, so those wait as long as a reading.
         let settled = failure == nil || failure == .needsSignIn || failure == .outdated
         guard now.timeIntervalSince(attempted) >= (settled ? Self.freshness : Self.retryAfter) else { return }
@@ -55,6 +58,9 @@ final class AgentCodexResetService: ObservableObject {
     }
 
     func refresh(searchingShell: Bool = false) {
+#if VORSSAINT_DEVELOPMENT
+        if NotchRenderHarness.isActive { return }
+#endif
         guard !checking, !redeeming else { return }
         checking = true
         attempted = Date()
@@ -149,3 +155,19 @@ final class AgentCodexResetService: ObservableObject {
         HomebrewEnvironment.loginShellExports(shellPath: HomebrewCommandBuilder.currentShellPath)["PATH"]
     }
 }
+
+#if VORSSAINT_DEVELOPMENT
+// MARK: - Render harness
+
+extension AgentCodexResetService {
+    /// Development only: banked resets as if Codex had just reported them.
+    func applyRenderFixture(_ summary: AgentCodexResetSummary?) {
+        self.summary = summary
+        failure = nil
+        checking = false
+        redeeming = false
+        finished = nil
+        attempted = Date()
+    }
+}
+#endif

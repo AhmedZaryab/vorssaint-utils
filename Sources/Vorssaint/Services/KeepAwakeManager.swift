@@ -132,6 +132,9 @@ final class KeepAwakeManager: ObservableObject {
 
     /// Refreshes (in the background) whether the closed-lid sudoers rule is installed.
     func refreshPasswordlessStatus() {
+#if VORSSAINT_DEVELOPMENT
+        if NotchRenderHarness.isActive { return }
+#endif
         guard !isTerminating, !clamshellRestorePending else { return }
         let generation = clamshellOperationGeneration
         DispatchQueue.global(qos: .utility).async {
@@ -212,6 +215,9 @@ final class KeepAwakeManager: ObservableObject {
     }
 
     func syncWithPreferences() {
+#if VORSSAINT_DEVELOPMENT
+        if NotchRenderHarness.isActive { return }
+#endif
         guard !isTerminating else { return }
         syncAutomationMonitoring()
         if isActive, !sessionPausedForScreenLock { applyAssertions() }
@@ -671,6 +677,9 @@ final class KeepAwakeManager: ObservableObject {
     // MARK: - IOKit assertions
 
     private func applyAssertions() {
+#if VORSSAINT_DEVELOPMENT
+        if NotchRenderHarness.isActive { return }
+#endif
         if !hasSystemAssertion {
             var id = IOPMAssertionID(0)
             let ok = IOPMAssertionCreateWithName("PreventUserIdleSystemSleep" as CFString,
@@ -1146,6 +1155,9 @@ final class KeepAwakeManager: ObservableObject {
     // MARK: - Optional pointer activity
 
     private func syncMouseJiggleTimer() {
+#if VORSSAINT_DEVELOPMENT
+        if NotchRenderHarness.isActive { return }
+#endif
         guard isActive,
               !sessionPausedForScreenLock,
               UserDefaults.standard.bool(forKey: DefaultsKey.keepAwakeMouseJiggleEnabled)
@@ -1256,3 +1268,19 @@ final class KeepAwakeManager: ObservableObject {
         return true
     }
 }
+
+#if VORSSAINT_DEVELOPMENT
+// MARK: - Render harness
+
+extension KeepAwakeManager {
+    /// Development only: a session as the island shows it. No assertion is
+    /// taken, and the guards on the assertion paths keep it that way.
+    func applyRenderFixture(endDate: Date?, active: Bool) {
+        isActive = active
+        self.endDate = active ? endDate : nil
+        sessionTrigger = active ? .manual : nil
+        sessionMinutes = nil
+        activeAutomationConditions = []
+    }
+}
+#endif

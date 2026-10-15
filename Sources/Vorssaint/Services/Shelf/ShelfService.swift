@@ -969,6 +969,9 @@ final class ShelfService: ObservableObject {
     /// empties. While the classic panel is on screen (shake or shortcut) the
     /// docked one steps aside: one shelf at a time.
     func syncDockedShelf() {
+#if VORSSAINT_DEVELOPMENT
+        if NotchRenderHarness.isActive { return }
+#endif
         let wanted = dockedFeatureOn && !isVisible
             && (itemCount > 0 || dockedDragActive || dockedForcedOpen)
         guard wanted else { hideDocked(); return }
@@ -2264,6 +2267,9 @@ final class ShelfService: ObservableObject {
     }
 
     private func persistItems() {
+#if VORSSAINT_DEVELOPMENT
+        if NotchRenderHarness.isActive { return }
+#endif
         let pinned = pinnedIDs
         let persisted = items.map { Self.persistedItem(from: $0, pinnedIDs: pinned) }
         Self.persistQueue.async {
@@ -2282,6 +2288,9 @@ final class ShelfService: ObservableObject {
     /// user emptied, and the entries it dropped still own payload files that
     /// the blob it kept still points at.
     private func restoreItems() {
+#if VORSSAINT_DEVELOPMENT
+        if NotchRenderHarness.isActive { return }
+#endif
         let sweepCutoff = Date()
         let data = UserDefaults.standard.data(forKey: DefaultsKey.shelfItems)
         DispatchQueue.global(qos: .utility).async { [weak self] in
@@ -2743,3 +2752,16 @@ final class ShelfService: ObservableObject {
         return panel
     }
 }
+
+#if VORSSAINT_DEVELOPMENT
+// MARK: - Render harness
+
+extension ShelfService {
+    /// Development only: shelf items held in memory; saving is guarded off.
+    func applyRenderFixture(_ items: [Item]) {
+        selection = []
+        expandedBatches = []
+        self.items = items
+    }
+}
+#endif

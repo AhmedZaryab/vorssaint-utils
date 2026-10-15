@@ -83,6 +83,9 @@ final class CameraPreviewService: ObservableObject {
     /// The notch calls this only from its explicit camera button. Ownership
     /// transfers from the floating mirror; the two never capture together.
     func showEmbedded() {
+#if VORSSAINT_DEVELOPMENT
+        if NotchRenderHarness.isActive { return }
+#endif
         let notch = NotchService.shared
         guard SessionActivity.shared.isActive,
             NotchCameraSupport.canPresent(expanded: notch.expanded, selected: notch.selected,

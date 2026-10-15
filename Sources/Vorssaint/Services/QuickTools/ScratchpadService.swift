@@ -139,6 +139,9 @@ final class ScratchpadService: NSObject, ObservableObject, NSWindowDelegate {
     /// The island edits the same document in place: load it (or the current
     /// copy) without showing the floating pad, and commit when it leaves.
     func loadForEmbedding() -> Bool {
+#if VORSSAINT_DEVELOPMENT
+        if NotchRenderHarness.isActive { return true }
+#endif
         guard AppFeature.scratchpad.isAvailable else { return false }
         marksExpanded = false
         return loadApplyingRetention()
@@ -204,6 +207,9 @@ final class ScratchpadService: NSObject, ObservableObject, NSWindowDelegate {
 
     /// A failed write keeps the edits in memory and retries on the next change.
     private func save(_ next: ScratchpadDocument) -> Bool {
+#if VORSSAINT_DEVELOPMENT
+        if NotchRenderHarness.isActive { return true }
+#endif
         saveFailed = !store.save(next)
         return !saveFailed
     }
@@ -627,3 +633,20 @@ final class ScratchpadService: NSObject, ObservableObject, NSWindowDelegate {
         }
     }
 }
+
+#if VORSSAINT_DEVELOPMENT
+// MARK: - Render harness
+
+extension ScratchpadService {
+    /// Development only: pads held in memory. With no document loaded,
+    /// nothing is ever written.
+    func applyRenderFixture(pads: [ScratchpadPad], selected: UUID?) {
+        document = nil
+        hasLoaded = false
+        self.pads = pads
+        selectedPadID = selected
+        saveFailed = false
+        text = pads.first { $0.id == selected }?.text ?? ""
+    }
+}
+#endif

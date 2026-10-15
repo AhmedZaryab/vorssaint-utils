@@ -16,6 +16,9 @@ final class NotchTimerService: ObservableObject {
     private init() {}
 
     var now: TimeInterval {
+#if VORSSAINT_DEVELOPMENT
+        if let frozen = NotchRenderHarness.timerNow { return frozen }
+#endif
         let parts = origin.duration(to: .now).components
         return Double(parts.seconds) + Double(parts.attoseconds) / 1e18
     }
@@ -89,3 +92,17 @@ final class NotchTimerService: ObservableObject {
         }
     }
 }
+
+#if VORSSAINT_DEVELOPMENT
+// MARK: - Render harness
+
+extension NotchTimerService {
+    /// Development only: the render harness's session, read against the
+    /// clock the harness freezes; nothing is scheduled and no sound plays.
+    func applyRenderFixture(_ session: NotchTimerSession) {
+        completionTask?.cancel(); completionTask = nil
+        alert.stop()
+        self.session = session
+    }
+}
+#endif

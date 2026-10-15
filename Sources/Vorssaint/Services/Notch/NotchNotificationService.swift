@@ -283,3 +283,21 @@ final class NotchNotificationService: ObservableObject {
         workspaceObservers.removeAll()
     }
 }
+
+#if VORSSAINT_DEVELOPMENT
+// MARK: - Render harness
+
+extension NotchNotificationService {
+    /// Development only: `items` as if just read from Notification Center,
+    /// newest first, with no reader attached.
+    func applyRenderFixture(_ items: [NotchSystemNotification]) {
+        var next = NotchNotificationInbox()
+        _ = next.update([])
+        _ = next.update(Array(items.reversed()))
+        inbox = next
+        monitoring = true
+        openingID = nil
+        unavailableID = nil
+    }
+}
+#endif

@@ -245,6 +245,9 @@ final class NotchWatchService: ObservableObject {
     }
 
     private func restartLoop() {
+#if VORSSAINT_DEVELOPMENT
+        if NotchRenderHarness.isActive { return }
+#endif
         cancelLoop()
         let generation = UUID()
         self.generation = generation
@@ -408,3 +411,24 @@ final class NotchWatchService: ObservableObject {
         return context.makeImage()
     }
 }
+
+#if VORSSAINT_DEVELOPMENT
+// MARK: - Render harness
+
+extension NotchWatchService {
+    /// Development only: a watch in progress over `preview`, with nothing captured.
+    func applyRenderFixture(target: NotchWatchTarget?, state: NotchWatchState, preview: CGImage?, text: String,
+                            startedAt: Date?) {
+        self.target = target
+        self.state = state
+        self.preview = preview
+        self.text = text
+        headline = NotchWatchSupport.headline(from: text, line: nil)
+        headlineLine = nil
+        self.startedAt = startedAt
+        matchText = ""
+        matchNumber = nil
+        permissionMissing = false
+    }
+}
+#endif

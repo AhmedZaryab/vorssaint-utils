@@ -15,6 +15,9 @@ if CommandLine.arguments.contains("--notch-presentation-test") {
 if CommandLine.arguments.contains("--interactions-gallery") {
     MainActor.assumeIsolated { NotchInteractionsGallery.runAndExit() }
 }
+if CommandLine.arguments.contains("--render-notch") {
+    NotchRenderHarness.runAndExit()
+}
 #endif
 
 if CommandLine.arguments.contains("--selftest") {

@@ -612,3 +612,16 @@ private struct GitHubRelease: Decodable {
         }
     }
 }
+
+#if VORSSAINT_DEVELOPMENT
+// MARK: - Render harness
+
+extension UpdateService {
+    /// Development only: an update on offer, as if just checked.
+    func applyRenderFixture(_ state: State) {
+        self.state = state
+        lastChecked = Date()
+        availableNotes = nil
+    }
+}
+#endif

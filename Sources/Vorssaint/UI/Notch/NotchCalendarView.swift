@@ -16,7 +16,12 @@ struct NotchCalendarView: View {
     @State private var focus = Date()
     @State private var selectedDay: Date?
     /// The strip's month grid, in place of the strip and the cards.
+#if VORSSAINT_DEVELOPMENT
+    // The render harness can open the page on its month grid.
+    @State private var showingMonth = NotchRenderHarness.subpage == .month
+#else
     @State private var showingMonth = false
+#endif
     private var text: NotchCalendarStrings { FeatureStrings.notchCalendar(l10n.language) }
     /// A month grid needs six rows beside an agenda; anything shorter shows
     /// the week as a strip above a vertical agenda.

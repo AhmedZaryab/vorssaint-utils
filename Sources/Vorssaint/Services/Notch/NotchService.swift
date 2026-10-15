@@ -2310,6 +2310,10 @@ final class NotchService: ObservableObject {
     }
 
     func refreshPresentation(animated: Bool = true, transitionContent: NotchContentTransition = .none) {
+#if VORSSAINT_DEVELOPMENT
+        // The render harness draws the island itself, with no window behind it.
+        if NotchRenderHarness.isActive { return }
+#endif
         // A notice with a new reading, or the music strip naming its song,
         // fits its new width in place.
         let fitsInPlace = noticeFitsInPlace && notice != nil && !noticeExpanded
@@ -3870,3 +3874,64 @@ extension NSScreen {
         (deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value ?? 0
     }
 }
+
+#if VORSSAINT_DEVELOPMENT
+// MARK: - Render harness
+
+extension NotchService {
+    /// What the render harness puts on the island: a presentation set
+    /// directly, with no window, monitor, timer or other service behind it.
+    struct RenderFixture {
+        var geometry: NotchGeometry
+        var modules: [NotchModule]
+        var selected: NotchModule = .controls
+        var expanded = false
+        var notice: NotchNotice?
+        var songPeek: SongPeekModel?
+        var power = PowerReading()
+        var musicDetailVisible = false
+    }
+
+    /// Development only: replaces the presentation with `fixture` at once.
+    func applyRenderFixture(_ fixture: RenderFixture) {
+        var transaction = Transaction(animation: nil)
+        transaction.disablesAnimations = true
+        withTransaction(transaction) {
+            geometry = fixture.geometry
+            modules = fixture.modules
+            selected = fixture.selected
+            expanded = fixture.expanded
+            peeking = false
+            dragPlaceholder = false
+            pinned = false
+            showingAppPanel = false
+            showingSections = false
+            sectionQuery = ""
+            notice = fixture.notice
+            noticeExpanded = false
+            departingNotice = nil
+            departingMusic = nil
+            heldMusic = nil
+            captureControls = nil
+            captureContent = nil
+            captureActions = nil
+            hiddenInFullscreen = false
+            songPeek = fixture.songPeek
+            power = fixture.power
+            musicDetailVisible = fixture.musicDetailVisible
+            capsuleMusicTitleShown = false
+            musicStripPointer = nil
+            musicStripNamed = false
+            musicStripRequest = nil
+        }
+        presentedMusic = nil
+        awaitsTrackNotice = false
+        inside = false
+        hoverEmphasized = false
+        activitySelection = NotchActivitySelection()
+        cachedActivityFlags = nil
+        headerShowsSectionsButton = !NotchQuickAccessConfiguration.current().actions.contains(.explore)
+        objectWillChange.send()
+    }
+}
+#endif
