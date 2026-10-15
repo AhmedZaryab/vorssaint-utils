@@ -21,35 +21,36 @@ struct NotchSpotifyQueueSection: View {
     /// A move or remove is on its way to Spotify. No new drag starts until it lands, so a
     /// drag's positions always count rows in the list Spotify last sent (service.upNext).
     @State private var committing = false
-    private static let rowHeight: CGFloat = 44
+    private static let rowHeight: CGFloat = NotchQueueMetrics.rowHeight
     private let text = SpotifyQueueStrings.current
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: NotchDesign.Spacing.small) {
             header
             if !connected {
                 connectPrompt
             } else {
                 if showsSearch { searchArea }
                 if service.actionThrottled {
-                    Text(text.throttled).font(.caption).foregroundStyle(.orange)
+                    Text(text.throttled).font(NotchDesign.Typography.callout.font).foregroundStyle(NotchDesign.Palette.warning)
                 }
                 if service.actionFailed {
-                    Text(text.actionFailed).font(.caption).foregroundStyle(.orange)
+                    Text(text.actionFailed).font(NotchDesign.Typography.callout.font).foregroundStyle(NotchDesign.Palette.warning)
                 }
                 if orderFailed {
-                    Text("Spotify did not accept the new order").font(.caption).foregroundStyle(.orange)
+                    Text("Spotify did not accept the new order").font(NotchDesign.Typography.callout.font).foregroundStyle(NotchDesign.Palette.warning)
                 }
                 if let code = service.failureCode {
-                    HStack(spacing: 8) {
-                        Text(String(format: text.noAnswer, code)).font(.caption).foregroundStyle(.orange).lineLimit(2)
+                    HStack(spacing: NotchDesign.Spacing.small) {
+                        Text(String(format: text.noAnswer, code)).font(NotchDesign.Typography.callout.font)
+                            .foregroundStyle(NotchDesign.Palette.warning).lineLimit(2)
                         Spacer(minLength: 0)
-                        Button(text.retry) { service.retryNow() }.buttonStyle(.borderless).font(.caption)
+                        NotchPillButton(title: text.retry) { service.retryNow() }
                     }
                 }
                 if let playing = service.current { nowPlayingRow(playing) }
                 if service.upNext.isEmpty, !service.loading, service.failureCode == nil {
-                    Text(text.nothingQueued).font(.callout).foregroundStyle(.secondary)
+                    Text(text.nothingQueued).font(NotchDesign.Typography.body.font).foregroundStyle(NotchDesign.Ink.secondary)
                 } else {
                     ScrollView {
                         LazyVStack(spacing: 0) {
@@ -60,10 +61,10 @@ struct NotchSpotifyQueueSection: View {
                     }
                     .notchScrollEdgeFade()
                 }
-                Text(text.reorderLimit).font(.caption2).foregroundStyle(.tertiary).lineLimit(2)
+                Text(text.reorderLimit).font(NotchDesign.Typography.caption.font).foregroundStyle(NotchDesign.Ink.tertiary).lineLimit(2)
             }
         }
-        .padding(.top, 6)
+        .padding(.top, NotchDesign.Spacing.xSmall)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .onAppear { service.setVisible(true) }
         .onDisappear { service.setVisible(false) }
@@ -84,7 +85,7 @@ struct NotchSpotifyQueueSection: View {
     /// The playing song, pinned above up next. Not in `shown`, so it never moves or gets removed.
     private func nowPlayingRow(_ track: SpotifyQueueService.Track) -> some View {
         row(track) {
-            Text(text.nowPlaying).font(.caption2.weight(.semibold)).foregroundStyle(.secondary)
+            Text(text.nowPlaying).font(NotchDesign.Typography.caption.font).foregroundStyle(NotchDesign.Ink.secondary)
         }
         .frame(height: Self.rowHeight)
         .accessibilityElement(children: .combine)
@@ -92,42 +93,45 @@ struct NotchSpotifyQueueSection: View {
 
     private func queueRow(_ track: SpotifyQueueService.Track, index: Int) -> some View {
         let dragging = dragID == track.id
-        return row(track) {
-            HStack(spacing: 4) {
-                Button { remove(track) } label: {
-                    Image(systemName: "xmark").font(.system(size: 10))
-                        .frame(width: 24, height: 24).contentShape(Circle())
-                }
-                .buttonStyle(NotchButtonStyle(cornerRadius: 12))
-                .opacity(hoveredID == track.id ? 1 : 0)
-                .help("Remove from queue").accessibilityLabel("Remove from queue: \(track.title)")
-                Button { service.playNow(track) } label: {
-                    Image(systemName: "play.fill").font(.system(size: 11))
-                        .frame(width: 28, height: 28).contentShape(Circle())
-                }
-                .buttonStyle(NotchButtonStyle(cornerRadius: 14))
-                .disabled(service.actionPending)
-                .help(text.playNow).accessibilityLabel("\(text.playNow): \(track.title)")
-                Image(systemName: "line.3.horizontal").font(.system(size: 11))
-                    .foregroundStyle(.secondary)
-                    .frame(width: 20, height: 28).contentShape(Rectangle())
-                    .opacity(hoveredID == track.id || dragging ? 1 : 0)
+        let hovered = hoveredID == track.id
+        let inset = NotchDesign.Control.iconButton * 2 + NotchDesign.Control.minimumHit * 0.7 + NotchDesign.Spacing.xSmall
+        return ZStack(alignment: .trailing) {
+            // The whole row plays the song; the controls on its trailing edge sit above it.
+            Button { service.playNow(track) } label: {
+                NotchQueueRowLabel(image: track.artworkURL.flatMap { service.artwork[$0] }, title: track.title, artist: track.artist)
+                    .padding(.trailing, hovered || dragging ? inset : NotchDesign.Control.iconButton + NotchDesign.Spacing.xSmall)
+            }
+            .buttonStyle(NotchPressStyle(shape: .rounded(NotchDesign.Radius.control), lifts: false))
+            .disabled(service.actionPending)
+            .accessibilityLabel(track.artist.isEmpty ? track.title : "\(track.title), \(track.artist)")
+            HStack(spacing: NotchDesign.Spacing.xxSmall) {
+                NotchIconButton(symbol: "xmark", title: "Remove from queue: \(track.title)") { remove(track) }
+                    .opacity(hovered ? 1 : 0)
+                    .allowsHitTesting(hovered)
+                NotchIconButton(symbol: "play.fill", title: "\(text.playNow): \(track.title)") { service.playNow(track) }
+                    .disabled(service.actionPending)
+                Image(systemName: "line.3.horizontal").font(NotchDesign.Icon.button.font)
+                    .foregroundStyle(NotchDesign.Ink.secondary)
+                    .frame(width: NotchDesign.Spacing.xLarge, height: NotchDesign.Control.iconButton).contentShape(Rectangle())
+                    .opacity(hovered || dragging ? 1 : 0)
                     .help("Drag to reorder")
+                    .accessibilityHidden(true)
                     .gesture(reorderGesture(track, index: index))
             }
+            .padding(.trailing, NotchDesign.Spacing.xSmall)
         }
         .frame(height: Self.rowHeight)
-        .background(dragging ? Color.white.opacity(0.08) : .clear, in: RoundedRectangle(cornerRadius: 8))
+        .background(dragging ? NotchDesign.Fill.selected : .clear,
+                    in: RoundedRectangle(cornerRadius: NotchDesign.Radius.control, style: .continuous))
         .contentShape(Rectangle())
         .onHover { inside in hoveredID = inside ? track.id : (hoveredID == track.id ? nil : hoveredID) }
-        .onTapGesture { service.playNow(track) }
-        .gesture(DragGesture(minimumDistance: 24).onEnded { value in
+        .simultaneousGesture(DragGesture(minimumDistance: 24).onEnded { value in
             if value.translation.width < -40 { service.skipNext() }
             if value.translation.width > 40 { service.skipPrevious() }
         })
         .offset(y: dragging ? dragOffset : shift(for: index))
         .zIndex(dragging ? 1 : 0)
-        .animation(.easeOut(duration: 0.15), value: dragTo)
+        .animation(NotchDesign.Motion.snappy.animation, value: dragTo)
     }
 
     private func reorderGesture(_ track: SpotifyQueueService.Track, index: Int) -> some Gesture {
@@ -144,7 +148,7 @@ struct NotchSpotifyQueueSection: View {
             .onEnded { _ in
                 guard dragID != nil else { return }
                 let from = dragFrom, to = dragTo
-                withAnimation(.easeOut(duration: 0.15)) {
+                withAnimation(NotchDesign.Motion.snappy.animation) {
                     dragID = nil; dragOffset = 0
                     if from != to {
                         var list = shown
@@ -158,7 +162,7 @@ struct NotchSpotifyQueueSection: View {
 
     private func remove(_ track: SpotifyQueueService.Track) {
         let uid = track.queueUID
-        withAnimation(.easeOut(duration: 0.15)) { localOrder = shown.filter { $0.id != track.id } }
+        withAnimation(NotchDesign.Motion.snappy.animation) { localOrder = shown.filter { $0.id != track.id } }
         commit { try await QueueCommandsProvider.current.removeFromQueue(uid: uid) }
     }
 
@@ -194,8 +198,8 @@ struct NotchSpotifyQueueSection: View {
     private var connected: Bool { privateAuth.isConnected || auth.isConnected }
 
     private var header: some View {
-        HStack(spacing: 6) {
-            Text(title).font(.callout.weight(.semibold))
+        HStack(spacing: NotchDesign.Spacing.xSmall) {
+            Text(title).font(NotchDesign.Typography.title.font)
             Spacer()
             if service.loading || service.actionPending || service.searching { ProgressView().controlSize(.mini) }
             if connected {
@@ -210,54 +214,48 @@ struct NotchSpotifyQueueSection: View {
     }
 
     private var connectPrompt: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(text.connectPrompt).font(.callout).foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: NotchDesign.Spacing.small) {
+            Text(text.connectPrompt).font(NotchDesign.Typography.body.font).foregroundStyle(NotchDesign.Ink.secondary)
             NotchPillButton(title: text.connect, prominent: true) { privateAuth.login() }
             if let error = privateAuth.lastError ?? auth.lastError {
-                Text(error).font(.caption).foregroundStyle(.orange).lineLimit(3)
+                Text(error).font(NotchDesign.Typography.callout.font).foregroundStyle(NotchDesign.Palette.warning).lineLimit(3)
             }
         }
     }
 
     private var searchArea: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: NotchDesign.Spacing.xxSmall) {
             TextField(text.searchPlaceholder, text: $searchText)
                 .textFieldStyle(.roundedBorder)
                 .onSubmit { service.search(searchText) }
             ForEach(service.searchResults) { track in
-                row(track) {
+                ZStack(alignment: .trailing) {
                     Button { service.addToQueue(track) } label: {
-                        Image(systemName: "plus").font(.system(size: 11))
-                            .frame(width: 28, height: 28).contentShape(Circle())
+                        NotchQueueRowLabel(image: track.artworkURL.flatMap { service.artwork[$0] }, title: track.title, artist: track.artist)
+                            .padding(.trailing, NotchDesign.Control.iconButton + NotchDesign.Spacing.xSmall)
                     }
-                    .buttonStyle(NotchButtonStyle(cornerRadius: 14))
+                    .buttonStyle(NotchPressStyle(shape: .rounded(NotchDesign.Radius.control), lifts: false))
                     .disabled(service.actionPending)
-                    .help(text.addToQueue).accessibilityLabel("\(text.addToQueue): \(track.title)")
+                    .accessibilityLabel("\(text.addToQueue): \(track.title)")
+                    NotchIconButton(symbol: "plus", title: "\(text.addToQueue): \(track.title)") { service.addToQueue(track) }
+                        .disabled(service.actionPending)
+                        .padding(.trailing, NotchDesign.Spacing.xSmall)
                 }
+                .frame(height: Self.rowHeight)
             }
         }
     }
 
+    /// The pinned playing song: the same row shape, with its label where the controls sit.
     private func row<Trailing: View>(_ track: SpotifyQueueService.Track,
                                      @ViewBuilder trailing: () -> Trailing) -> some View {
-        HStack(spacing: 10) {
-            NotchArtwork(image: track.artworkURL.flatMap { service.artwork[$0] }, size: 30)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(track.title).font(.callout.weight(.medium)).lineLimit(1)
-                if !track.artist.isEmpty {
-                    Text(track.artist).font(.caption).foregroundStyle(.secondary).lineLimit(1)
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            trailing()
+        HStack(spacing: NotchDesign.Spacing.small) {
+            NotchQueueRowLabel(image: track.artworkURL.flatMap { service.artwork[$0] }, title: track.title, artist: track.artist)
+            trailing().padding(.trailing, NotchDesign.Spacing.small)
         }
-        .padding(.vertical, 6)
     }
 
     private func iconButton(_ symbol: String, _ label: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) { Image(systemName: symbol).font(.system(size: 11)) }
-            .buttonStyle(.borderless)
-            .disabled(service.actionPending)
-            .help(label).accessibilityLabel(label)
+        NotchIconButton(symbol: symbol, title: label, action: action).disabled(service.actionPending)
     }
 }
