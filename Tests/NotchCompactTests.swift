@@ -286,7 +286,7 @@ enum NotchCompactTests {
         suite.expect(state.realized.count < 500,
                      "jumping to distant selections does not realize the intervening history")
         // Five tiles over two rows fit three columns wide: they read across
-        // the rows, and the two on the last row sit centered under the three.
+        // the rows, and the two on the last row sit at the leading edge under the first two.
         state.count = 5
         state.rows = 2
         state.selected = nil
@@ -301,9 +301,9 @@ enum NotchCompactTests {
                "a rail that fits reads left to right along its rows")
         suite.expect(frames.count == 5
                && abs(frames[3].width - frames[0].width) < 0.5
-               && abs(frames[3].midX - (frames[0].midX + frames[1].midX) / 2) < 0.5
-               && abs((frames[3].minX + frames[4].maxX) / 2 - host.bounds.midX) < 0.5,
-               "a short last row keeps the cell width and sits centered under the row above")
+               && abs(frames[3].minX - frames[0].minX) < 0.5
+               && abs(frames[4].minX - frames[1].minX) < 0.5,
+               "a short last row keeps the cell width and lines up under the row above, leading aligned")
     }
     private static func scratchpad(_ suite: TestSuite) {
         let pad = ScratchpadService.shared

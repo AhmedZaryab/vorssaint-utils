@@ -266,7 +266,7 @@ struct NotchArtwork: View {
 /// Items fill each column top to bottom and continue sideways, so a short
 /// island scrolls to the side and never down. Whenever everything fits
 /// without scrolling, the items read left to right instead, in rows of equal
-/// cells across the full width, and a short last row sits centered.
+/// cells across the full width, and a short last row sits at the leading edge, in the same cells as the rows above.
 struct NotchRail<Item: Identifiable, Content: View>: View {
     let items: [Item]
     let rows: Int
@@ -343,7 +343,7 @@ struct NotchRail<Item: Identifiable, Content: View>: View {
                 content(item).frame(width: cell)
             }
         }
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func column(_ start: Int) -> some View {
