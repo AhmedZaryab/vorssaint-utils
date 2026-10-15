@@ -42,6 +42,9 @@ struct NotchCommitButton: View {
     var hint: String?
     var dragToFire: Bool
     var size: CGFloat
+    /// Nil sizes the glyph from the control's side; callers name Icon.button, Icon.transport or Icon.transportPrimary.
+    var glyph: NotchDesign.TypeStyle?
+    /// Source compatible point size for callers that have not moved to `glyph`.
     var symbolSize: CGFloat?
     var filled: Bool
     /// Off, a pointer fire only morphs the symbol: no kick, no burst.
@@ -53,6 +56,8 @@ struct NotchCommitButton: View {
     let action: () -> Void
 
     @State private var held = false
+    /// The pointer is still within reach of the control; leaving it shows the cancel at once.
+    @State private var inside = true
     @State private var armed = false
     @State private var pull = CGSize.zero
     @State private var sling = NotchSlingTracker(armAt: Metrics.slingArm, limit: Metrics.slingLimit,
@@ -66,7 +71,8 @@ struct NotchCommitButton: View {
     @Environment(\.notchInteractionPreview) private var preview
 
     init(_ title: String, symbol: String, kick: NotchCommitKick = .morph, hint: String? = nil,
-         dragToFire: Bool = false, size: CGFloat = 32, symbolSize: CGFloat? = nil, filled: Bool = false,
+         dragToFire: Bool = false, size: CGFloat = Metrics.commitSide, glyph: NotchDesign.TypeStyle? = nil,
+         symbolSize: CGFloat? = nil, filled: Bool = false,
          launches: Bool = true, tint: Color = .white, keyboardShortcut: KeyboardShortcut? = nil,
          action: @escaping () -> Void) {
         self.title = title
@@ -75,6 +81,7 @@ struct NotchCommitButton: View {
         self.hint = hint
         self.dragToFire = dragToFire
         self.size = size
+        self.glyph = glyph
         self.symbolSize = symbolSize
         self.filled = filled
         self.launches = launches
@@ -84,6 +91,11 @@ struct NotchCommitButton: View {
     }
 
     private var side: CGFloat { max(size, Metrics.minimumTarget) }
+    private var glyphFont: Font {
+        glyph?.font ?? .system(size: symbolSize ?? (side * 0.45).rounded(), weight: NotchDesign.Weight.semibold.font)
+    }
+    /// How far the pointer may stray from the control before a release cancels.
+    private var reach: CGFloat { side / 2 + Metrics.pressCancelMargin }
     /// Reduce Motion keeps the gesture a plain press: no band, no flight.
     private var slings: Bool { dragToFire && !reduceMotion }
 
@@ -95,8 +107,8 @@ struct NotchCommitButton: View {
             if slings || frozen {
                 NotchSlingWell(pull: shownPull, armed: shownArmed, side: side)
             }
-            NotchPressFace(pressed: held || frozen, shape: .capsule) {
-                NotchCommitGlyph(symbol: symbol, kick: kick, pointSize: symbolSize ?? (side * 0.45).rounded(),
+            NotchPressFace(pressed: (held && (slings || inside)) || frozen, shape: .capsule) {
+                NotchCommitGlyph(symbol: symbol, kick: kick, font: glyphFont,
                                  side: side, tint: tint, kicks: kicks, reduceMotion: reduceMotion)
                     .frame(width: side, height: side)
                     .background(.white.opacity(filled ? Metrics.restingFill : 0), in: Circle())
@@ -151,9 +163,14 @@ struct NotchCommitButton: View {
                 guard enabled else { return }
                 if !held {
                     held = true
+                    inside = true
                     sling.begin(presentedX: presented.pull.width, y: presented.pull.height)
                 }
-                guard slings else { return }
+                guard slings else {
+                    let within = hypot(value.translation.width, value.translation.height) <= reach
+                    if within != inside { inside = within }
+                    return
+                }
                 let next = sling.pull(dx: value.translation.width, dy: value.translation.height)
                 if sling.armed != armed {
                     armed = sling.armed
@@ -164,12 +181,12 @@ struct NotchCommitButton: View {
             .onEnded { value in
                 guard held else { return }
                 held = false
+                inside = true
                 armed = false
                 let outcome: NotchSlingTracker.Release
                 if slings {
                     outcome = sling.release()
                 } else {
-                    let reach = side / 2 + Metrics.pressCancelMargin
                     outcome = hypot(value.translation.width, value.translation.height) <= reach ? .tap : .cancel
                 }
                 switch outcome {
@@ -338,14 +355,17 @@ private struct NotchPresentedOffset: ViewModifier, Animatable {
 
 /// The glyph that kicks: the outgoing copy leaves the way the action goes
 /// while an incoming one takes the seat, so it reads as a step, not a jump.
+/// `kicks` drives a spring on state: each press moves a conveyor one place
+/// on, and a press during a flight retargets it from where it is drawn.
 private struct NotchCommitGlyph: View {
     let symbol: String
     let kick: NotchCommitKick
-    let pointSize: CGFloat
+    let font: Font
     let side: CGFloat
     let tint: Color
     let kicks: Int
     let reduceMotion: Bool
+    @State private var place = 0.0
 
     var body: some View {
         if kick == .morph {
@@ -354,34 +374,43 @@ private struct NotchCommitGlyph: View {
                 .animation(reduceMotion ? Metrics.crossfade : Metrics.symbolMorph, value: symbol)
                 .symbolEffect(.bounce, value: kicks)
         } else {
-            let travel = side * Metrics.kickTravel
-            let dx = kick.direction.dx * travel
-            let dy = kick.direction.dy * travel
-            let symbol = symbol
-            let tint = tint
-            let font = Font.system(size: pointSize, weight: .semibold)
-            Color.clear
-                .keyframeAnimator(initialValue: CGFloat(0), trigger: kicks) { base, progress in
-                    base.overlay {
-                        ZStack {
-                            Image(systemName: symbol).font(font).foregroundStyle(tint)
-                                .offset(x: dx * progress, y: dy * progress).opacity(1 - progress)
-                            if progress > 0 {
-                                Image(systemName: symbol).font(font).foregroundStyle(tint)
-                                    .offset(x: -dx * (1 - progress), y: -dy * (1 - progress)).opacity(progress)
-                            }
-                        }
-                    }
-                } keyframes: { _ in
-                    SpringKeyframe(1, duration: Metrics.kickDuration, spring: Metrics.bouncy)
-                    MoveKeyframe(0)
-                }
+            NotchKickConveyor(place: place, symbol: symbol, font: font, tint: tint,
+                              dx: kick.direction.dx * side * Metrics.kickTravel,
+                              dy: kick.direction.dy * side * Metrics.kickTravel)
+                .onChange(of: kicks) { withAnimation(Metrics.kickSpring) { place = Double(kicks) } }
         }
     }
 
     private var glyph: some View {
-        Image(systemName: symbol)
-            .font(.system(size: pointSize, weight: .semibold))
-            .foregroundStyle(tint)
+        Image(systemName: symbol).font(font).foregroundStyle(tint)
+    }
+}
+
+/// Copies of one glyph on a conveyor: the whole part of `place` is the copy
+/// at the seat, the fraction is how far it has left and the next has arrived.
+/// Both are the same symbol, so crossing a whole number never shows a seam.
+private struct NotchKickConveyor: View, Animatable {
+    var place: Double
+    let symbol: String
+    let font: Font
+    let tint: Color
+    let dx: CGFloat
+    let dy: CGFloat
+
+    var animatableData: Double {
+        get { place }
+        set { place = newValue }
+    }
+
+    var body: some View {
+        let progress = CGFloat(place - place.rounded(.down))
+        ZStack {
+            Image(systemName: symbol).font(font).foregroundStyle(tint)
+                .offset(x: dx * progress, y: dy * progress).opacity(1 - progress)
+            if progress > 0 {
+                Image(systemName: symbol).font(font).foregroundStyle(tint)
+                    .offset(x: -dx * (1 - progress), y: -dy * (1 - progress)).opacity(progress)
+            }
+        }
     }
 }
