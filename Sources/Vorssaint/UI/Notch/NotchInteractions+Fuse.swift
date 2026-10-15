@@ -14,15 +14,17 @@ enum NotchFuseCommit: Equatable {
 
 /// Owns the fuse's timer apart from the view, so a fuse whose page closes
 /// while it burns still commits on time instead of stranding the action.
-@MainActor
-final class NotchFuseController: ObservableObject {
-    @Published private(set) var burning = false
+@MainActor @Observable
+final class NotchFuseController {
+    private(set) var burning = false
+    /// The pointer is holding the burn, so the rim has nothing new to draw.
+    private(set) var paused = false
     /// Counts commits, so the control can show it is done.
-    @Published private(set) var commits = 0
-    private var clock = NotchFuseClock(duration: 0)
-    private var timer: Task<Void, Never>?
-    private var commit: (() -> Void)?
-    private var onBlowOut: (() -> Void)?
+    private(set) var commits = 0
+    @ObservationIgnored private var clock = NotchFuseClock(duration: 0)
+    @ObservationIgnored private var timer: Task<Void, Never>?
+    @ObservationIgnored private var commit: (() -> Void)?
+    @ObservationIgnored private var onBlowOut: (() -> Void)?
 
     private static var now: TimeInterval { ProcessInfo.processInfo.systemUptime }
 
@@ -45,9 +47,10 @@ final class NotchFuseController: ObservableObject {
         guard burning else { return }
         if held {
             clock.pause(at: Self.now)
-            if clock.isPaused { timer?.cancel(); timer = nil }
+            if clock.isPaused { timer?.cancel(); timer = nil; paused = true }
         } else if clock.isPaused {
             clock.resume(at: Self.now)
+            paused = false
             schedule()
         }
     }
@@ -83,6 +86,7 @@ final class NotchFuseController: ObservableObject {
         timer = nil
         commit = nil
         burning = false
+        paused = false
         NotchFuseRegistry.remove(self)
         return true
     }
@@ -92,6 +96,7 @@ final class NotchFuseController: ObservableObject {
         case .burning: return false
         case .idle:
             burning = false
+            paused = false
             NotchFuseRegistry.remove(self)
             return true
         case .committed:
@@ -99,6 +104,7 @@ final class NotchFuseController: ObservableObject {
             commit = nil
             timer = nil
             burning = false
+            paused = false
             NotchFuseRegistry.remove(self)
             commits += 1
             action?()
@@ -128,9 +134,11 @@ struct NotchFuseButton: View {
     var showsTitle: Bool
     var shape: NotchPressShape
     var onUndo: (() -> Void)?
-    let onCommit: () -> Void
+    /// Builds the commit when the fuse lights, so what it acts on is what was
+    /// on screen at the press, not whatever is selected when it burns out.
+    private var makeCommit: () -> () -> Void
 
-    @StateObject private var fuse = NotchFuseController()
+    @State private var fuse = NotchFuseController()
     @ObservedObject private var l10n = L10n.shared
     @State private var keyboardLit = false
     /// The pointer that pressed has left since, so resting on it may hold the burn.
@@ -152,7 +160,17 @@ struct NotchFuseButton: View {
         self.showsTitle = showsTitle
         self.shape = shape
         self.onUndo = onUndo
-        self.onCommit = onCommit
+        self.makeCommit = { onCommit }
+    }
+
+    /// Takes the payload at the press. `make` runs when the fuse lights and
+    /// returns the commit, which acts on what it captured then:
+    /// `NotchFuseButton(t, symbol: s) {}.capturing { let ids = selection; return { remove(ids) } }`.
+    /// The `onCommit` the button was made with is replaced.
+    func capturing(_ make: @escaping () -> () -> Void) -> NotchFuseButton {
+        var copy = self
+        copy.makeCommit = make
+        return copy
     }
 
     private var undo: String { undoTitle ?? l10n.s.menuUndo }
@@ -188,7 +206,7 @@ struct NotchFuseButton: View {
                     // Drawn from the fuse's own clock, frame by frame while it
                     // burns and not at all otherwise, so no animation of the
                     // press around it can bend the burn.
-                    TimelineView(.animation) { _ in
+                    TimelineView(.animation(paused: fuse.paused)) { _ in
                         NotchFuseRim(left: fuse.fraction(), outline: shape).fill(Metrics.fuseTint)
                             .transaction { $0.animation = nil }
                     }
@@ -220,11 +238,12 @@ struct NotchFuseButton: View {
         keyboardLit = NSApp.currentEvent?.type == .keyDown
         mayHold = false
         let done = doneAnnouncement ?? l10n.s.mediaCompleted
-        let commit = onCommit
+        let commit = makeCommit()
         let undone = onUndo
+        let cancelled = NotchFuseStrings.cancelled(l10n.language)
         fuse.light(duration: fuseDuration, onBlowOut: {
             undone?()
-            AccessibilityNotification.Announcement(title).post()
+            AccessibilityNotification.Announcement(cancelled).post()
         }) {
             commit()
             AccessibilityNotification.Announcement(done).post()
@@ -236,7 +255,7 @@ struct NotchFuseButton: View {
         keyboardLit = NSApp.currentEvent?.type == .keyDown
         guard fuse.blowOut() else { return }
         onUndo?()
-        AccessibilityNotification.Announcement(title).post()
+        AccessibilityNotification.Announcement(NotchFuseStrings.cancelled(l10n.language)).post()
     }
 }
 
@@ -265,14 +284,12 @@ private struct NotchFuseUndoFace: View {
 
     var body: some View {
         HStack(spacing: 6) {
-            if !countdown {
-                Image(systemName: "arrow.uturn.backward").font(.system(size: 12, weight: .semibold))
-            }
+            Image(systemName: "arrow.uturn.backward").font(.system(size: 12, weight: .semibold))
             if let text { Text(text).font(.system(size: 12, weight: .semibold)).lineLimit(1) }
             if countdown {
                 TimelineView(.periodic(from: .now, by: 0.25)) { _ in
                     Text("\(Int(remaining().rounded(.up)))")
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(NotchDesign.Typography.caption.font)
                         .monospacedDigit()
                 }
             }
@@ -301,5 +318,28 @@ private struct NotchFuseRim: Shape {
                                        width: 2 * Metrics.fuseSpark, height: 2 * Metrics.fuseSpark))
         }
         return path
+    }
+}
+
+/// What VoiceOver hears when a fuse is blown out. Kept here because the
+/// fuse is the only place that says it.
+private enum NotchFuseStrings {
+    static func cancelled(_ language: AppLanguage) -> String {
+        switch language {
+        case .enUS: return "Cancelled"
+        case .ptBR: return "Cancelado"
+        case .tr: return "Iptal edildi"
+        case .ru: return "Отменено"
+        case .es: return "Cancelado"
+        case .sk: return "Zrušené"
+        case .de: return "Abgebrochen"
+        case .fr: return "Annulé"
+        case .it: return "Annullato"
+        case .ja: return "キャンセルしました"
+        case .ko: return "취소됨"
+        case .uk: return "Скасовано"
+        case .zhHans: return "已取消"
+        case .zhTW, .zhHK: return "已取消"
+        }
     }
 }
