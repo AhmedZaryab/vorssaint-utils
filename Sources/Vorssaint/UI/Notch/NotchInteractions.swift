@@ -162,7 +162,7 @@ enum NotchHaptics {
 }
 
 extension View {
-    /// The pointing hand over anything pressable.
+    /// The pointing hand, for a true text link only. Buttons keep the arrow.
     @ViewBuilder func notchPointingCursor(_ active: Bool = true) -> some View {
 #if compiler(>=6.0)
         if #available(macOS 15, *) {
@@ -233,6 +233,8 @@ struct NotchPressFace<Content: View>: View {
     var shape: NotchPressShape = .rounded(NotchInteractionMetrics.cornerRadius)
     var lifts = true
     var washes = true
+    /// Opt in for a true text link only; buttons keep the arrow.
+    var pointingHandForLink = false
     let content: Content
     @State private var hovered = false
     @Environment(\.isEnabled) private var enabled
@@ -240,11 +242,12 @@ struct NotchPressFace<Content: View>: View {
     @Environment(\.notchInteractionPreview) private var preview
 
     init(pressed: Bool, shape: NotchPressShape = .rounded(NotchInteractionMetrics.cornerRadius), lifts: Bool = true,
-         washes: Bool = true, @ViewBuilder content: () -> Content) {
+         washes: Bool = true, pointingHandForLink: Bool = false, @ViewBuilder content: () -> Content) {
         self.pressed = pressed
         self.shape = shape
         self.lifts = lifts
         self.washes = washes
+        self.pointingHandForLink = pointingHandForLink
         self.content = content()
     }
 
@@ -261,7 +264,7 @@ struct NotchPressFace<Content: View>: View {
             .animation(reduceMotion ? Metrics.crossfade : down ? Metrics.pressIn : Metrics.release, value: down)
             .animation(Metrics.hover, value: hover)
             .onHover { hovered = $0 }
-            .notchPointingCursor(enabled)
+            .notchPointingCursor(enabled && pointingHandForLink)
     }
 
     /// Without the scale, a press shows as a deeper wash.
