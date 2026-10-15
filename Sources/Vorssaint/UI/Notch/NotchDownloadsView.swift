@@ -31,12 +31,34 @@ struct NotchDownloadsSettingsControls: View {
     }
 }
 
+/// A fill in a shape plus the Increase Contrast edge, so a card or a glyph
+/// plate never relies on a 1.1:1 fill step alone.
+private struct DownloadsPlate: ViewModifier {
+    let fill: Color
+    let radius: CGFloat
+    @Environment(\.colorSchemeContrast) private var contrast
+
+    func body(content: Content) -> some View {
+        let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
+        content
+            .background(fill, in: shape)
+            .overlay {
+                if contrast == .increased {
+                    shape.strokeBorder(NotchDesign.Stroke.increasedContrast,
+                                       lineWidth: NotchDesign.Stroke.increasedContrastWidth)
+                        .allowsHitTesting(false)
+                }
+            }
+    }
+}
+
 /// Before a folder is chosen the page says what it will do and offers the one
 /// step that starts it, in the same voice as the island's other empty pages.
 private struct NotchDownloadsSetupView: View {
     @ObservedObject private var downloads = NotchDownloadService.shared
     @ObservedObject private var l10n = L10n.shared
     @AppStorage(DefaultsKey.notchDownloadsEnabled) private var enabled = true
+    @Environment(\.colorSchemeContrast) private var contrast
     private var text: NotchFilesStrings { FeatureStrings.notchFiles(l10n.language) }
 
     var body: some View {
@@ -64,7 +86,7 @@ private struct NotchDownloadsSetupView: View {
             .font(NotchDesign.Icon.hero.font)
             .foregroundStyle(NotchDesign.Ink.secondary)
             .frame(width: NotchDesign.Control.heroGlyph, height: NotchDesign.Control.heroGlyph)
-            .background(NotchDesign.Fill.card, in: RoundedRectangle(cornerRadius: NotchDesign.Radius.card, style: .continuous))
+            .modifier(DownloadsPlate(fill: NotchDesign.Fill.card, radius: NotchDesign.Radius.card))
             .accessibilityHidden(true)
     }
 
@@ -103,6 +125,14 @@ private struct NotchDownloadsSetupView: View {
                     .padding(.horizontal, NotchDesign.Spacing.medium)
                     .frame(height: NotchDesign.Control.rowHeight)
                     .background(NotchDesign.Fill.control, in: Capsule(style: .continuous))
+                    .overlay {
+                        if contrast == .increased {
+                            Capsule(style: .continuous)
+                                .strokeBorder(NotchDesign.Stroke.increasedContrast,
+                                              lineWidth: NotchDesign.Stroke.increasedContrastWidth)
+                                .allowsHitTesting(false)
+                        }
+                    }
                     .contentShape(Capsule(style: .continuous))
             }
             .buttonStyle(NotchPressStyle(shape: .capsule, washes: false))
@@ -177,7 +207,8 @@ struct NotchDownloadsView: View {
                             }
                         }
                     }
-                    .scrollIndicators(.automatic)
+                    .scrollIndicators(.never)
+                    .notchScrollEdgeFade()
                 }
             }
         }.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -196,8 +227,7 @@ struct NotchDownloadsView: View {
                         .font(NotchDesign.Icon.button.font)
                         .foregroundStyle(item.completed ? NotchDesign.Palette.positive : NotchDesign.Ink.primary)
                         .frame(width: NotchDesign.Control.iconButton, height: NotchDesign.Control.iconButton)
-                        .background(NotchDesign.Fill.control,
-                                    in: RoundedRectangle(cornerRadius: NotchDesign.Radius.control, style: .continuous))
+                        .modifier(DownloadsPlate(fill: NotchDesign.Fill.control, radius: NotchDesign.Radius.control))
                         .accessibilityHidden(true)
                     VStack(alignment: .leading, spacing: NotchDesign.Spacing.line) {
                         Text(item.name).font(NotchDesign.Typography.title.font)
@@ -254,8 +284,7 @@ struct NotchDownloadsView: View {
         }
         .padding(NotchDesign.Spacing.cardPadding)
         .frame(maxWidth: .infinity, alignment: .topLeading)
-        .background(NotchDesign.Fill.card,
-                    in: RoundedRectangle(cornerRadius: NotchDesign.Radius.card, style: .continuous))
+        .modifier(DownloadsPlate(fill: NotchDesign.Fill.card, radius: NotchDesign.Radius.card))
         .clipped()
         .accessibilityElement(children: .contain)
     }
@@ -334,7 +363,7 @@ struct NotchDownloadStrip: View {
                             Text(fraction, format: NotchDownloadSupport.percentFormat(l10n.language))
                                 .font(.system(size: NotchDownloadSupport.percentSize, weight: .medium))
                                 .monospacedDigit()
-                                .lineLimit(1).minimumScaleFactor(NotchDownloadSupport.percentMinimumScale)
+                                .lineLimit(1)
                                 .layoutPriority(1)
                         } else {
                             ProgressView().controlSize(.mini)
@@ -352,6 +381,7 @@ struct NotchDownloadStrip: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(item?.name ?? FeatureStrings.notchFiles(l10n.language).downloadsTitle)
+        .accessibilityValue(item?.fraction.map { $0.formatted(NotchDownloadSupport.percentFormat(l10n.language)) } ?? "")
         .accessibilityHint(FeatureStrings.notch(l10n.language).open)
     }
 }

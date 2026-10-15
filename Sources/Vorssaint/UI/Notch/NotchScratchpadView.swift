@@ -18,6 +18,7 @@ struct NotchScratchpadView: View {
     @State private var copied = false
     @State private var copyCount = 0
     @State private var hoveredPadID: UUID?
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var editor = EditorHandle()
     @AppStorage(DefaultsKey.scratchpadTextSize) private var storedTextSize = ScratchpadSupport.defaultTextSize
     private var text: ScratchpadFeatureStrings { FeatureStrings.scratchpad(l10n.language) }
@@ -130,7 +131,12 @@ struct NotchScratchpadView: View {
             }
             .onChange(of: pad.selectedPadID) { _, selected in
                 guard let selected else { return }
-                withAnimation(NotchDesign.Motion.snappy.animation) { proxy.scrollTo(selected, anchor: .center) }
+                // A key (Command-T, Command-W, a shortcut) lands at once; the
+                // pointer keeps the spring, and Reduce Motion drops it.
+                let fromKeyboard = NSApp.currentEvent?.type == .keyDown
+                let animation = fromKeyboard ? nil
+                    : NotchDesign.Motion.animation(NotchDesign.Motion.snappy, reduceMotion: reduceMotion)
+                withAnimation(animation) { proxy.scrollTo(selected, anchor: .center) }
             }
         }
     }
@@ -140,7 +146,7 @@ struct NotchScratchpadView: View {
     }
 
     private var toolbar: some View {
-        HStack(spacing: NotchDesign.Spacing.xxSmall) {
+        HStack(spacing: NotchDesign.Spacing.xSmall) {
             // The island has one row to spend. The marks take the tab strip's
             // place while they are up rather than squeezing in beside it, and
             // the chip stays put so the same click puts the tabs back.
@@ -150,7 +156,9 @@ struct NotchScratchpadView: View {
                 tabStrip
             }
             ToolbarButton(symbol: "textformat", title: text.formatMarks, selected: pad.marksExpanded) {
-                withAnimation(NotchDesign.Motion.snappy.animation) { pad.toggleMarks() }
+                withAnimation(NotchDesign.Motion.animation(NotchDesign.Motion.snappy, reduceMotion: reduceMotion)) {
+                    pad.toggleMarks()
+                }
             }
             .disabled(pad.isPreviewing)
             ToolbarButton(symbol: "plus",
@@ -171,38 +179,38 @@ struct NotchScratchpadView: View {
                 copyCount += 1
             }
             .disabled(pad.text.isEmpty)
-            Menu {
-                if let selectedPad {
-                    Button(text.renamePad) { presentRename(selectedPad) }
-                    Button(text.closePad, role: .destructive) { requestClose(selectedPad) }
-                        .disabled(!pad.canClosePad)
-                    Divider()
-                }
-                Button(text.exportAction) {
-                    if let window = service.presentationWindow {
-                        pad.exportText(suggestedName: ScratchpadSupport.exportFileName(title: pad.selectedPadName, date: Date()),
-                                       from: window)
-                    }
-                }
-                .disabled(pad.text.isEmpty)
-                Button(text.clearAction, role: .destructive) { pad.clear(through: editor.view) }
-                    .disabled(pad.text.isEmpty)
-                Divider()
-                Button(text.openButton) { service.perform { pad.show(allowsIsland: false) } }
-            } label: {
+            NotchMenuButton(title: text.padActions, items: padMenuItems) {
                 Image(systemName: "ellipsis")
                     .font(NotchDesign.Icon.button.font)
                     .foregroundStyle(NotchDesign.Ink.secondary)
                     .frame(width: NotchDesign.Control.iconButton, height: NotchDesign.Control.iconButton)
                     .contentShape(RoundedRectangle(cornerRadius: NotchDesign.Radius.control, style: .continuous))
             }
-            .menuStyle(.borderlessButton)
-            .menuIndicator(.hidden)
-            .fixedSize()
             .help(text.padActions)
-            .accessibilityLabel(text.padActions)
         }
         .frame(height: NotchDesign.Control.rowHeight)
+    }
+
+    /// The pad's actions as a native menu, so the button sits on the header's column.
+    private var padMenuItems: [NotchMenuItem] {
+        var items: [NotchMenuItem] = []
+        if let selectedPad {
+            items.append(NotchMenuItem(title: text.renamePad) { presentRename(selectedPad) })
+            items.append(NotchMenuItem(title: text.closePad, enabled: pad.canClosePad) { requestClose(selectedPad) })
+            items.append(.separator)
+        }
+        items.append(NotchMenuItem(title: text.exportAction, enabled: !pad.text.isEmpty) {
+            if let window = service.presentationWindow {
+                pad.exportText(suggestedName: ScratchpadSupport.exportFileName(title: pad.selectedPadName, date: Date()),
+                               from: window)
+            }
+        })
+        items.append(NotchMenuItem(title: text.clearAction, enabled: !pad.text.isEmpty) {
+            pad.clear(through: editor.view)
+        })
+        items.append(.separator)
+        items.append(NotchMenuItem(title: text.openButton) { service.perform { pad.show(allowsIsland: false) } })
+        return items
     }
 
     /// The cross shows on the selected tab and under the pointer, as in the
@@ -210,33 +218,39 @@ struct NotchScratchpadView: View {
     private func tab(_ entry: ScratchpadPad) -> some View {
         let selected = entry.id == pad.selectedPadID
         let showsClose = pad.canClosePad && (selected || hoveredPadID == entry.id)
-        return Button { pad.selectPad(entry.id) } label: {
-            HStack(spacing: 4) {
+        let shape = RoundedRectangle(cornerRadius: NotchDesign.Radius.control, style: .continuous)
+        return ZStack(alignment: .trailing) {
+            Button { pad.selectPad(entry.id) } label: {
                 Text(entry.name)
                     .font(NotchDesign.Typography.label.font)
                     .lineLimit(1)
-                if showsClose {
-                    Button { requestClose(entry) } label: {
-                        Image(systemName: "xmark")
-                            .font(NotchDesign.Typography.caption.font)
-                            .foregroundStyle(NotchDesign.Ink.secondary)
-                            .frame(width: NotchDesign.Control.minimumHit / 2, height: NotchDesign.Control.minimumHit / 2)
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .help(text.closePad)
-                    .accessibilityLabel(text.closePad)
-                }
+                    .foregroundStyle(selected ? NotchDesign.Ink.primary : NotchDesign.Ink.secondary)
+                    .padding(.leading, NotchDesign.Spacing.small)
+                    // Room for the cross, which is its own control on top.
+                    .padding(.trailing, showsClose ? NotchDesign.Control.minimumHit - NotchDesign.Spacing.xxSmall
+                                                   : NotchDesign.Spacing.small)
+                    .frame(height: NotchDesign.Control.rowHeight - NotchDesign.Spacing.xxSmall)
+                    .background(selected ? NotchDesign.Fill.selected : NotchDesign.Fill.card, in: shape)
+                    .contentShape(shape)
             }
-            .foregroundStyle(selected ? NotchDesign.Ink.primary : NotchDesign.Ink.secondary)
-            .padding(.leading, NotchDesign.Spacing.small)
-            .padding(.trailing, showsClose ? NotchDesign.Spacing.line : NotchDesign.Spacing.small)
-            .frame(height: NotchDesign.Control.rowHeight - NotchDesign.Spacing.xxSmall)
-            .background(selected ? NotchDesign.Fill.selected : NotchDesign.Fill.card,
-                        in: RoundedRectangle(cornerRadius: NotchDesign.Radius.control, style: .continuous))
-            .contentShape(RoundedRectangle(cornerRadius: NotchDesign.Radius.control, style: .continuous))
+            .buttonStyle(NotchPressStyle(shape: .rounded(NotchDesign.Radius.control), lifts: false, washes: false))
+            .accessibilityAddTraits(selected ? .isSelected : [])
+            .help(entry.name)
+            if showsClose {
+                // Outside the tab's label so it is reachable on its own, with
+                // the full minimum hit area around the small cross.
+                Button { requestClose(entry) } label: {
+                    Image(systemName: "xmark")
+                        .font(NotchDesign.Typography.caption.font)
+                        .foregroundStyle(NotchDesign.Ink.secondary)
+                        .frame(width: NotchDesign.Control.minimumHit, height: NotchDesign.Control.minimumHit)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(NotchPressStyle(shape: .rounded(NotchDesign.Radius.control), lifts: false))
+                .help(text.closePad)
+                .accessibilityLabel(text.closePad)
+            }
         }
-        .buttonStyle(NotchPressStyle(shape: .rounded(NotchDesign.Radius.control), lifts: false, washes: false))
         .onHover { hovering in
             if hovering { hoveredPadID = entry.id } else if hoveredPadID == entry.id { hoveredPadID = nil }
         }
@@ -245,8 +259,6 @@ struct NotchScratchpadView: View {
             Button(text.closePad, role: .destructive) { requestClose(entry) }
                 .disabled(!pad.canClosePad)
         }
-        .accessibilityAddTraits(selected ? .isSelected : [])
-        .help(entry.name)
     }
 
     /// The caret lands at the end of the pad's text, as the floating pad
