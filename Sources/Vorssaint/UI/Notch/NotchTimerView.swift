@@ -267,7 +267,7 @@ struct NotchTimerView: View {
                 HStack(spacing: Design.Spacing.xxSmall) {
                     Text(display(option, current))
                         .font(Design.Typography.readout.font).monospacedDigit().foregroundStyle(Design.Ink.primary)
-                    Image(systemName: "chevron.down").font(Design.Typography.caption.font)
+                    Image(systemName: "chevron.down").font(Design.Icon.strip.font)
                         .foregroundStyle(Design.Ink.secondary)
                 }
             }

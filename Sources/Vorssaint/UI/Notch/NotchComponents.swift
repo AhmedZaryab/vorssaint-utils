@@ -634,7 +634,11 @@ struct NotchMenuItem {
     let title: String
     var checked = false
     var symbol: String? = nil
+    /// An app icon; wins over `symbol`.
+    var icon: NSImage? = nil
     var enabled = true
+    /// Marked red; goes last in its menu.
+    var destructive = false
     var action: () -> Void = {}
 
     /// A line between groups of entries.
@@ -646,6 +650,7 @@ struct NotchMenuItem {
 /// cannot do this: its borderless style turns the label into a pop-up
 /// button title, one line cut with an ellipsis, images moved to the front
 /// and frames ignored, so anything but a lone glyph loses its shape.
+/// Every menu and pull down in the island goes through this one path.
 struct NotchMenuButton<Label: View>: View {
     let title: String
     let items: [NotchMenuItem]
@@ -661,8 +666,64 @@ struct NotchMenuButton<Label: View>: View {
     }
 }
 
-/// A chooser whose current choice reads in full: up to two centred lines, or
-/// one line cut in the middle, with the list as a native menu below it.
+/// The one face of a pull down: the current choice in callout secondary ink,
+/// then a chevron.down, 4 pt apart, on a 28 pt hit target.
+struct NotchPullDownFace: View {
+    let text: String
+    var maxWidth: CGFloat? = nil
+    var truncation: Text.TruncationMode = .tail
+
+    var body: some View {
+        HStack(spacing: NotchDesign.Spacing.xxSmall) {
+            Text(text).lineLimit(1).truncationMode(truncation)
+                .font(NotchDesign.Typography.callout.font)
+            Image(systemName: "chevron.down").font(NotchDesign.Icon.strip.font)
+        }
+        .foregroundStyle(NotchDesign.Ink.secondary)
+        .padding(.horizontal, NotchDesign.Spacing.xxSmall)
+        .frame(maxWidth: maxWidth, minHeight: NotchDesign.Control.minimumHit, alignment: .leading)
+        .contentShape(RoundedRectangle(cornerRadius: NotchDesign.Radius.control, style: .continuous))
+    }
+}
+
+/// A pull down: the shared face over the shared menu.
+struct NotchPullDown: View {
+    let title: String
+    let current: String
+    var maxWidth: CGFloat? = nil
+    var truncation: Text.TruncationMode = .tail
+    let items: [NotchMenuItem]
+
+    var body: some View {
+        NotchMenuButton(title: title, items: items) {
+            NotchPullDownFace(text: current, maxWidth: maxWidth, truncation: truncation)
+        }
+        .help(current)
+        .accessibilityValue(current)
+    }
+}
+
+/// The plain "···" of a more menu, at the icon button size.
+struct NotchMoreMenu: View {
+    let title: String
+    var symbol = "ellipsis"
+    var tint: Color = NotchDesign.Ink.secondary
+    let items: [NotchMenuItem]
+
+    var body: some View {
+        NotchMenuButton(title: title, items: items) {
+            Image(systemName: symbol)
+                .font(NotchDesign.Icon.button.font)
+                .foregroundStyle(tint)
+                .frame(width: NotchDesign.Control.iconButton, height: NotchDesign.Control.iconButton)
+                .contentShape(RoundedRectangle(cornerRadius: NotchDesign.Radius.control, style: .continuous))
+        }
+        .help(title)
+    }
+}
+
+/// A chooser whose current choice reads in full on the shared pull down face.
+/// `lines` and `alignment` stay for source compatibility; the face is one line.
 struct NotchDeviceMenu: View {
     let title: String
     let current: String
@@ -672,27 +733,7 @@ struct NotchDeviceMenu: View {
     let items: [NotchMenuItem]
 
     var body: some View {
-        NotchMenuButton(title: title, items: items) {
-            Text("\(current) \(Image(systemName: "chevron.down"))")
-                .font(NotchDesign.Typography.caption.font)
-                .lineLimit(lines)
-                .multilineTextAlignment(alignment)
-                .truncationMode(lines > 1 ? .tail : .middle)
-                .foregroundStyle(NotchDesign.Ink.secondary)
-                .frame(maxWidth: width, alignment: frameAlignment)
-                .padding(.horizontal, NotchDesign.Spacing.xxSmall)
-                .contentShape(RoundedRectangle(cornerRadius: NotchDesign.Radius.control, style: .continuous))
-        }
-        .help(current)
-        .accessibilityValue(current)
-    }
-
-    private var frameAlignment: Alignment {
-        switch alignment {
-        case .leading: return .leading
-        case .center: return .center
-        case .trailing: return .trailing
-        }
+        NotchPullDown(title: title, current: current, maxWidth: width, truncation: .middle, items: items)
     }
 }
 
@@ -702,13 +743,27 @@ final class NotchMenuAnchor: NSObject {
     fileprivate weak var view: NSView?
     private var actions: [() -> Void] = []
 
+    /// The app's own icon at menu size, nil when the app cannot be found.
+    static func icon(bundleIdentifier: String?) -> NSImage? {
+        guard let id = bundleIdentifier,
+              let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: id) else { return nil }
+        let image = NSWorkspace.shared.icon(forFile: url.path)
+        image.size = NSSize(width: 16, height: 16)
+        return image
+    }
+
+    /// The menu hangs under the control with its leading edge on the control's,
+    /// and swings to the trailing edge when the control sits in the island's
+    /// right half, so it never leaves the island.
     func popUp(_ items: [NotchMenuItem]) {
         guard let view else { return }
         actions = items.map(\.action)
         let menu = NSMenu()
         menu.autoenablesItems = false
+        menu.font = .systemFont(ofSize: 13)
         // The island is dark whatever the system is, so its menus are too.
         menu.appearance = NSAppearance(named: .darkAqua)
+        let symbolConfig = NSImage.SymbolConfiguration(pointSize: 13, weight: .regular)
         for (index, item) in items.enumerated() {
             guard !item.isSeparator else { menu.addItem(.separator()); continue }
             let entry = NSMenuItem(title: item.title, action: #selector(choose(_:)), keyEquivalent: "")
@@ -716,14 +771,25 @@ final class NotchMenuAnchor: NSObject {
             entry.tag = index
             entry.state = item.checked ? .on : .off
             entry.isEnabled = item.enabled
-            if let symbol = item.symbol {
-                entry.image = NSImage(systemSymbolName: symbol, accessibilityDescription: nil)
+            if let icon = item.icon {
+                entry.image = icon
+            } else if let symbol = item.symbol {
+                entry.image = NSImage(systemSymbolName: symbol, accessibilityDescription: nil)?
+                    .withSymbolConfiguration(symbolConfig)
+            }
+            if item.destructive {
+                entry.attributedTitle = NSAttributedString(string: item.title, attributes: [
+                    .foregroundColor: NSColor.systemRed, .font: NSFont.systemFont(ofSize: 13)])
             }
             menu.addItem(entry)
         }
+        var location = NSPoint(x: 0, y: view.isFlipped ? view.bounds.height : 0)
+        if let window = view.window {
+            let centre = view.convert(NSPoint(x: view.bounds.midX, y: 0), to: nil).x
+            if centre > window.frame.width / 2 { location.x = view.bounds.width - menu.size.width }
+        }
         // A menu whose top lands on the menu bar's edge opens scrolled past its
         // first entry, so a button against the bar opens it a little below.
-        var location = NSPoint.zero
         if let window = view.window, let screen = window.screen {
             let bottom = window.convertPoint(toScreen: view.convert(location, to: nil)).y
             let edge = screen.visibleFrame.maxY - 3

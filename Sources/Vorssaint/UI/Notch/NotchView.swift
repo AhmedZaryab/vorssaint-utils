@@ -476,12 +476,8 @@ struct NotchView: View {
     /// A native menu drawn in the island's dark appearance, so it reads as part
     /// of it, and each entry carries its glyph.
     private func overflowMenu(items: [NotchMenuItem]) -> some View {
-        NotchMenuButton(title: text.title, items: items, cornerRadius: NotchDesign.Radius.control) {
-            Image(systemName: service.pinned ? "pin.fill" : "ellipsis")
-                .font(NotchDesign.Icon.button.font)
-                .frame(width: NotchDesign.Control.iconButton, height: NotchDesign.Control.iconButton)
-                .contentShape(RoundedRectangle(cornerRadius: NotchDesign.Radius.control, style: .continuous))
-        }
+        NotchMoreMenu(title: text.title, symbol: service.pinned ? "pin.fill" : "ellipsis",
+                      tint: NotchDesign.Ink.primary, items: items)
     }
 
     /// The header's actions keep their room but stay out of sight until the
@@ -880,21 +876,18 @@ struct NotchActivityPicker: View {
         VStack(spacing: NotchActivityPickerLayout.spacing) {
             individualChoices
             if !combinations.isEmpty {
-                Menu {
-                    ForEach(combinations) { pair in
-                        Button { combine(pair) } label: {
-                            Label(pair.title(language),
-                                  systemImage: combination == pair ? "checkmark" : pair.companion.symbol)
-                        }
-                    }
-                } label: {
+                NotchMenuButton(title: FeatureStrings.notch(language).combineActivities,
+                                items: combinations.map { pair in
+                    NotchMenuItem(title: pair.title(language), checked: combination == pair,
+                                  symbol: pair.companion.symbol) { combine(pair) }
+                }) {
                     Label(combination?.title(language) ?? FeatureStrings.notch(language).combineActivities,
                           systemImage: combination == nil ? "plus" : "checkmark")
                         .font(NotchDesign.Typography.label.font)
                         .foregroundStyle(combination == nil ? NotchDesign.Ink.secondary : NotchDesign.Ink.primary)
                         .frame(height: NotchActivityPickerLayout.combinationHeight)
+                        .contentShape(Rectangle())
                 }
-                .menuStyle(.borderlessButton)
                 .fixedSize()
                 .accessibilityIdentifier("notch.activity.combine")
             }

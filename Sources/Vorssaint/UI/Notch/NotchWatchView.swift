@@ -138,15 +138,7 @@ private struct NotchWatchAreaCard: View {
             NotchMenuItem(title: line, checked: watch.headlineLine == index) { watch.setHeadlineLine(index) }
         }
         return NotchMenuButton(title: text.inIsland, items: items, cornerRadius: NotchDesign.Radius.control) {
-            HStack(spacing: NotchDesign.Spacing.xxSmall) {
-                Text(watch.headline.isEmpty ? text.noText : watch.headline)
-                    .font(NotchDesign.Typography.title.font)
-                    .monospacedDigit().lineLimit(1)
-                Image(systemName: "chevron.down").font(NotchDesign.Typography.caption.font)
-                    .foregroundStyle(NotchDesign.Ink.secondary)
-            }
-            .padding(.horizontal, NotchDesign.Spacing.xxSmall)
-            .frame(height: NotchDesign.Control.rowHeight)
+            NotchPullDownFace(text: watch.headline.isEmpty ? text.noText : watch.headline)
         }
         .fixedSize()
         .help(text.inIsland)
@@ -226,14 +218,7 @@ private struct NotchWatchRuleRow: View {
                     NotchMenuItem(title: text.condition(condition), checked: condition == watch.condition,
                                   symbol: condition.symbol) { watch.setCondition(condition) }
                 }, cornerRadius: NotchDesign.Radius.control) {
-                    HStack(spacing: NotchDesign.Spacing.xxSmall) {
-                        Image(systemName: watch.condition.symbol)
-                        Text(text.condition(watch.condition))
-                        Image(systemName: "chevron.down").foregroundStyle(NotchDesign.Ink.secondary)
-                    }
-                    .font(NotchDesign.Typography.callout.font)
-                    .padding(.horizontal, NotchDesign.Spacing.small)
-                    .frame(height: NotchDesign.Control.rowHeight)
+                    NotchPullDownFace(text: text.condition(watch.condition))
                 }
                 .fixedSize()
                 if watch.condition == .contains || watch.condition == .reaches {

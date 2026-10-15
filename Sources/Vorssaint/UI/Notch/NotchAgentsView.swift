@@ -412,15 +412,9 @@ private struct NotchAgentSpendCard: View {
     }
 
     private var periodMenu: some View {
-        NotchMenuButton(title: text.period(chosen), items: AgentPeriod.allCases.map { option in
+        NotchPullDown(title: text.period(chosen), current: text.period(chosen), items: AgentPeriod.allCases.map { option in
             NotchMenuItem(title: text.period(option), checked: option == chosen) { period = option.rawValue }
-        }) {
-            Text("\(text.period(chosen)) \(Image(systemName: "chevron.down"))")
-                .font(Design.Typography.caption.font)
-                .foregroundStyle(Design.Ink.secondary)
-                .padding(.horizontal, Design.Spacing.xxSmall)
-                .agentHitTarget(drawnHeight: 17)
-        }
+        })
     }
 
     /// Thirty days of API value against a plan's monthly price.
