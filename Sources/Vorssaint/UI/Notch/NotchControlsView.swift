@@ -565,7 +565,16 @@ enum NotchTileAccent {
         }
     }
 
-    var glyph: Color { Design.Ink.primary }
+    /// Ink on the filled circle. Stands in for `Design.Ink.onFill(_:)` (the tokens run):
+    /// white unless it falls under 4.5:1 on the person's accent or the signal red, then `Ink.onInverse`.
+    var glyph: Color {
+        let base: NSColor = self == .alert ? .systemRed : .controlAccentColor
+        guard let c = base.usingColorSpace(.sRGB) else { return Design.Ink.primary }
+        func lin(_ v: CGFloat) -> CGFloat { v <= 0.03928 ? v / 12.92 : pow((v + 0.055) / 1.055, 2.4) }
+        let l = 0.2126 * lin(c.redComponent) + 0.7152 * lin(c.greenComponent) + 0.0722 * lin(c.blueComponent)
+        let ratio = 1.05 / (l + 0.05)
+        return ratio >= 4.5 ? Design.Ink.primary : Design.Ink.onInverse
+    }
 }
 
 /// The group inside a tile: circle, gap, two reserved label lines, with equal
@@ -578,7 +587,7 @@ private enum NotchActionTileMetrics {
 /// rail in the island shares. A live reading, such as a running timer's
 /// clock, takes the first line and leaves the title one line below it.
 /// The whole tile presses (`NotchPressStyle`); a tile that holds a state
-/// fills its circle on `Motion.snappy` and pulses once, as `NotchToggleStyle` does.
+/// fills its circle on `Motion.snappy`; the press is `NotchPressStyle`'s alone.
 struct NotchActionTile: View {
     let symbol: String
     let title: String
@@ -592,6 +601,7 @@ struct NotchActionTile: View {
     var accent: NotchTileAccent = .selection
     let action: () -> Void
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.colorSchemeContrast) private var contrast
     var body: some View {
         Button(action: action) {
             VStack(spacing: Design.Spacing.xSmall) {
@@ -601,13 +611,12 @@ struct NotchActionTile: View {
                     .animation(reduceMotion ? Design.Motion.fade : Design.Motion.snappy.animation, value: symbol)
                     .frame(width: Design.Control.tileGlyph, height: Design.Control.tileGlyph)
                     .background(active ? accent.fill : Design.Fill.control, in: Circle())
-                    .animation(reduceMotion ? Design.Motion.fade : Design.Motion.snappy.animation, value: active)
-                    .keyframeAnimator(initialValue: CGFloat(1), trigger: reduceMotion ? false : active) { view, scale in
-                        view.scaleEffect(scale)
-                    } keyframes: { _ in
-                        SpringKeyframe(NotchInteractionMetrics.togglePulse, duration: 0.09, spring: Spring(duration: 0.09, bounce: 0))
-                        SpringKeyframe(1, duration: 0.18, spring: Spring(duration: 0.18, bounce: 0))
+                    .overlay {
+                        if contrast == .increased {
+                            Circle().strokeBorder(Design.Stroke.increasedContrast, lineWidth: Design.Stroke.increasedContrastWidth)
+                        }
                     }
+                    .animation(reduceMotion ? Design.Motion.fade : Design.Motion.snappy.animation, value: active)
                 label
                     .frame(maxWidth: .infinity)
                     .frame(height: NotchActionTileMetrics.labelBlock, alignment: .top)
@@ -635,7 +644,7 @@ struct NotchActionTile: View {
                 Text(reading).font(Design.Typography.readout.font).monospacedDigit()
                     .foregroundStyle(Design.Ink.primary)
                     .allowsTightening(true)
-                    .minimumScaleFactor(0.7)
+                    .minimumScaleFactor(Design.SpecTime.scale(Design.Typography.readout, preferred: 0.7))
                     .modifier(NotchRollingDigits(value: reading, countsDown: readingCountsDown))
                 ViewThatFits(in: .horizontal) {
                     readingTitle(title)
@@ -643,12 +652,12 @@ struct NotchActionTile: View {
                 }
             }
             .lineLimit(1)
-            .minimumScaleFactor(0.85)
+            .minimumScaleFactor(Design.SpecTime.scale(Design.Typography.label, preferred: 0.85))
         } else {
             Text(title).font(Design.Typography.label.font)
                 .foregroundStyle(Design.Ink.primary)
                 .lineLimit(2).multilineTextAlignment(.center)
-                .minimumScaleFactor(0.85)
+                .minimumScaleFactor(Design.SpecTime.scale(Design.Typography.label, preferred: 0.85))
                 .fixedSize(horizontal: false, vertical: true)
         }
     }

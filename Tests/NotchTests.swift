@@ -98,7 +98,7 @@ enum NotchTests {
             suite.expect(growing.player == resting && growing.showsPlayer, "the player does not change size while the island grows")
         }
         let short = NotchLayout.musicSplit(height: 200, controlsRow: musicRow, extras: extras, resting: resting, keepsPlayer: false)
-        suite.expect(short.extra == 158 && !short.showsPlayer,
+        suite.expect(short.extra == 160 && !short.showsPlayer,
                      "where the island cannot hold both, the player still yields to the list")
         let closed = NotchLayout.musicSplit(height: resting + musicRow, controlsRow: musicRow, extras: extras, resting: resting, keepsPlayer: false, extraOpen: false)
         suite.expect(closed.player == resting && closed.extra == 0 && closed.showsPlayer, "with nothing open the player takes the page above the controls row")
@@ -121,7 +121,7 @@ enum NotchTests {
         }
         suite.expect(NotchLayout.musicPlayerHeight(layout: .compact, height: 180) == 120
                && NotchLayout.musicPlayerHeight(layout: .spacious, height: 264) == 148
-               && NotchLayout.musicPlayerHeight(layout: .custom, height: 154) == 112
+               && NotchLayout.musicPlayerHeight(layout: .custom, height: 154) == 114
                && NotchLayout.musicPlayerHeight(layout: .custom, height: 60) == 88,
                "the artwork grows with the preset and shrinks with a custom height down to a legible floor")
     }

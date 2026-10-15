@@ -58,8 +58,6 @@ enum NotchInteractionMetrics {
     static let rubberbandConstant = Double(Design.Interaction.rubberband)
 
     // Toggle.
-    /// No longer read by the library. NotchControlsView's tile still reads it until its run removes the pulse; delete then.
-    static let togglePulse: CGFloat = 1.06
     static let toggleFill = snappy
     static let symbolMorph = snappy
     /// The default glyph of a toggle and a commit's text style when a caller names no size.
