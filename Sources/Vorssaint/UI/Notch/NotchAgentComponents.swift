@@ -24,44 +24,74 @@ func agentLimitTint(_ provider: AgentProvider, usedFraction: Double) -> Color {
     return provider.tint
 }
 
-/// A card on the AI page: the same surface as the island's system cards.
+private typealias Design = NotchDesign
+
+extension NotchDesign {
+    /// Values only the AI page needs. Each has one reason; everything else is composed from the shared tokens.
+    enum Agents {
+        /** Card inset top and bottom: the fixed 96 pt card heights live in NotchAgentSupport, so the 12 pt inset would crowd two meter rows. */ static let cardVerticalInset = Spacing.small
+        /** The pace tick on a meter: thin enough to read as a mark, not a segment. */ static let paceTickWidth: CGFloat = 1.5
+        /** How far the pace tick stands past the meter, in total, so it reads on a 4 pt bar. */ static let paceTickOverhang: CGFloat = 4
+        /** The closed-island ring is 20 pt across, so a meter's 4 pt stroke would swallow it. */ static let ringLine: CGFloat = 2.5
+        /** The share bar beside a model or project name. */ static let shareBarWidth: CGFloat = 44
+        /** A heatmap cell from quiet to busy, as Opacity tokens, so the busiest day is full white. */ static let heatLevels: [Double] = [Opacity.tertiary, Opacity.disabled, Opacity.secondary, Opacity.primary]
+    }
+}
+
+extension View {
+    /// Grows the hit area to the 28 pt minimum without changing the layout, for a control drawn smaller in a tight row.
+    func agentHitTarget(drawnHeight: CGFloat) -> some View {
+        let extra = max(0, (Design.Control.minimumHit - drawnHeight) / 2)
+        return padding(.vertical, extra).contentShape(Rectangle()).padding(.vertical, -extra)
+    }
+}
+
+/// A card on the AI page: Fill.card on the island's black, no edge; Increase Contrast adds the 1 pt edge.
 struct NotchAgentCardChrome<Content: View>: View {
     @ViewBuilder let content: Content
+    @Environment(\.colorSchemeContrast) private var contrast
 
     var body: some View {
+        let shape = RoundedRectangle(cornerRadius: Design.Radius.card, style: .continuous)
         content
-            .padding(.horizontal, 12)
-            .padding(.vertical, 10)
+            .padding(.horizontal, Design.Spacing.cardPadding)
+            .padding(.vertical, Design.Agents.cardVerticalInset)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            .modifier(NotchControlSurface(cornerRadius: 18, interactive: false))
+            .background(Design.Fill.card, in: shape)
+            .overlay {
+                if contrast == .increased {
+                    shape.strokeBorder(Design.Stroke.increasedContrast, lineWidth: Design.Stroke.increasedContrastWidth)
+                        .allowsHitTesting(false)
+                }
+            }
     }
 }
 
 struct NotchAgentCardHeader<Accessory: View>: View {
     let title: String
     let symbol: String
-    var tint: Color = .secondary
+    var tint: Color = Design.Ink.secondary
     /// A card about one agent wears its mark instead of the symbol.
     var provider: AgentProvider? = nil
     @ViewBuilder var accessory: Accessory
 
     var body: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: Design.Spacing.xSmall) {
             if let provider {
                 // A mark is finer than a symbol and needs more room to read.
                 NotchAgentMark(provider: provider, size: 13, tint: tint)
                     .frame(width: 17, height: 17)
             } else {
                 Image(systemName: symbol)
-                    .font(.system(size: 10, weight: .semibold))
+                    .font(Design.Icon.button.font)
                     .foregroundStyle(tint)
-                    .frame(width: 13)
+                    .frame(width: 17)
             }
             Text(title)
-                .font(.system(size: 10.5, weight: .semibold))
-                .foregroundStyle(.white.opacity(0.9))
+                .font(Design.Typography.label.font)
+                .foregroundStyle(Design.Ink.primary)
                 .lineLimit(1)
-            Spacer(minLength: 4)
+            Spacer(minLength: Design.Spacing.xxSmall)
             accessory
         }
         .frame(height: 17)
@@ -69,38 +99,43 @@ struct NotchAgentCardHeader<Accessory: View>: View {
 }
 
 extension NotchAgentCardHeader where Accessory == EmptyView {
-    init(title: String, symbol: String, tint: Color = .secondary) {
+    init(title: String, symbol: String, tint: Color = Design.Ink.secondary) {
         self.init(title: title, symbol: symbol, tint: tint) { EmptyView() }
     }
 }
 
 /// A capsule meter with a tick where spending would be if it were spread
-/// evenly across the window: a fill past the tick is ahead of pace.
+/// evenly across the window: a fill past the tick is ahead of pace. The
+/// provider tint is on the fill only.
 struct NotchAgentMeter: View {
     let value: Double
     var pace: Double?
-    var tint: Color = .white
-    var height: CGFloat = 5
+    var tint: Color = Design.Ink.primary
+    var height: CGFloat = Design.Control.meter
     var dimmed = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         let fraction = value.isFinite ? min(1, max(0, value)) : 0
+        let overhang = Design.Agents.paceTickOverhang
         GeometryReader { proxy in
             ZStack(alignment: .leading) {
-                Capsule(style: .continuous).fill(.white.opacity(0.13))
+                Capsule(style: .continuous).fill(Design.Fill.track)
+                    .frame(height: height)
                 Capsule(style: .continuous)
-                    .fill(tint.opacity(dimmed ? 0.45 : 0.92))
-                    .frame(width: max(fraction > 0 ? height : 0, proxy.size.width * fraction))
+                    .fill(tint.opacity(dimmed ? Design.Opacity.disabled : Design.Opacity.primary))
+                    .frame(width: max(fraction > 0 ? height : 0, proxy.size.width * fraction), height: height)
                 if let pace, pace.isFinite, pace > 0.02, pace < 0.98 {
-                    RoundedRectangle(cornerRadius: 0.75)
-                        .fill(.white.opacity(0.85))
-                        .frame(width: 1.5, height: height + 5)
-                        .offset(x: proxy.size.width * pace - 0.75)
+                    Capsule(style: .continuous)
+                        .fill(Design.Ink.primary)
+                        .frame(width: Design.Agents.paceTickWidth, height: height + overhang)
+                        .offset(x: proxy.size.width * pace - Design.Agents.paceTickWidth / 2)
                 }
             }
-            .frame(height: proxy.size.height)
+            .frame(height: proxy.size.height, alignment: .center)
+            .animation(Design.Motion.animation(Design.Motion.smooth, reduceMotion: reduceMotion), value: fraction)
         }
-        .frame(height: height + 5)
+        .frame(height: height + overhang)
         .accessibilityHidden(true)
     }
 }
@@ -108,13 +143,13 @@ struct NotchAgentMeter: View {
 /// A small ring for the closed island, filled by what is left.
 struct NotchAgentRing: View {
     let value: Double
-    var tint: Color = .white
-    var lineWidth: CGFloat = 2.5
+    var tint: Color = Design.Ink.primary
+    var lineWidth: CGFloat = Design.Agents.ringLine
 
     var body: some View {
         let fraction = value.isFinite ? min(1, max(0, value)) : 0
         ZStack {
-            Circle().stroke(.white.opacity(0.18), lineWidth: lineWidth)
+            Circle().stroke(Design.Fill.track, lineWidth: lineWidth)
             Circle()
                 .trim(from: 0, to: fraction)
                 .stroke(tint, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
@@ -212,7 +247,7 @@ struct NotchAgentBars: View {
         let peak = max(values.map { $0.reduce(0, +) }.max() ?? 0, .leastNonzeroMagnitude)
         GeometryReader { proxy in
             let count = CGFloat(max(1, buckets.count))
-            let gap: CGFloat = count > 24 ? 2 : 4
+            let gap: CGFloat = count > 24 ? Design.Spacing.line : Design.Spacing.xxSmall
             let width = max(1, (proxy.size.width - gap * (count - 1)) / count)
             HStack(alignment: .bottom, spacing: gap) {
                 ForEach(Array(buckets.enumerated()), id: \.element.id) { index, bucket in
@@ -221,18 +256,18 @@ struct NotchAgentBars: View {
                     VStack(spacing: 0) {
                         Spacer(minLength: 0)
                         if total <= 0 {
-                            Capsule().fill(.white.opacity(0.1)).frame(height: 2)
+                            Capsule().fill(Design.Fill.control).frame(height: Design.Spacing.line)
                         } else {
                             VStack(spacing: 0) {
                                 ForEach(providers.indices.reversed(), id: \.self) { slot in
                                     if parts[slot] > 0 {
                                         Rectangle()
-                                            .fill(providers[slot].tint.opacity(hovered == nil || hovered == bucket.start ? 0.95 : 0.5))
+                                            .fill(providers[slot].tint.opacity(hovered == nil || hovered == bucket.start ? Design.Opacity.primary : Design.Opacity.secondary))
                                             .frame(height: max(1, proxy.size.height * parts[slot] / peak))
                                     }
                                 }
                             }
-                            .clipShape(RoundedRectangle(cornerRadius: min(3, width / 2), style: .continuous))
+                            .clipShape(RoundedRectangle(cornerRadius: min(Design.Radius.small, width / 2), style: .continuous))
                         }
                     }
                     .frame(width: width, height: proxy.size.height)
@@ -253,7 +288,7 @@ struct NotchAgentHeatmap: View {
     let byCost: Bool
     @Binding var hovered: Date?
     var calendar: Calendar = .autoupdatingCurrent
-    static let spacing: CGFloat = 2.5
+    static let spacing: CGFloat = Design.Spacing.line
 
     /// Square cells as tall as seven rows allow, across every week shown.
     static func width(height: CGFloat, days: [AgentBucket], calendar: Calendar = .autoupdatingCurrent) -> CGFloat {
@@ -275,12 +310,13 @@ struct NotchAgentHeatmap: View {
                         ForEach(0..<7, id: \.self) { row in
                             if let day = week[row] {
                                 let value = day.total.weight(byCost: byCost)
-                                RoundedRectangle(cornerRadius: min(2.5, cell / 3), style: .continuous)
-                                    .fill(.white.opacity(opacity(value, levels: levels)))
+                                RoundedRectangle(cornerRadius: min(Design.Radius.small, cell / 3), style: .continuous)
+                                    .fill(value > 0 ? Design.Ink.primary.opacity(opacity(value, levels: levels)) : Design.Fill.control)
                                     .overlay {
                                         if hovered == day.start || calendar.isDateInToday(day.start) {
-                                            RoundedRectangle(cornerRadius: min(2.5, cell / 3), style: .continuous)
-                                                .strokeBorder(.white.opacity(hovered == day.start ? 0.9 : 0.45), lineWidth: 1)
+                                            RoundedRectangle(cornerRadius: min(Design.Radius.small, cell / 3), style: .continuous)
+                                                .strokeBorder(hovered == day.start ? Design.Ink.primary : Design.Stroke.increasedContrast,
+                                                              lineWidth: Design.Stroke.increasedContrastWidth)
                                         }
                                     }
                                     .frame(width: cell, height: cell)
@@ -324,9 +360,8 @@ struct NotchAgentHeatmap: View {
     }
 
     private func opacity(_ value: Double, levels: [Double]) -> Double {
-        guard value > 0 else { return 0.07 }
         let level = levels.filter { value > $0 }.count
-        return [0.28, 0.45, 0.65, 0.9][min(3, level)]
+        return Design.Agents.heatLevels[min(3, level)]
     }
 }
 
