@@ -328,29 +328,25 @@ struct NotchMusicView: View {
         let name = service.sources.first(where: { $0.pid == pid })?.displayName
             ?? pid.flatMap { NSRunningApplication(processIdentifier: $0)?.localizedName }
             ?? playback?.track.appBundleIdentifier ?? extras.playbackSource
-        return Menu {
-            Button { service.selectSource(nil) } label: {
-                if service.sourceIsAutomatic { Label(extras.automaticSource, systemImage: "checkmark") }
-                else { Text(extras.automaticSource) }
-            }
-            Divider()
-            ForEach(service.sources, id: \.pid) { source in
-                let title = source.displayName ?? NSRunningApplication(processIdentifier: source.pid)?.localizedName ?? source.bundleIdentifier
-                Button { service.selectSource(source.selection) } label: {
-                    // The chosen row, even while the automatic player fills its gap.
-                    if source.pid == service.selectedSourcePID {
-                        Label(title, systemImage: "checkmark")
-                    } else { Text(title) }
-                }
-            }
-        } label: {
-            Text(name).lineLimit(1).truncationMode(.tail)
-                .font(NotchDesign.Typography.callout.font)
-                .foregroundStyle(NotchDesign.Ink.secondary)
+        var items = [NotchSourceMenuItem(title: extras.automaticSource, checked: service.sourceIsAutomatic,
+                                         action: { service.selectSource(nil) }), .separator]
+        for source in service.sources {
+            let title = source.displayName ?? NSRunningApplication(processIdentifier: source.pid)?.localizedName ?? source.bundleIdentifier
+            // The chosen row, even while the automatic player fills its gap.
+            items.append(NotchSourceMenuItem(title: title, checked: source.pid == service.selectedSourcePID,
+                                             icon: NotchSourceMenuAnchor.icon(bundleIdentifier: source.bundleIdentifier),
+                                             action: { service.selectSource(source.selection) }))
         }
-        .menuStyle(.borderlessButton)
-        .frame(maxWidth: 110)
-        .fixedSize()
+        return NotchSourceMenuButton(items: items) {
+            HStack(spacing: NotchDesign.Spacing.xxSmall) {
+                Text(name).lineLimit(1).truncationMode(.tail)
+                    .font(NotchDesign.Typography.callout.font)
+                Image(systemName: "chevron.down").font(NotchDesign.Icon.strip.font)
+            }
+            .foregroundStyle(NotchDesign.Ink.secondary)
+            .frame(maxWidth: 140, minHeight: NotchDesign.Control.minimumHit)
+            .contentShape(Rectangle())
+        }
         .accessibilityLabel(extras.playbackSource)
         .accessibilityValue([service.sourceIsAutomatic ? extras.automaticSource : nil,
                              playback == nil ? nil : name].compactMap { $0 }.joined(separator: ", "))
@@ -687,4 +683,86 @@ struct NotchMusicControlsView: View {
         .modifier(NotchControlSurface(cornerRadius: NotchDesign.Radius.card))
         .onAppear { if !preview { music.refreshAutomation() } }
     }
+}
+
+private struct NotchSourceMenuItem {
+    let title: String
+    var checked = false
+    var icon: NSImage? = nil
+    var action: () -> Void = {}
+    static let separator = NotchSourceMenuItem(title: "")
+    var isSeparator: Bool { title.isEmpty }
+}
+
+/// A pull-down for the playback source: the menu hangs under the button with
+/// its leading edge on the button's, and swings to the trailing edge when the
+/// button sits in the island's right half, so it never leaves the island.
+/// NotchMenuAnchor cannot place a menu sideways or carry app icons, hence this.
+private struct NotchSourceMenuButton<Label: View>: View {
+    let items: [NotchSourceMenuItem]
+    @ViewBuilder let label: () -> Label
+    @State private var anchor = NotchSourceMenuAnchor()
+
+    var body: some View {
+        Button { anchor.popUp(items) } label: { label() }
+            .buttonStyle(NotchPressStyle(shape: .rounded(NotchDesign.Radius.control), lifts: false))
+            .background(NotchSourceMenuAnchorView(anchor: anchor))
+    }
+}
+
+private final class NotchSourceMenuAnchor: NSObject {
+    weak var view: NSView?
+    private var actions: [() -> Void] = []
+
+    /// The app's own icon at menu size, nil when the app cannot be found.
+    static func icon(bundleIdentifier: String?) -> NSImage? {
+        guard let id = bundleIdentifier,
+              let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: id) else { return nil }
+        let image = NSWorkspace.shared.icon(forFile: url.path)
+        image.size = NSSize(width: 16, height: 16)
+        return image
+    }
+
+    func popUp(_ items: [NotchSourceMenuItem]) {
+        guard let view else { return }
+        actions = items.map(\.action)
+        let menu = NSMenu()
+        menu.autoenablesItems = false
+        menu.font = .systemFont(ofSize: 13)
+        // The island is dark whatever the system is, so its menus are too.
+        menu.appearance = NSAppearance(named: .darkAqua)
+        for (index, item) in items.enumerated() {
+            guard !item.isSeparator else { menu.addItem(.separator()); continue }
+            let entry = NSMenuItem(title: item.title, action: #selector(choose(_:)), keyEquivalent: "")
+            entry.target = self
+            entry.tag = index
+            entry.state = item.checked ? .on : .off
+            entry.image = item.icon
+            menu.addItem(entry)
+        }
+        var x: CGFloat = 0
+        if let window = view.window {
+            let centre = view.convert(NSPoint(x: view.bounds.midX, y: 0), to: nil).x
+            if centre > window.frame.width / 2 { x = view.bounds.width - menu.size.width }
+        }
+        // The view is not flipped: y 0 is its bottom edge, so the menu opens under it.
+        menu.popUp(positioning: nil, at: NSPoint(x: x, y: view.isFlipped ? view.bounds.height : 0), in: view)
+    }
+
+    @objc private func choose(_ sender: NSMenuItem) {
+        guard actions.indices.contains(sender.tag) else { return }
+        actions[sender.tag]()
+    }
+}
+
+private struct NotchSourceMenuAnchorView: NSViewRepresentable {
+    let anchor: NotchSourceMenuAnchor
+
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView()
+        anchor.view = view
+        return view
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) { anchor.view = nsView }
 }
