@@ -248,3 +248,28 @@ struct NotchSlingTracker {
 
     func release() -> Release { !moved ? .tap : armed ? .fire : .cancel }
 }
+
+/// Every fuse in the island that is burning, so Escape can blow them out
+/// before the island's own Escape handling steps back or closes. A notch
+/// panel button rarely holds keyboard focus, so the key never reaches the
+/// button's own exit command; the island's key monitor asks here first.
+@MainActor
+enum NotchFuseRegistry {
+    private static var burning: [ObjectIdentifier: () -> Bool] = [:]
+
+    static func add(_ owner: AnyObject, cancel: @escaping () -> Bool) {
+        burning[ObjectIdentifier(owner)] = cancel
+    }
+
+    static func remove(_ owner: AnyObject) {
+        burning[ObjectIdentifier(owner)] = nil
+    }
+
+    /// Blows out every burning fuse. True when any was, and the key is consumed.
+    static func escape() -> Bool {
+        let cancels = Array(burning.values)
+        var consumed = false
+        for cancel in cancels where cancel() { consumed = true }
+        return consumed
+    }
+}

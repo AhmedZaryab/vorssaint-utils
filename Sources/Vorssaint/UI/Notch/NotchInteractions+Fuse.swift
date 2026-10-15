@@ -22,14 +22,17 @@ final class NotchFuseController: ObservableObject {
     private var clock = NotchFuseClock(duration: 0)
     private var timer: Task<Void, Never>?
     private var commit: (() -> Void)?
+    private var onBlowOut: (() -> Void)?
 
     private static var now: TimeInterval { ProcessInfo.processInfo.systemUptime }
 
     func remaining() -> TimeInterval { clock.remaining(at: Self.now) }
     func fraction() -> Double { clock.fraction(at: Self.now) }
 
-    func light(duration: TimeInterval, onCommit: @escaping () -> Void) {
+    func light(duration: TimeInterval, onBlowOut: (() -> Void)? = nil, onCommit: @escaping () -> Void) {
         guard !burning else { return }
+        self.onBlowOut = onBlowOut
+        NotchFuseRegistry.add(self) { [weak self] in self?.escape() ?? false }
         clock = NotchFuseClock(duration: duration)
         clock.light(at: Self.now)
         commit = onCommit
@@ -61,6 +64,14 @@ final class NotchFuseController: ObservableObject {
         }
     }
 
+    /// Escape from the island's key monitor: blows the fuse out and runs the
+    /// button's undo handling. True when it did, so the key is consumed.
+    private func escape() -> Bool {
+        guard blowOut() else { return false }
+        onBlowOut?()
+        return true
+    }
+
     /// True when this blew the fuse out. One that has just burnt down commits
     /// instead, so the clock alone decides.
     func blowOut() -> Bool {
@@ -72,6 +83,7 @@ final class NotchFuseController: ObservableObject {
         timer = nil
         commit = nil
         burning = false
+        NotchFuseRegistry.remove(self)
         return true
     }
 
@@ -80,12 +92,14 @@ final class NotchFuseController: ObservableObject {
         case .burning: return false
         case .idle:
             burning = false
+            NotchFuseRegistry.remove(self)
             return true
         case .committed:
             let action = commit
             commit = nil
             timer = nil
             burning = false
+            NotchFuseRegistry.remove(self)
             commits += 1
             action?()
             return true
@@ -207,7 +221,11 @@ struct NotchFuseButton: View {
         mayHold = false
         let done = doneAnnouncement ?? l10n.s.mediaCompleted
         let commit = onCommit
-        fuse.light(duration: fuseDuration) {
+        let undone = onUndo
+        fuse.light(duration: fuseDuration, onBlowOut: {
+            undone?()
+            AccessibilityNotification.Announcement(title).post()
+        }) {
             commit()
             AccessibilityNotification.Announcement(done).post()
         }
