@@ -50,14 +50,26 @@ struct NotchTimerRuler: NSViewRepresentable {
 }
 
 final class NotchTimerRulerControl: NSSlider {
+    private typealias Design = NotchDesign
+    private static let spacing = NotchTimerRulerScale.spacing
+    /// How far a flick carries after release: the velocity projected over a short, fixed coast.
+    private static let coast = 0.1
+
     var increasedContrast = false
     var durationLocale = Locale.current
-    private var drag: (x: CGFloat, value: Double)?
+    /// The drag as it is: the pointer's x, the raw (unclamped) value under it and the velocity in minutes per second.
+    private var drag: (x: CGFloat, raw: Double, time: TimeInterval, velocity: Double)?
     private var didDrag = false
     private var showsKeyboardFocus = false
     private var scrollValue: Double?
+    /// What the ruler draws: continuous, so a drag moves the ticks 1:1 with the pointer.
+    /// Past either end it sits a little beyond the range, the rubberband.
+    private var position = 1.0
+    private var spring: (timer: Timer, start: TimeInterval, from: Double, target: Double, velocity: Double)?
     override var isFlipped: Bool { true }
     override var acceptsFirstResponder: Bool { isEnabled }
+
+    deinit { spring?.timer.invalidate() }
 
     func synchronize(minutes: Int) {
         let bounded = NotchTimerRulerScale.minute(Double(minutes))
@@ -65,6 +77,13 @@ final class NotchTimerRulerControl: NSSlider {
         integerValue = bounded
         drag = nil
         scrollValue = nil
+        stopSettling()
+        position = Double(bounded)
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        if window == nil { stopSettling(); position = Double(integerValue) }
     }
 
     override func mouseDown(with event: NSEvent) {
@@ -72,7 +91,8 @@ final class NotchTimerRulerControl: NSSlider {
         window?.makeFirstResponder(self)
         showsKeyboardFocus = false
         needsDisplay = true
-        drag = (convert(event.locationInWindow, from: nil).x, doubleValue)
+        stopSettling()
+        drag = (convert(event.locationInWindow, from: nil).x, position, event.timestamp, 0)
         scrollValue = nil
         didDrag = false
     }
@@ -80,32 +100,46 @@ final class NotchTimerRulerControl: NSSlider {
     override func mouseDragged(with event: NSEvent) {
         guard isEnabled, let previous = drag else { return }
         let x = convert(event.locationInWindow, from: nil).x
-        let value = NotchTimerRulerScale.moving(previous.value, by: Double(x - previous.x))
-        drag = (x, value)
+        let raw = previous.raw - Double(x - previous.x) / Self.spacing
+        let elapsed = max(0.001, event.timestamp - previous.time)
+        let instant = (raw - previous.raw) / elapsed
+        drag = (x, raw, event.timestamp, previous.velocity * 0.6 + instant * 0.4)
         didDrag = true
-        select(value)
+        position = stretched(raw)
+        select(raw)
+        needsDisplay = true
     }
 
     override func mouseUp(with event: NSEvent) {
-        guard isEnabled, drag != nil else { drag = nil; return }
-        if !didDrag {
-            let offset = convert(event.locationInWindow, from: nil).x - bounds.midX
-            select(NotchTimerRulerScale.moving(doubleValue, by: -Double(offset)))
-        }
+        guard isEnabled, let finished = drag else { drag = nil; return }
         drag = nil
+        if didDrag {
+            // A flick that sat still before release carries nothing.
+            let stale = event.timestamp - finished.time > 0.08
+            release(from: finished.raw, velocity: stale ? 0 : finished.velocity)
+        } else {
+            let offset = convert(event.locationInWindow, from: nil).x - bounds.midX
+            settle(to: Double(NotchTimerRulerScale.minute(position + Double(offset) / Self.spacing)), velocity: 0)
+        }
     }
 
     override func scrollWheel(with event: NSEvent) {
         guard isEnabled, drag == nil else { return }
+        stopSettling()
         if event.phase.contains(.began) { scrollValue = nil }
         let delta = abs(event.scrollingDeltaX) > abs(event.scrollingDeltaY)
             ? event.scrollingDeltaX : event.scrollingDeltaY
-        let points = Double(delta) * (event.hasPreciseScrollingDeltas ? 1 : NotchTimerRulerScale.spacing)
-        let value = NotchTimerRulerScale.moving(scrollValue ?? doubleValue, by: points)
+        let points = Double(delta) * (event.hasPreciseScrollingDeltas ? 1 : Self.spacing)
+        let value = NotchTimerRulerScale.moving(scrollValue ?? position, by: points)
         scrollValue = value
+        position = value
         select(value)
+        needsDisplay = true
         if !event.hasPreciseScrollingDeltas || event.phase.contains(.ended) || event.phase.contains(.cancelled)
-            || event.momentumPhase.contains(.ended) { scrollValue = nil }
+            || event.momentumPhase.contains(.ended) {
+            scrollValue = nil
+            settle(to: Double(NotchTimerRulerScale.minute(value)), velocity: 0)
+        }
     }
 
     override func keyDown(with event: NSEvent) {
@@ -116,10 +150,10 @@ final class NotchTimerRulerControl: NSSlider {
         showsKeyboardFocus = true
         needsDisplay = true
         switch event.keyCode {
-        case 123, 125: select(doubleValue - 1)
-        case 124, 126: select(doubleValue + 1)
-        case 115: select(minValue)
-        case 119: select(maxValue)
+        case 123, 125: jump(to: position - 1)
+        case 124, 126: jump(to: position + 1)
+        case 115: jump(to: minValue)
+        case 119: jump(to: maxValue)
         default: super.keyDown(with: event)
         }
     }
@@ -127,21 +161,30 @@ final class NotchTimerRulerControl: NSSlider {
     override func setAccessibilityValue(_ value: Any?) {
         guard let number = value as? NSNumber, number.doubleValue.isFinite else { return }
         scrollValue = nil
-        select(number.doubleValue)
+        jump(to: number.doubleValue)
     }
 
     override func accessibilityPerformIncrement() -> Bool {
         guard isEnabled else { return false }
         scrollValue = nil
-        select(doubleValue + 1)
+        jump(to: position + 1)
         return true
     }
 
     override func accessibilityPerformDecrement() -> Bool {
         guard isEnabled else { return false }
         scrollValue = nil
-        select(doubleValue - 1)
+        jump(to: position - 1)
         return true
+    }
+
+    /// Keyboard and accessibility steps land at once: nothing animates on them.
+    private func jump(to value: Double) {
+        stopSettling()
+        let minute = NotchTimerRulerScale.minute(value)
+        position = Double(minute)
+        select(Double(minute))
+        needsDisplay = true
     }
 
     private func select(_ value: Double) {
@@ -152,6 +195,61 @@ final class NotchTimerRulerControl: NSSlider {
         setAccessibilityValueDescription(NotchTimerSupport.compactText(Double(minute) * 60, locale: durationLocale))
         needsDisplay = true
         sendAction(action, to: target)
+    }
+
+    /// The raw value as drawn: inside the range as it is, past an end resisted by the rubberband.
+    private func stretched(_ raw: Double) -> Double {
+        let low = minValue, high = maxValue
+        if raw >= low && raw <= high { return raw }
+        let past = raw < low ? low - raw : raw - high
+        let points = Double(Design.Interaction.rubberbanded(CGFloat(past * Self.spacing), dimension: max(1, bounds.width)))
+        return raw < low ? low - points / Self.spacing : high + points / Self.spacing
+    }
+
+    /// On release the flick is projected, and the ruler settles on the nearest whole minute.
+    private func release(from raw: Double, velocity: Double) {
+        let outside = raw < minValue || raw > maxValue
+        let projected = outside ? raw : raw + velocity * Self.coast
+        let target = Double(NotchTimerRulerScale.minute(projected))
+        let toward = (target - position) * velocity > 0
+        settle(to: target, velocity: outside || !toward ? 0 : velocity)
+    }
+
+    /// A critically damped spring on Motion.snappy from where the ruler is to the minute,
+    /// carrying the pointer's velocity in. Reduce Motion lands at once. Each whole minute it
+    /// passes is selected, so the haptic ticks follow the ticks going by.
+    private func settle(to target: Double, velocity: Double) {
+        stopSettling()
+        if NSWorkspace.shared.accessibilityDisplayShouldReduceMotion || abs(position - target) < 0.001 {
+            position = target
+            select(target)
+            needsDisplay = true
+            return
+        }
+        let timer = Timer(timeInterval: 1.0 / 120.0, repeats: true) { [weak self] _ in self?.stepSettle() }
+        RunLoop.main.add(timer, forMode: .common)
+        spring = (timer, ProcessInfo.processInfo.systemUptime, position, target, velocity)
+    }
+
+    private func stepSettle() {
+        guard let spring else { return }
+        let omega = 2 * Double.pi / Design.Motion.snappy.response
+        let t = ProcessInfo.processInfo.systemUptime - spring.start
+        let offset = spring.from - spring.target
+        let carried = spring.velocity + omega * offset
+        position = spring.target + (offset + carried * t) * exp(-omega * t)
+        select(position)
+        if t > 0.6 || abs(position - spring.target) < 0.002 {
+            position = spring.target
+            select(spring.target)
+            stopSettling()
+        }
+        needsDisplay = true
+    }
+
+    private func stopSettling() {
+        spring?.timer.invalidate()
+        spring = nil
     }
 
     /// Tick weights: a whole minute is short, a five is taller and carries its number.
@@ -170,7 +268,7 @@ final class NotchTimerRulerControl: NSSlider {
         let enabledAlpha: CGFloat = isEnabled ? 1 : Design.Opacity.disabled
         let baseline = 66 * scale
         for minute in 1...180 {
-            let x = bounds.midX + CGFloat(NotchTimerRulerScale.offset(of: minute, selected: integerValue))
+            let x = bounds.midX + CGFloat((Double(minute) - position) * Self.spacing)
             guard x >= bounds.minX - 16, x <= bounds.maxX + 16 else { continue }
             let fade = min(1, max(0, min(x - bounds.minX, bounds.maxX - x) / edgeFade))
             let chosen = minute <= integerValue
