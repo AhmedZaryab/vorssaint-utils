@@ -75,9 +75,13 @@ def main():
                     for prefix in ["    private func refreshLaunchAtLogin()",
                                    "    private func setLaunchAtLogin("])
           + "}\n")
-    write("NotchActivityPicker.swift", "import SwiftUI\n"
+    write("NotchActivityPicker.swift", "import AppKit\nimport SwiftUI\n"
           + declaration("Sources/Vorssaint/UI/Notch/NotchView.swift", "struct NotchShape: Shape {")
-          + declaration("Sources/Vorssaint/UI/Notch/NotchView.swift", "struct NotchActivityPicker: View {"))
+          + declaration("Sources/Vorssaint/UI/Notch/NotchView.swift", "struct NotchActivityPicker: View {")
+          + declaration("Sources/Vorssaint/UI/Notch/NotchComponents.swift", "struct NotchMenuItem")
+          + declaration("Sources/Vorssaint/UI/Notch/NotchComponents.swift", "final class NotchMenuAnchor:")
+          + declaration("Sources/Vorssaint/UI/Notch/NotchComponents.swift", "private struct NotchMenuAnchorView:")
+          + declaration("Sources/Vorssaint/UI/Notch/NotchComponents.swift", "struct NotchMenuButton<"))
     write("NotchModuleTitle.swift", "import Foundation\nextension NotchModule {\n"
           + declaration("Sources/Vorssaint/UI/Notch/NotchView.swift", "    func title(_ language: AppLanguage)",
                         scope="extension NotchModule: PanelOrderItem {")
@@ -512,6 +516,9 @@ def main():
           + declaration("Sources/Vorssaint/UI/Notch/NotchComponents.swift", "final class NotchMenuAnchor:")
           + declaration("Sources/Vorssaint/UI/Notch/NotchComponents.swift", "private struct NotchMenuAnchorView:").replace("private struct", "struct", 1)
           + declaration("Sources/Vorssaint/UI/Notch/NotchComponents.swift", "struct NotchMenuButton<")
+          + declaration("Sources/Vorssaint/UI/Notch/NotchComponents.swift", "struct NotchPullDownFace:")
+          + declaration("Sources/Vorssaint/UI/Notch/NotchComponents.swift", "struct NotchPullDown:")
+          + declaration("Sources/Vorssaint/UI/Notch/NotchComponents.swift", "struct NotchMoreMenu:")
           + declaration("Sources/Vorssaint/UI/PlainTextEditor.swift", "struct PlainTextEditor:")
               .replace("        private func moveLine(", "        func moveLine(", 1)
           + declaration(scratchpad_view, "struct NotchScratchpadView:")

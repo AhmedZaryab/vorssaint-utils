@@ -326,19 +326,7 @@ private struct NotchMixerDeviceMenu: View {
     let items: [NotchMenuItem]
 
     var body: some View {
-        NotchMenuButton(title: title, items: items, cornerRadius: NotchDesign.Radius.control) {
-            HStack(spacing: NotchDesign.Spacing.xxSmall) {
-                Text(current).lineLimit(1).truncationMode(.middle)
-                Image(systemName: "chevron.down").font(NotchDesign.Typography.caption.font)
-            }
-            .font(NotchDesign.Typography.callout.font)
-            .foregroundStyle(NotchDesign.Ink.secondary)
-            .padding(.horizontal, NotchDesign.Spacing.small)
-            .frame(maxWidth: width, minHeight: NotchDesign.Control.rowHeight, alignment: .leading)
-            .contentShape(RoundedRectangle(cornerRadius: NotchDesign.Radius.control, style: .continuous))
-        }
-        .help(current)
-        .accessibilityValue(current)
+        NotchPullDown(title: title, current: current, maxWidth: width, truncation: .middle, items: items)
     }
 }
 
@@ -635,15 +623,8 @@ private struct NotchAppFader: View {
 
     /// The app's menu on the shared menu button: pin, move, route, reset, hide.
     private var actionsMenu: some View {
-        NotchMenuButton(title: "\(strings.actions): \(app.name)", items: menuItems,
-                        cornerRadius: Design.Radius.control) {
-            Image(systemName: "ellipsis")
-                .font(Design.Icon.button.font)
-                .foregroundStyle(Design.Ink.secondary)
-                .frame(width: Design.Control.minimumHit, height: Design.Control.minimumHit)
-                .contentShape(RoundedRectangle(cornerRadius: Design.Radius.control, style: .continuous))
-        }
-        .help(strings.actions)
+        NotchMoreMenu(title: "\(strings.actions): \(app.name)", items: menuItems)
+            .help(strings.actions)
     }
 
     private var menuItems: [NotchMenuItem] {

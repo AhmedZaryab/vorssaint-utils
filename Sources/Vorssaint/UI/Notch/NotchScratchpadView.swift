@@ -179,14 +179,7 @@ struct NotchScratchpadView: View {
                 copyCount += 1
             }
             .disabled(pad.text.isEmpty)
-            NotchMenuButton(title: text.padActions, items: padMenuItems) {
-                Image(systemName: "ellipsis")
-                    .font(NotchDesign.Icon.button.font)
-                    .foregroundStyle(NotchDesign.Ink.secondary)
-                    .frame(width: NotchDesign.Control.iconButton, height: NotchDesign.Control.iconButton)
-                    .contentShape(RoundedRectangle(cornerRadius: NotchDesign.Radius.control, style: .continuous))
-            }
-            .help(text.padActions)
+            NotchMoreMenu(title: text.padActions, items: padMenuItems)
         }
         .frame(height: NotchDesign.Control.rowHeight)
     }

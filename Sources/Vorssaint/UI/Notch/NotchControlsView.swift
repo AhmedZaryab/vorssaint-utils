@@ -343,7 +343,7 @@ private struct NotchLevelReadoutMenu<Readout: View>: View {
         NotchMenuButton(title: title, items: items) {
             HStack(spacing: Design.Spacing.xxSmall) {
                 readout().frame(width: NotchLevelMetrics.readoutWidth, alignment: .trailing)
-                Image(systemName: "chevron.down").font(Design.Typography.caption.font)
+                Image(systemName: "chevron.down").font(Design.Icon.strip.font)
                     .foregroundStyle(Design.Ink.secondary)
             }
             .padding(.horizontal, Design.Spacing.xxSmall)
@@ -520,7 +520,7 @@ private struct NotchKeyboardLightControls: View {
     private var readout: some View {
         HStack(spacing: Design.Spacing.xxSmall) {
             percent.frame(width: NotchLevelMetrics.readoutWidth, alignment: .trailing)
-            Image(systemName: "chevron.down").font(Design.Typography.caption.font).hidden()
+            Image(systemName: "chevron.down").font(Design.Icon.strip.font).hidden()
         }
         .padding(.horizontal, Design.Spacing.xxSmall)
         .frame(height: NotchLevelMetrics.row)
