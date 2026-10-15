@@ -128,7 +128,7 @@ enum NotchLockScreenTests {
         for fit in fits {
             let fitted = NotchGeometry(screen: measured, safeAreaTop: 32, cameraWidth: 179, cameraFit: fit)
             let music = fitted.lockScreenMusicGeometry
-            let camera = fitted.bareCutout
+            let camera = fitted.bareCamera
             guard let surface = Layout.islandSurface(in: measured, cameraWidth: camera.width, cameraHeight: camera.height,
                                                      wing: music.compactActivityWingWidth) else {
                 suite.expect(false, "a notched display has room for the padlock with a fit of \(fit)")

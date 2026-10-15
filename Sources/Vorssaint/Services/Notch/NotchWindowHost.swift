@@ -17,11 +17,32 @@ struct NotchFileDropActions {
 /// around it, fading out before the next content takes its place.
 enum NotchContentTransition { case none, reveal, dismiss, depart, replace }
 
+/// The canvas a window host presents, published to its content's environment.
+final class NotchCanvasModel: ObservableObject {
+    @Published private(set) var canvas: NotchCanvas
+
+    init(_ canvas: NotchCanvas) { self.canvas = canvas }
+
+    func update(_ next: NotchCanvas) {
+        if canvas != next { canvas = next }
+    }
+}
+
+/// Hands the host's canvas to everything the island draws.
+private struct NotchCanvasReader: View {
+    @ObservedObject var model: NotchCanvasModel
+    let content: AnyView
+
+    var body: some View { content.environment(\.notchCanvas, model.canvas) }
+}
+
 /// The window reserves the transition's bounds once. Core Animation moves
 /// the silhouette independently of SwiftUI layout and the application run loop.
 final class NotchWindowHost: NSObject, CAAnimationDelegate {
     let panel: NotchPanel
-    private let canvas: NotchCanvas
+    /// What the content reads as `\.notchCanvas`, at the size being presented.
+    let canvasModel: NotchCanvasModel
+    private let canvas: NotchCanvasView
     private let quickAccessContainer: NotchQuickAccessContainer?
     private var quickAccessConfiguration: NotchQuickAccessConfiguration?
     private var quickAccessNotchSize = CGSize.zero
@@ -61,7 +82,10 @@ final class NotchWindowHost: NSObject, CAAnimationDelegate {
         panel = NotchPanel(contentRect: geometry.frame(for: size),
                            styleMask: [.borderless, .nonactivatingPanel],
                            backing: .buffered, defer: false)
-        let mainCanvas = NotchCanvas(content: content, background: background, size: size)
+        let model = NotchCanvasModel(NotchCanvas(geometry: geometry, size: size))
+        canvasModel = model
+        let mainCanvas = NotchCanvasView(content: AnyView(NotchCanvasReader(model: model, content: content)),
+                                         background: background, size: size)
         canvas = mainCanvas
         quickAccessContainer = quickAccess.map { NotchQuickAccessContainer(canvas: mainCanvas, content: $0) }
         super.init()
@@ -146,6 +170,8 @@ final class NotchWindowHost: NSObject, CAAnimationDelegate {
         // Choosing the capsule or the notch redraws the island at once, even
         // at a size it already has.
         canvas.setFloatingGap(geometry.floatingGap)
+        // Content lays out for where the island is going from the first frame.
+        canvasModel.update(NotchCanvas(geometry: geometry, size: size))
         hidesWhenSettled = hideWhenSettled
         if hideWhenSettled {
             if mouseEventsBeforeHide == nil {
@@ -242,14 +268,23 @@ final class NotchWindowHost: NSObject, CAAnimationDelegate {
         let steady = steady && start.height == size.height
         // Each frame's centre, from the new one, even when only the shift changes.
         let startOffset = startShift - geometry.surfaceShift
-        let motion = NotchMotion.frames(from: start, to: size, steady: steady, offset: startOffset)
+        // A resize that interrupts another keeps the speed each side has on
+        // screen, so a reversal turns where it is instead of stopping dead.
+        let moving = revealing ? nil : canvas.motionVelocity()
+        let velocity = NotchMotion.carriedVelocity(moving?.size ?? .zero, from: start, to: size, steady: steady)
+        let offsetVelocity = moving?.offset ?? 0
+        let motion = NotchMotion.frames(from: start, to: size, steady: steady, offset: startOffset,
+                                        velocity: velocity, offsetVelocity: offsetVelocity)
         let offsets = motion.keyTimes.map {
-            $0 == 1 ? 0 : NotchMotion.offset(at: motion.duration * $0, from: start, to: size, start: startOffset, steady: steady)
+            $0 == 1 ? 0 : NotchMotion.offset(at: motion.duration * $0, from: start, to: size, start: startOffset,
+                                             steady: steady, velocity: offsetVelocity)
         }
-        // Room for the swing past a larger target, and for everything already reserved.
+        // Room for the swing past a larger target, for a side still carried
+        // past where it was, and for everything already reserved.
         var envelope = NotchMotion.envelope(from: start, to: size)
         let reach = zip(motion.sizes, offsets).map { $0.width + 2 * abs($1) }.max() ?? 0
         envelope.width = max(envelope.width, reach.rounded(.up))
+        envelope.height = max(envelope.height, (motion.sizes.map(\.height).max() ?? 0).rounded(.up))
         if !revealing {
             envelope = CGSize(width: max(envelope.width, canvas.bounds.width), height: max(envelope.height, canvas.bounds.height))
         }
@@ -300,7 +335,8 @@ final class NotchWindowHost: NSObject, CAAnimationDelegate {
         animation.delegate = self
         animation.setValue(generation, forKey: "notchGeneration")
         isAnimating = true
-        canvas.animate(animation, from: paths.first, motion: (start, size), steady: steady, offset: startOffset)
+        canvas.animate(animation, from: paths.first, motion: (start, size), steady: steady, offset: startOffset,
+                       velocity: velocity, offsetVelocity: offsetVelocity)
         CATransaction.commit()
         // The window already has its new frame; its layers go out at once,
         // not at the end of this turn of the run loop, so the screen never
@@ -910,7 +946,7 @@ final class NotchPanel: NSPanel {
 /// The notch keeps its existing masked canvas. A separate, transparent sibling
 /// holds the drops, so both surfaces share one window, focus and capture policy.
 private final class NotchQuickAccessContainer: NSView {
-    let canvas: NotchCanvas
+    let canvas: NotchCanvasView
     let motion: NotchQuickAccessMotion
     let quickView: NSHostingView<AnyView>
     private(set) var hoverRects: [CGRect] = []
@@ -925,7 +961,7 @@ private final class NotchQuickAccessContainer: NSView {
     override var isFlipped: Bool { true }
     override var isOpaque: Bool { false }
 
-    init(canvas: NotchCanvas, content: (NotchQuickAccessMotion, NotchBackdropPresentation) -> AnyView) {
+    init(canvas: NotchCanvasView, content: (NotchQuickAccessMotion, NotchBackdropPresentation) -> AnyView) {
         self.canvas = canvas
         let motion = NotchQuickAccessMotion()
         self.motion = motion
@@ -995,8 +1031,8 @@ private final class NotchQuickAccessContainer: NSView {
 /// CADisplayLink retains its target; the weak forwarding object lets an ordered
 /// out or destroyed canvas release its scheduler even mid-animation.
 private final class NotchBackdropTick: NSObject {
-    weak var canvas: NotchCanvas?
-    init(canvas: NotchCanvas) { self.canvas = canvas }
+    weak var canvas: NotchCanvasView?
+    init(canvas: NotchCanvasView) { self.canvas = canvas }
     /// SwiftUI's drawing of what is set now reaches the screen the frame after
     /// the one being prepared, so the material aims one frame further.
     @objc func fire(_ sender: CADisplayLink) {
@@ -1004,7 +1040,7 @@ private final class NotchBackdropTick: NSObject {
     }
 }
 
-private final class NotchCanvas: NSView {
+private final class NotchCanvasView: NSView {
     private let host: NotchHostingView
     private let backdrop: NotchHostingView
     let backdropPresentation = NotchBackdropPresentation()
@@ -1327,15 +1363,46 @@ private final class NotchCanvas: NSView {
 
     /// The resize the silhouette is running, to draw the material for the
     /// frame about to be shown rather than the one already on screen.
-    private var motionTimeline: (begin: CFTimeInterval, from: CGSize, to: CGSize, steady: Bool, offset: CGFloat)?
+    private struct MotionTimeline {
+        let begin: CFTimeInterval
+        let from: CGSize
+        let to: CGSize
+        let steady: Bool
+        let offset: CGFloat
+        let velocity: CGSize
+        let offsetVelocity: CGFloat
+
+        func size(at time: CFTimeInterval) -> CGSize {
+            NotchMotion.size(at: max(0, time - begin), from: from, to: to, steady: steady, velocity: velocity)
+        }
+
+        func offset(at time: CFTimeInterval) -> CGFloat {
+            NotchMotion.offset(at: max(0, time - begin), from: from, to: to, start: offset, steady: steady,
+                               velocity: offsetVelocity)
+        }
+    }
+    private var motionTimeline: MotionTimeline?
     var motionProbeStart: CGSize? { motionTimeline?.from }
 
+    /// How fast each side of the running resize moves right now, in points
+    /// per second, and its centre with them; nil when the island is at rest.
+    func motionVelocity(at time: CFTimeInterval = CACurrentMediaTime()) -> (size: CGSize, offset: CGFloat)? {
+        guard let timeline = motionTimeline, silhouette.animation(forKey: Self.motionKey) != nil,
+              time > timeline.begin else { return nil }
+        let step: CFTimeInterval = 1.0 / 480
+        let before = timeline.size(at: time - step), after = timeline.size(at: time + step)
+        let span = CGFloat(step * 2)
+        return (CGSize(width: (after.width - before.width) / span, height: (after.height - before.height) / span),
+                (timeline.offset(at: time + step) - timeline.offset(at: time - step)) / span)
+    }
+
     func animate(_ animation: CAAnimation, from: CGPath?, motion: (from: CGSize, to: CGSize)? = nil, steady: Bool = false,
-                 offset: CGFloat = 0) {
+                 offset: CGFloat = 0, velocity: CGSize = .zero, offsetVelocity: CGFloat = 0) {
         motionStart = nil
         motionStartOffset = 0
         motionTimeline = motion.map {
-            (animation.beginTime > 0 ? animation.beginTime : CACurrentMediaTime(), $0.from, $0.to, steady, offset)
+            MotionTimeline(begin: animation.beginTime > 0 ? animation.beginTime : CACurrentMediaTime(), from: $0.from,
+                           to: $0.to, steady: steady, offset: offset, velocity: velocity, offsetVelocity: offsetVelocity)
         }
         silhouette.path = silhouettePath(for: contentSize)
         silhouetteSize = contentSize
@@ -1390,12 +1457,7 @@ private final class NotchCanvas: NSView {
     fileprivate func advanceBackdrop(to target: CFTimeInterval) {
         backdropTicks += 1
         guard let timeline = motionTimeline else { synchronizeBackdrop(); return }
-        let elapsed = max(0, target - timeline.begin)
-        let size = NotchMotion.size(at: elapsed, from: timeline.from, to: timeline.to,
-                                    steady: timeline.steady)
-        let offset = NotchMotion.offset(at: elapsed, from: timeline.from, to: timeline.to, start: timeline.offset,
-                                       steady: timeline.steady)
-        setBackdropContour(inCanvas(silhouettePath(for: size, offset: offset)))
+        setBackdropContour(inCanvas(silhouettePath(for: timeline.size(at: target), offset: timeline.offset(at: target))))
     }
 
     /// The size shown while a resize is being prepared, before its motion.
@@ -1457,13 +1519,17 @@ private final class NotchCanvas: NSView {
             // glass; alphaValue would remove the hosting view's AX/hit frame.
             let animation = CAKeyframeAnimation(keyPath: "opacity")
             let start: Float = kind == .dismiss || currentOpacity == 1 ? 0 : currentOpacity
-            // Give the silhouette a head start before revealing full-width
-            // content; content arriving small and out of focus can show
-            // sooner than sharp content could. Reversals continue from the
+            // Content waits for the shape: opening, it starts once the
+            // silhouette has covered about 60% of its travel and is sharp as
+            // it arrives; closing, the strip's content waits until the shape
+            // has nearly closed around it. It is laid out at its final size
+            // throughout and never scales. Reversals continue from the
             // opacity already on screen. A shape that snaps into place only
             // needs its first frames drawn.
-            let keyTimes: [NSNumber] = kind == .dismiss ? [0, 0.65, 1] : shapeSnaps ? [0, 0.25, 1] : [0, 0.35, 1]
-            let duration: CFTimeInterval = kind == .dismiss ? 0.40 : shapeSnaps ? 0.2 : 0.45
+            let reveal = Self.revealDelay + Self.revealDuration
+            let keyTimes: [NSNumber] = kind == .dismiss ? [0, 0.65, 1] : shapeSnaps ? [0, 0.25, 1]
+                : [0, NSNumber(value: Self.revealDelay / reveal), 1]
+            let duration: CFTimeInterval = kind == .dismiss ? 0.40 : shapeSnaps ? 0.2 : reveal
             animation.values = [start, start, 1]
             animation.keyTimes = keyTimes
             animation.duration = duration
@@ -1474,8 +1540,8 @@ private final class NotchCanvas: NSView {
                 // until the view has swapped it out, however late that is.
                 animation.values = [currentOpacity, 0]
                 animation.keyTimes = [0, 1]
-                animation.duration = 0.16
-                animation.timingFunctions = [CAMediaTimingFunction(name: .easeIn)]
+                animation.duration = Self.exitDuration
+                animation.timingFunctions = [CAMediaTimingFunction(name: .easeOut)]
                 animation.fillMode = .forwards
                 animation.isRemovedOnCompletion = false
                 animation.setValue(true, forKey: Self.departureKey)
@@ -1519,8 +1585,18 @@ private final class NotchCanvas: NSView {
         endArrival()
     }
 
-    /// Content arrives out of focus, and an opening page a little small, and
-    /// both settle with the island, as the phone's island brings its content in.
+    /// Geometry.contentRevealDelay: the shape is about 60% there.
+    static let revealDelay: CFTimeInterval = 0.12
+    /// Geometry.contentRevealDuration: sharp at 0.30 s, as the shape arrives.
+    static let revealDuration: CFTimeInterval = 0.18
+    /// Geometry.contentRevealBlur, in points.
+    static let revealBlur: CGFloat = 4
+    /// Geometry.contentExitDuration: leaving content fades on an ease out.
+    static let exitDuration: CFTimeInterval = 0.12
+
+    /// Content arrives out of focus and settles with the island, as the
+    /// phone's island brings its content in. It never scales: content laid
+    /// out at its final size and clipped by the shape is never squished.
     private struct Arrival {
         let begin: CFTimeInterval
         let duration: CFTimeInterval
@@ -1562,18 +1638,20 @@ private final class NotchCanvas: NSView {
         arrivalGeneration += 1
         let generation = arrivalGeneration
         let begin = layer.convertTime(CACurrentMediaTime(), from: nil)
-        let radius = resuming?.blur ?? (opening ? 12 : 6)
+        let radius = resuming?.blur ?? Self.revealBlur
         if radius > 0, let filter = Self.makeArrivalBlur() {
             layer.filters = [filter]
             let blur = CAKeyframeAnimation(keyPath: "filters.\(Self.arrivalBlurName).inputRadius")
-            blur.values = [radius, opening ? radius / 2 : radius, 0]
+            blur.values = [radius, radius, 0]
             blur.keyTimes = keyTimes
             blur.timingFunctions = [CAMediaTimingFunction(name: .linear), CAMediaTimingFunction(name: .easeOut)]
             blur.beginTime = begin
             blur.duration = duration
             layer.add(blur, forKey: Self.arrivalBlurKey)
         }
-        let scale = resuming?.scale ?? (opening ? 0.86 : 1)
+        // Only a growth already on screen, from before content stopped
+        // scaling, finishes; nothing new starts small.
+        let scale = resuming?.scale ?? 1
         if scale != 1 {
             arrival = Arrival(begin: begin, duration: duration, scale: scale)
             installArrivalScale()
