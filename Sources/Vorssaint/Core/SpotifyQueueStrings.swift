@@ -37,6 +37,11 @@ struct SpotifyQueueStrings {
     let throttled: String
     let advanced: String
     let advancedHint: String
+    let orderRejected: String
+    let removeFromQueue: String
+    let dragToReorder: String
+    let moveUp: String
+    let moveDown: String
 
     static let current = SpotifyQueueStrings(
         featureTitle: "Spotify up next",
@@ -70,5 +75,10 @@ struct SpotifyQueueStrings {
         actionFailed: "Spotify did not accept that. Playback may be on a device that is offline.",
         throttled: "Spotify is throttling this right now",
         advanced: "Advanced (developer login)",
-        advancedHint: "Only needed if the normal Spotify login does not work for you.")
+        advancedHint: "Only needed if the normal Spotify login does not work for you.",
+        orderRejected: "Spotify did not accept the new order",
+        removeFromQueue: "Remove from queue",
+        dragToReorder: "Drag to reorder",
+        moveUp: "Move up",
+        moveDown: "Move down")
 }

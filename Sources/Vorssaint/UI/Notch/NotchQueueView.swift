@@ -50,25 +50,31 @@ struct NotchQueueView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
 
-    /// One row: the whole row plays the song (a press, with the wash under the pointer),
-    /// and the play glyph stays as the visible, labelled way to say so.
+    /// One row. When the player can play a queued song the whole row is a press and the play
+    /// glyph stays as the labelled way to say so; when it cannot, the row is plain content, not
+    /// a dimmed control. A pending action is guarded in the handler, so rows never blink.
+    @ViewBuilder
     private func queueRow(_ item: NotchQueueItem, canPlay: Bool) -> some View {
         let busy = service.queueActionPending || service.upcomingIsHeld
-        return ZStack(alignment: .trailing) {
-            Button { if canPlay { service.playQueued(item) } } label: {
-                NotchQueueRowLabel(image: service.upcomingArtwork[item.id], title: item.title, artist: item.artist)
-                    .padding(.trailing, canPlay ? NotchDesign.Control.iconButton + NotchDesign.Spacing.xSmall : 0)
-            }
-            .buttonStyle(NotchPressStyle(shape: .rounded(NotchDesign.Radius.control), lifts: false))
-            .disabled(!canPlay || busy)
-            .accessibilityLabel(item.artist.isEmpty ? item.title : "\(item.title), \(item.artist)")
-            if canPlay {
-                NotchIconButton(symbol: "play.fill", title: "\(text.playNow): \(item.title)") { service.playQueued(item) }
-                    .disabled(busy)
+        let label = NotchQueueRowLabel(image: service.upcomingArtwork[item.id], title: item.title, artist: item.artist)
+        let name = item.artist.isEmpty ? item.title : "\(item.title), \(item.artist)"
+        if canPlay {
+            ZStack(alignment: .trailing) {
+                Button { if !busy { service.playQueued(item) } } label: {
+                    label.padding(.trailing, NotchDesign.Control.iconButton + NotchDesign.Spacing.xSmall)
+                }
+                .buttonStyle(NotchPressStyle(shape: .rounded(NotchDesign.Radius.control), lifts: false))
+                .accessibilityLabel(name)
+                NotchIconButton(symbol: "play.fill", title: "\(text.playNow): \(item.title)") { if !busy { service.playQueued(item) } }
                     .padding(.trailing, NotchDesign.Spacing.xSmall)
             }
+            .frame(height: NotchQueueMetrics.rowHeight)
+        } else {
+            label
+                .frame(height: NotchQueueMetrics.rowHeight)
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel(name)
         }
-        .frame(height: NotchQueueMetrics.rowHeight)
     }
 }
 
@@ -98,7 +104,7 @@ struct NotchQueueThumb: View {
         }
         .frame(width: side, height: side)
         .clipShape(shape)
-        .overlay(shape.strokeBorder(NotchDesign.Stroke.artworkEdge, lineWidth: NotchDesign.Stroke.hairline))
+        .overlay { shape.strokeBorder(NotchDesign.Stroke.artworkEdge, lineWidth: NotchDesign.Stroke.hairline) }
         .accessibilityHidden(true)
     }
 }
