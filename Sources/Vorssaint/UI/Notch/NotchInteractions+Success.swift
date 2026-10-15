@@ -33,7 +33,8 @@ struct NotchSuccessMorph<Trigger: Equatable>: ViewModifier {
                     .blur(radius: shown || !moves ? 0 : Metrics.blurBridge)
                     .accessibilityHidden(true)
             }
-            .animation(moves ? Metrics.successMorph : Metrics.crossfade, value: shown)
+            // Arrives on the bouncy spring, leaves faster on an ease out with no overshoot.
+            .animation(!moves ? Metrics.crossfade : shown ? Metrics.successMorph : Metrics.successReturn, value: shown)
             .onChange(of: trigger) {
                 showing = true
                 generation &+= 1
