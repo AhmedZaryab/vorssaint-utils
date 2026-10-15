@@ -227,7 +227,7 @@ struct NotchMusicView: View {
     private func extraButton(_ target: MusicExtra, title: String, symbol: String) -> some View {
         Toggle(isOn: Binding(get: { extra == target }, set: { extra = $0 ? target : nil })) { Text(title) }
             .toggleStyle(NotchToggleStyle(symbol: symbol, shape: .rounded(NotchDesign.Radius.control),
-                                          size: NotchDesign.Control.iconButton, symbolSize: 13))
+                                          size: NotchDesign.Control.iconButton, symbolSize: 13, tint: toggleTint))
             .help(title)
     }
 
@@ -236,7 +236,7 @@ struct NotchMusicView: View {
     private func shuffleButton() -> some View {
         let strings = FeatureStrings.notchMusicExtras(l10n.language)
         let consent = shuffle.availability?.access == .consent
-        return Toggle(isOn: Binding(get: { shuffle.enabled == true }, set: { _ in shuffle.toggle() })) { Text(strings.shuffle) }
+        return Toggle(isOn: Binding(get: { shuffle.enabled == true }, set: { want in if want != (shuffle.enabled == true) { shuffle.toggle() } })) { Text(strings.shuffle) }
             .toggleStyle(NotchToggleStyle(symbol: "shuffle", shape: .capsule, size: NotchDesign.Music.sidePlate,
                                           symbolSize: 15, tint: toggleTint))
             .disabled(shuffle.requestingAccess || !shuffle.allowed)
@@ -405,6 +405,8 @@ private struct NotchMusicTransport: View {
     private var text: RadialMenuFeatureStrings { FeatureStrings.radialMenu(l10n.language) }
     private var height: CGFloat { compact ? NotchDesign.Control.transportCompact : NotchDesign.Control.transport }
     private var showsPlaying: Bool { requestedPlaying ?? playback.isPlaying }
+    /// The cover's colour for the glyph and its burst; white until artwork is read.
+    private var tint: Color { service.artworkTint?.color ?? .white }
 
     var body: some View {
         if !playback.canSendCommandsDirectly, service.automationAvailability?.access != .granted {
@@ -464,23 +466,17 @@ private struct NotchMusicTransport: View {
     }
 
     private var toggleButton: some View {
-        Button {
+        NotchCommitButton(text.mediaPlayPause, symbol: showsPlaying ? "pause.fill" : "play.fill", kick: .morph,
+                          size: height, glyph: NotchDesign.Icon.transportPrimary,
+                          launches: !showsPlaying, tint: tint,
+                          keyboardShortcut: preview ? nil : KeyboardShortcut(.space, modifiers: [])) {
             if service.canPerform(.toggle) {
                 // Only a player the island writes to directly answers fast enough
                 // to show its word early; a slower path waits for the player.
                 let direct = playback.canSendCommandsDirectly
                 if service.send(.toggle, context: playback.commandContext), direct { requestedPlaying = !showsPlaying }
             } else { service.requestAutomationAccess() }
-        } label: {
-            Image(systemName: showsPlaying ? "pause.fill" : "play.fill")
-                .font(NotchDesign.Icon.transportPrimary.font)
-                .foregroundStyle(NotchDesign.Ink.primary)
-                .notchSymbolReplace(reduceMotion: reduceMotion)
-                .animation(reduceMotion ? NotchDesign.Motion.fade : NotchDesign.Motion.snappy.animation, value: showsPlaying)
-                .frame(width: height, height: height)
-                .contentShape(Circle())
         }
-        .buttonStyle(NotchPressStyle(shape: .capsule))
         // A second tap before the player answers asks for the state after it,
         // so only the player reaching what was asked ends the early word.
         .onChange(of: playback.isPlaying) { if playback.isPlaying == requestedPlaying { requestedPlaying = nil } }
@@ -493,25 +489,16 @@ private struct NotchMusicTransport: View {
         }
         .disabled(!service.canPerform(.toggle)
                   && (service.automationAvailability?.access != .consent || service.requestingAutomation))
-        // A preview in Settings must not take Space from the window it sits in.
-        .keyboardShortcut(preview ? nil : KeyboardShortcut(.space, modifiers: []))
-        .accessibilityLabel(text.mediaPlayPause)
         .help(service.automationAvailability?.access == .consent
               ? FeatureStrings.notchMusicExtras(l10n.language).allowPlayback : text.mediaPlayPause)
     }
 
     private func playbackButton(_ symbol: String, title: String, command: NotchMusicService.Command) -> some View {
-        Button { service.send(command, context: playback.commandContext) } label: {
-            Image(systemName: symbol)
-                .font(NotchDesign.Icon.transport.font)
-                .foregroundStyle(NotchDesign.Ink.primary)
-                .frame(width: height, height: height)
-                .contentShape(Circle())
+        NotchCommitButton(title, symbol: symbol, kick: command == .previous ? .backward : .forward,
+                          size: height, glyph: NotchDesign.Icon.transport, tint: tint) {
+            service.send(command, context: playback.commandContext)
         }
-        .buttonStyle(NotchPressStyle(shape: .capsule))
         .disabled(!service.canPerform(command))
-        .accessibilityLabel(title)
-        .help(title)
     }
 }
 
@@ -609,7 +596,7 @@ struct NotchMusicTimeline: View {
                 .frame(height: 10)
                 .disabled(service.commandPending)
         } else {
-            NotchMeter(value: position / playback.duration, height: NotchDesign.Control.sliderTrack, tint: tint)
+            NotchPlaybackFill(value: position / playback.duration, tint: tint)
         }
     }
 
@@ -770,4 +757,29 @@ private struct NotchSourceMenuAnchorView: NSViewRepresentable {
     }
 
     func updateNSView(_ nsView: NSView, context: Context) { anchor.view = nsView }
+}
+
+/// The read only timeline for a player that cannot seek. It advances once a
+/// second, so the fill glides on a linear second (constant motion, not a spring)
+/// and is still under Reduce Motion.
+private struct NotchPlaybackFill: View {
+    let value: Double
+    let tint: Color
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        let height = NotchDesign.Control.sliderTrack
+        let fraction = value.isFinite ? min(1, max(0, value)) : 0
+        GeometryReader { proxy in
+            ZStack(alignment: .leading) {
+                Capsule(style: .continuous).fill(NotchDesign.Fill.track)
+                Capsule(style: .continuous)
+                    .fill(tint)
+                    .frame(width: max(fraction > 0 ? height : 0, proxy.size.width * fraction))
+            }
+        }
+        .frame(height: height)
+        .animation(reduceMotion ? nil : .linear(duration: 1), value: fraction)
+        .accessibilityHidden(true)
+    }
 }
