@@ -2695,7 +2695,7 @@ enum NotchMotion {
     /// Geometry.growSpring: response 0.40 s, damping 0.85.
     static let growing = Spring(duration: NotchDesign.Geometry.growSpring.response,
                                 bounce: NotchDesign.Geometry.growSpring.bounce)
-    /// Geometry.shrinkSpring: response 0.30 s, no bounce.
+    /// Geometry.shrinkSpring: response 0.20 s, no bounce.
     static let shrinking = Spring(duration: NotchDesign.Geometry.shrinkSpring.response,
                                   bounce: NotchDesign.Geometry.shrinkSpring.bounce)
     /// A strip that stays on screen and only fits a new reading, as a level

@@ -3,12 +3,6 @@
 
 import SwiftUI
 
-extension NotchDesign.Stroke {
-    /// The one keyboard focus ring: the system's own focus colour, 2 pt. Added here because NotchDesign is frozen this round.
-    static let focusRingColor = Color(nsColor: .keyboardFocusIndicatorColor)
-    static let focusRingWidth: CGFloat = 2
-}
-
 /// An in-place destination gallery. It only observes navigation, never the
 /// contents or services of the sections represented by its buttons.
 ///
@@ -134,7 +128,7 @@ struct NotchSectionsView: View {
             .overlay {
                 if highlighted && service.sectionKeyDriven {
                     // The system's own focus ring: a fill step alone is 1.3:1.
-                    shape.strokeBorder(NotchDesign.Stroke.focusRingColor, lineWidth: NotchDesign.Stroke.focusRingWidth)
+                    shape.strokeBorder(NotchDesign.Stroke.keyboardFocus, lineWidth: NotchDesign.Stroke.keyboardFocusWidth)
                 } else if contrast == .increased {
                     shape.strokeBorder(NotchDesign.Stroke.increasedContrast,
                                        lineWidth: NotchDesign.Stroke.increasedContrastWidth)

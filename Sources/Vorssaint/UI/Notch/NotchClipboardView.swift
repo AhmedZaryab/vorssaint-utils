@@ -426,8 +426,8 @@ private struct ClipboardPlate: ViewModifier {
             .background(fill, in: shape)
             .overlay {
                 if keyboardFocus {
-                    shape.strokeBorder(Color(nsColor: .keyboardFocusIndicatorColor),
-                                       lineWidth: NotchDesign.Stroke.increasedContrastWidth * 2)
+                    shape.strokeBorder(NotchDesign.Stroke.keyboardFocus,
+                                       lineWidth: NotchDesign.Stroke.keyboardFocusWidth)
                         .allowsHitTesting(false)
                 } else if contrast == .increased {
                     shape.strokeBorder(NotchDesign.Stroke.increasedContrast, lineWidth: NotchDesign.Stroke.increasedContrastWidth)

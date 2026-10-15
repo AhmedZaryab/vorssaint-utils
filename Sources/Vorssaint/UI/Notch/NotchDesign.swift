@@ -38,7 +38,7 @@ enum NotchDesign {
             min(panelCornerRadius, max(0, height) * closedCornerRatio)
         }
         /** Growth on both axes together, one spring, anchored at the top centre. */ static let growSpring = Spring(response: 0.40, dampingFraction: 0.85)
-        /** Shrink on both axes together, no overshoot. */ static let shrinkSpring = Spring(response: 0.30, dampingFraction: 1)
+        /** Shrink on both axes together, no overshoot. 0.20 s so the close (99% at about 0.21 s after its delay) leaves as fast as the open arrives. */ static let shrinkSpring = Spring(response: 0.20, dampingFraction: 1)
         /** The farthest a growing side may pass its target, in points. */ static let overshootLimit: CGFloat = 8
         /** Content arrives the way Dynamic Island does: it starts 0.12 s in, under blur, while the shape is still growing, and the 0.18 s fade from the 4 pt blur is sharp by 0.30 s. Never scaled, clipped to the growing shape. */ static let contentRevealDelay: TimeInterval = 0.12
         /** Content then fades in over this, fully in at the delay plus this (0.30 s). It never scales, so it is never squished. */ static let contentRevealDuration: TimeInterval = 0.18
@@ -186,7 +186,7 @@ enum NotchDesign {
         /** Artwork's edge, so a dark cover stays apart from the island. */ static let artworkEdge = Color.white.opacity(0.12)
         /** Increase Contrast: every plate and card gets this 1 pt edge. */ static let increasedContrast = Color.white.opacity(0.5)
         /** Width of the Increase Contrast edge. */ static let increasedContrastWidth: CGFloat = 1
-        /** The library's keyboard focus ring: the system's own focus colour. NotchSectionsView draws the same ring from its own extension; the two merge when that file moves to the tokens. */ static let keyboardFocus = Color(nsColor: .keyboardFocusIndicatorColor)
+        /** The library's keyboard focus ring: the system focus colour; gallery tiles, clipboard cards and controls all read it. */ static let keyboardFocus = Color(nsColor: .keyboardFocusIndicatorColor)
         /** Width of the library's focus ring, the same 2 pt NotchSectionsView uses. */ static let keyboardFocusWidth: CGFloat = 2
         /** Gap between a control's edge and its focus ring. */ static let focusRingGap: CGFloat = 2.5
         /** Drop targets only. */ static let dropTarget = StrokeStyle(lineWidth: 1, dash: [5, 4])
