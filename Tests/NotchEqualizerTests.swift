@@ -24,14 +24,18 @@ enum NotchEqualizerTests {
         let container = NSView(frame: CGRect(x: 0, y: 0, width: 80, height: 40))
         window.contentView = container
         let view = NotchEqualizerView(frame: CGRect(x: 0, y: 0, width: 40, height: 20))
-        func configure(_ animates: Bool = true, count: Int = 7, width: CGFloat = 2,
+        var configuredHeight: CGFloat = 20
+        func configure(_ animates: Bool = true, count: Int = 4, width: CGFloat = 2,
                        height: CGFloat = 20, tint: NSColor = .white) {
+            configuredHeight = height
             view.configure(animates: animates, bars: count, barWidth: width, height: height, tint: tint)
         }
         func layers() -> [CALayer] { view.layer?.sublayers ?? [] }
         func heights() -> [CGFloat] { layers().map(\.bounds.height) }
         func isStopped() -> Bool {
-            !view.isMoving && layers().allSatisfy { $0.bounds.height == $0.bounds.width }
+            // Stopped bars hold the staggered rest shape and never shrink to dots.
+            let rest = layers().indices.map { configuredHeight * NotchEqualizerView.rest[$0 % NotchEqualizerView.rest.count] }
+            return !view.isMoving && zip(layers(), rest).allSatisfy { abs($0.bounds.height - $1) < 0.001 && $0.bounds.height > $0.bounds.width * 2 }
         }
 
         configure()
@@ -57,7 +61,7 @@ enum NotchEqualizerTests {
         expect(heights() != early, "each step moves the playing bars")
 
         configure(false)
-        expect(isStopped(), "pause or reduced motion stops the motion and returns bars to dots")
+        expect(isStopped(), "pause or reduced motion stops the motion and holds the bars at their staggered rest shape")
         configure()
         expect(view.isMoving, "playback resumes motion after a pause")
         window.exposed = false

@@ -286,8 +286,8 @@ enum NotchLayout {
     /// Breathing room every compact strip keeps from its silhouette.
     static let compactEdgeGap: CGFloat = 5
     /// The compact player's equalizer, spaced by its own bar width.
-    static let compactMusicBarCount = 7
-    static let compactMusicBarWidth: CGFloat = 1.8
+    static let compactMusicBarCount = 4
+    static let compactMusicBarWidth: CGFloat = 2.5
     static var compactMusicBarsWidth: CGFloat {
         compactMusicBarWidth * (CGFloat(compactMusicBarCount) + CGFloat(compactMusicBarCount - 1) * 0.85)
     }
@@ -2177,15 +2177,17 @@ struct NotchGeometry: Equatable {
             : NotchLayout.compactEdgeGap
         return compactActivityEdgeInset(boxHeight: compactMusicArtworkSide, radius: compactMusicArtworkRadius, gap: gap)
     }
+    /// Most of the strip's height, as Apple Music's meter stands in the Dynamic Island.
     var compactMusicBarHeight: CGFloat {
-        min(16, max(6, compactActivityContentHeight - NotchLayout.compactEdgeGap * 2))
+        min(16, max(6, compactActivityContentHeight - 8))
     }
-    var compactMusicBarsInset: CGFloat {
-        compactActivityEdgeInset(boxHeight: compactMusicBarHeight, radius: NotchLayout.compactMusicBarWidth / 2)
-    }
+    /// The bars keep the cover's distance from the strip's end, so the two
+    /// sides of the island read as one even margin.
+    var compactMusicBarsInset: CGFloat { compactMusicArtworkInset }
+    /// Both wings are the same width and never narrower than a peek's.
     private var compactMusicContentWing: CGFloat {
-        max(compactMusicArtworkInset + compactMusicArtworkSide,
-            compactMusicBarsInset + NotchLayout.compactMusicBarsWidth).rounded(.up)
+        max(compactMusicArtworkInset + max(compactMusicArtworkSide, NotchLayout.compactMusicBarsWidth),
+            NotchGeometry.compactPeekWing.lowerBound).rounded(.up)
     }
     var musicCameraGap: CGFloat { cameraWidth }
     var compactMusicLabelInset: CGFloat {

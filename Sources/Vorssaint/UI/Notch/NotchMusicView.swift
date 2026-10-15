@@ -287,7 +287,7 @@ struct NotchMusicView: View {
                         sourcePicker(playback)
                     }
                     if playback.isPlaying {
-                        NotchLiveEqualizerBars(bars: 3, barWidth: 2.5, height: 12, tint: accent)
+                        NotchLiveEqualizerBars(height: 14, tint: accent)
                             .transition(.opacity)
                     }
                 }

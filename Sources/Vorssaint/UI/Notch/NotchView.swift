@@ -764,7 +764,7 @@ struct NotchRestingStrip: View {
                         switch service.idleContent {
                         case .music:
                             if music.playback?.isPlaying == true {
-                                NotchLiveEqualizerBars(bars: 3, barWidth: 2, height: 11,
+                                NotchLiveEqualizerBars(height: 14,
                                                        tint: music.artworkTint?.color ?? .white)
                             }
                         case .battery:

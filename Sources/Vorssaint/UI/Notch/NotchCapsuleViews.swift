@@ -205,7 +205,7 @@ struct NotchCapsuleRestingView: View {
                                         radius: CapsuleLayout.artworkSide(geometry) / 2)
                     }
                     if music.playback?.isPlaying == true {
-                        NotchLiveEqualizerBars(bars: 3, barWidth: 2, height: 10, tint: music.artworkTint?.color ?? .white)
+                        NotchLiveEqualizerBars(height: 12, tint: music.artworkTint?.color ?? .white)
                     }
                 case .none:
                     EmptyView()
