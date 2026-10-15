@@ -20,7 +20,9 @@ struct NotchCameraView: View {
                 NotchEmptyView(symbol: "web.camera", message: text.cameraHint) {
                     Button(action: service.showEmbedded) {
                         Text(text.startCamera).font(NotchDesign.Typography.label.font)
-                            .foregroundStyle(NotchDesign.Ink.primary)
+                            // Black, not white: white on the system accent falls under 4.5:1
+                            // (blue 4.0). This is the Ink.onFill token's job; it is not on ours yet.
+                            .foregroundStyle(NotchDesign.Ink.onInverse)
                             .padding(.horizontal, NotchDesign.Spacing.large)
                             .frame(height: NotchDesign.Control.rowHeight)
                             .background(NotchDesign.Palette.accent, in: Capsule())
