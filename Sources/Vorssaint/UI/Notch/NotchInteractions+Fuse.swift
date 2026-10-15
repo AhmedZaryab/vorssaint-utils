@@ -259,7 +259,7 @@ private struct NotchFuseUndoFace: View {
                 }
             }
         }
-        .foregroundStyle(Color.accentColor)
+        .foregroundStyle(Metrics.accent)
     }
 }
 

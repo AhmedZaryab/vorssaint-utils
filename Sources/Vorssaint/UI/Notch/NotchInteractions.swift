@@ -16,14 +16,16 @@ import SwiftUI
 /// highlights under the pointer. Reduce Motion turns every movement into
 /// `crossfade`.
 enum NotchInteractionMetrics {
-    static let cornerRadius: CGFloat = 10
+    private typealias Design = NotchDesign
+
+    static let cornerRadius: CGFloat = Design.Radius.control
     /// The smallest hit target any control offers, whatever it draws.
-    static let minimumTarget: CGFloat = 28
+    static let minimumTarget: CGFloat = Design.Control.minimumHit
     static let focusRingWidth: CGFloat = 1.5
     static let focusRingGap: CGFloat = 2.5
     static let focusRingOpacity = 0.75
 
-    // Fills, white on the dark island.
+    // Fills, white on the dark island; the amounts of Design.Fill.
     static let hoverWash = 0.08
     static let pressWash = 0.13
     static let restingFill = 0.10
@@ -31,22 +33,25 @@ enum NotchInteractionMetrics {
     static let selectedFill = 0.16
     static let trackFill = 0.16
     static let idleGlyph = 0.55
-    static let disabledOpacity = 0.4
+    static let disabledOpacity = Design.Opacity.disabled
+    /// A toggle that is on, and a fuse's Undo.
+    static let accent = Design.Palette.accent
 
     // Press: lands on mouse down, returns without overshoot; both retarget
     // from what is on screen, so a press during a release never restarts.
-    static let pressScale: CGFloat = 0.97
-    static let pressDuration: TimeInterval = 0.1
-    static let pressIn = Animation.timingCurve(0.23, 1, 0.32, 1, duration: pressDuration)
+    static let pressScale: CGFloat = Design.Interaction.pressScale
+    static let pressDuration: TimeInterval = Design.Interaction.pressDuration
+    static let pressIn = Design.Motion.easeOut(pressDuration)
     /// Quick, no overshoot: a release, a toggle's plate, a slider settling.
-    static let snappy = Animation.spring(response: 0.25, dampingFraction: 1)
+    static let snappy = Design.Motion.snappy.animation
     /// Only after momentum or a commit: a launch, a success landing.
-    static let bouncy = Spring(response: 0.4, dampingRatio: 0.8)
+    static let bouncy = Spring(response: Design.Motion.bouncy.response,
+                               dampingRatio: Design.Motion.bouncy.dampingFraction)
     static let release = snappy
     static let hover = Animation.easeOut(duration: 0.15)
-    static let crossfade = Animation.easeOut(duration: 0.18)
+    static let crossfade = Design.Motion.fade
     /// Apple's rubber band constant, shared by every edge that resists.
-    static let rubberbandConstant = 0.55
+    static let rubberbandConstant = Double(Design.Interaction.rubberband)
 
     // Toggle.
     static let togglePulse: CGFloat = 1.06
@@ -57,19 +62,19 @@ enum NotchInteractionMetrics {
     static let kickDuration = 0.3
     /// How far the glyph kicks, as a share of the control's side.
     static let kickTravel: CGFloat = 0.34
-    static let tapBurst: TimeInterval = 0.3
-    static let tapParticles = 8
+    static let tapBurst: TimeInterval = Design.Interaction.burstDuration
+    static let tapParticles = Design.Interaction.burstParticleCount
     /// A sling is rarer and earned, so its burst is stronger and a little longer.
     static let slingBurst: TimeInterval = 0.35
     static let slingParticles = 10
     /// How far particles fly past the rim, in points; a sling throws them half again as far.
-    static let burstReach: CGFloat = 18
-    static let burstSpread = 60.0
-    static let particleSize: CGFloat = 3
+    static let burstReach: CGFloat = Design.Interaction.burstReach
+    static let burstSpread = Design.Interaction.burstSpread
+    static let particleSize: CGFloat = Design.Interaction.burstParticleSize
     static let slingArm: CGFloat = 26
     static let slingLimit: CGFloat = 64
-    static let slingSlop: CGFloat = 4
-    static let armedScale: CGFloat = 1.04
+    static let slingSlop: CGFloat = Design.Interaction.dragThreshold
+    static let armedScale: CGFloat = Design.Interaction.armedScale
     /// Follows the pointer almost exactly, and retargets from wherever the
     /// control is drawn so a grab mid flight never jumps.
     static let slingTrack = Animation.interactiveSpring(response: 0.1, dampingFraction: 0.9)
@@ -84,27 +89,28 @@ enum NotchInteractionMetrics {
     static let pressCancelMargin: CGFloat = 10
 
     // Fuse: a slow linear burn while you decide, a fast blow out.
-    static let fuseDuration: TimeInterval = 2.5
-    static let fuseLine: CGFloat = 1.5
+    static let fuseDuration: TimeInterval = Design.Interaction.fuseDuration
+    static let fuseLine: CGFloat = Design.Interaction.fuseLineWidth
     static let fuseSpark: CGFloat = 2
-    static let fuseTint = Color.orange
+    static let fuseTint = Design.Palette.warning
     static let fuseFace = Animation.easeOut(duration: 0.2)
     static let blurBridge: CGFloat = 2
 
     // Slider.
-    static let sliderTrack: CGFloat = 6
+    static let sliderTrack: CGFloat = Design.Control.sliderTrack
     static let sliderKnob: CGFloat = 14
     static let sliderStep = 0.05
     /// The furthest a track stretches when dragged past an end.
-    static let sliderStretch: CGFloat = 6
+    static let sliderStretch: CGFloat = Design.Interaction.rubberbandLimit
     /// A value this close to a detent, as a share of the range, lands on it.
-    static let detentSnap = 0.02
+    static let detentSnap = Design.Interaction.detentSnap
+    static let detentHaptic = Design.Interaction.detentHaptic
     static let detentPulse: CGFloat = 1.22
     static let sliderSettle = snappy
     static let valueFade = Animation.easeOut(duration: 0.15)
 
     // Success.
-    static let successHold: TimeInterval = 1.2
+    static let successHold: TimeInterval = Design.Interaction.successMorphDuration
     static let successMorph = Animation.spring(bouncy)
     static let successFrom: CGFloat = 0.8
 }
@@ -151,7 +157,7 @@ enum NotchHaptics {
     /// the island's haptic feedback is on.
     static func tick() {
         guard NotchSupport.usesHapticFeedback() else { return }
-        NSHapticFeedbackManager.defaultPerformer.perform(.alignment, performanceTime: .now)
+        NSHapticFeedbackManager.defaultPerformer.perform(Metrics.detentHaptic, performanceTime: .now)
     }
 }
 
@@ -296,15 +302,15 @@ struct NotchToggleStyle: ToggleStyle {
     var shape: NotchPressShape = .capsule
     var size: CGFloat = 28
     var symbolSize: CGFloat = 12
-    var tint: Color = .accentColor
+    var tint: Color = NotchInteractionMetrics.accent
 
     init(symbol: String, shape: NotchPressShape = .capsule, size: CGFloat = 28, symbolSize: CGFloat = 12,
-         tint: Color = .accentColor) {
+         tint: Color = NotchInteractionMetrics.accent) {
         self.init(on: symbol, off: symbol, shape: shape, size: size, symbolSize: symbolSize, tint: tint)
     }
 
     init(on: String, off: String, shape: NotchPressShape = .capsule, size: CGFloat = 28, symbolSize: CGFloat = 12,
-         tint: Color = .accentColor) {
+         tint: Color = NotchInteractionMetrics.accent) {
         onSymbol = on
         offSymbol = off
         self.shape = shape
