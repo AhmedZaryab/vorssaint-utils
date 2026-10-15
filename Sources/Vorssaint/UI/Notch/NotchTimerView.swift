@@ -165,8 +165,8 @@ struct NotchTimerView: View {
                     // Pause and resume is one action that changes its name and glyph: a commit
                     // that morphs, so VoiceOver reads the action ("Pause"), never a switch state.
                     let title = session.isPaused ? text.resume : l10n.s.actionPause
-                    NotchCommitButton(title, symbol: session.isPaused ? "play.fill" : "pause.fill", kick: .morph, launches: session.isPaused,
-                                      size: roundSide, symbolSize: 20, action: service.pauseOrResume)
+                    NotchCommitButton(title, symbol: session.isPaused ? "play.fill" : "pause.fill", kick: .morph,
+                                      size: roundSide, symbolSize: 20, launches: session.isPaused, action: service.pauseOrResume)
                         .background(Design.Palette.accent, in: Circle())
                 } else {
                     doneButton
