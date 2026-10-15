@@ -3,6 +3,12 @@
 
 import SwiftUI
 
+extension NotchDesign.Stroke {
+    /// The one keyboard focus ring: the system's own focus colour, 2 pt. Added here because NotchDesign is frozen this round.
+    static let focusRingColor = Color(nsColor: .keyboardFocusIndicatorColor)
+    static let focusRingWidth: CGFloat = 2
+}
+
 /// An in-place destination gallery. It only observes navigation, never the
 /// contents or services of the sections represented by its buttons.
 ///
@@ -112,7 +118,7 @@ struct NotchSectionsView: View {
                 Text(module.title(l10n.language))
                     .font(NotchDesign.Typography.label.font)
                     .lineLimit(2)
-                    .minimumScaleFactor(0.85)
+                    .minimumScaleFactor(NotchDesign.Typography.label.minimumScale)
                     .multilineTextAlignment(.center)
                     .frame(height: 27)
                 Text("⌥⌘" + module.shortcutKey.uppercased())
@@ -128,7 +134,7 @@ struct NotchSectionsView: View {
             .overlay {
                 if highlighted && service.sectionKeyDriven {
                     // The system's own focus ring: a fill step alone is 1.3:1.
-                    shape.strokeBorder(Color(nsColor: .keyboardFocusIndicatorColor), lineWidth: 2)
+                    shape.strokeBorder(NotchDesign.Stroke.focusRingColor, lineWidth: NotchDesign.Stroke.focusRingWidth)
                 } else if contrast == .increased {
                     shape.strokeBorder(NotchDesign.Stroke.increasedContrast,
                                        lineWidth: NotchDesign.Stroke.increasedContrastWidth)
@@ -146,6 +152,8 @@ struct NotchSectionsView: View {
             .contentShape(shape)
         }
         .buttonStyle(NotchPressStyle(shape: .rounded(NotchDesign.Radius.card)))
+        // The pointer takes the highlight back from the keyboard.
+        .onHover { if $0 { service.setSectionKeyDriven(false) } }
         .accessibilityLabel(module.title(l10n.language))
         .accessibilityAddTraits(current ? .isSelected : [])
         .accessibilityIdentifier("notch.module.\(module.rawValue)")

@@ -13,13 +13,16 @@ final class NotchQuickAccessMotion: ObservableObject {
     @Published private(set) var placements: [NotchQuickAccessPlacement] = []
     private var bodyFrame = CGRect.zero
     private var visible = false
-    private var generation = 0
 
     func configure(_ configuration: NotchQuickAccessConfiguration, body: CGRect, headerTop: CGFloat, animated: Bool) {
         let values = NotchQuickAccessLayout.placements(configuration, body: body, headerTop: headerTop)
         guard self.configuration != configuration || placements != values else { return }
-        let spring = NotchMotion.sideSpring(from: bodyFrame.size, to: body.size)
-        let animation: Animation? = animated && visible ? .spring(duration: spring.duration, bounce: spring.bounce) : nil
+        // Reduce Motion swaps the spring for the same short ease out the island resizes on.
+        let reduced = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+        let spring = NotchMotion.sideSpring(from: bodyFrame.size, to: body.size,
+                                            style: NotchMotion.Style(peek: false, reduced: reduced))
+        let animation: Animation? = animated && visible
+            ? (reduced ? .easeOut(duration: spring.duration) : .spring(duration: spring.duration, bounce: spring.bounce)) : nil
         bodyFrame = body
         withAnimation(animation) {
             self.configuration = configuration
@@ -38,9 +41,9 @@ final class NotchQuickAccessMotion: ObservableObject {
     func setVisible(_ visible: Bool, animated: Bool, delay: TimeInterval = 0) {
         guard self.visible != visible else { return }
         self.visible = visible
-        generation += 1
-        let token = generation
-        interactive = false
+        // Input is never locked out of a transition: the rail takes clicks the
+        // moment it is asked to show, and stops the moment it is asked to leave.
+        interactive = visible
         // The drop uses the island's own grow spring and leaves on an ease out,
         // never an ease in; Reduce Motion keeps only the fade.
         let reduced = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
@@ -49,11 +52,8 @@ final class NotchQuickAccessMotion: ObservableObject {
                : visible ? NotchDesign.Geometry.growSpring.animation.delay(delay)
                : NotchDesign.Motion.exit)
             : nil
-        withAnimation(animation, completionCriteria: .logicallyComplete) {
+        withAnimation(animation) {
             progress = visible ? 1 : 0
-        } completion: { [weak self] in
-            guard let self, self.generation == token else { return }
-            self.interactive = visible
         }
     }
 

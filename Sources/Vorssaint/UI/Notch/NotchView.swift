@@ -16,11 +16,18 @@ struct NotchView: View {
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @Environment(\.notchCanvas) private var canvas
     @State private var headerHovered = false
+    @State private var keyboardNavigation = NSApp.isFullKeyboardAccessEnabled
+    @Environment(\.accessibilityVoiceOverEnabled) private var voiceOver
     private var text: NotchStrings { FeatureStrings.notch(l10n.language) }
 
     var body: some View {
         surface
             .frame(width: service.surfaceSize.width, height: service.surfaceSize.height, alignment: .top)
+            // Keyboard navigation has no environment value; re-read it when the setting could have changed.
+            .onReceive(NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification)) { _ in
+                let enabled = NSApp.isFullKeyboardAccessEnabled
+                if enabled != keyboardNavigation { keyboardNavigation = enabled }
+            }
             .foregroundStyle(.white)
             // The window server leaves Liquid Glass out of its hit test, so a
             // click or a wheel over empty glass would reach the window behind:
@@ -176,7 +183,7 @@ struct NotchView: View {
                         activityStrip(activity, size: strip)
                             .frame(width: strip.width, height: layout.headerHeight, alignment: .top)
                             .id(NotchPickedStrip(activity: activity, companion: service.compactCompanion))
-                            .transition(.blurReplace)
+                            .transition(reduceMotion ? AnyTransition.opacity : AnyTransition(.blurReplace))
                     }
                     .frame(height: layout.headerHeight, alignment: .top)
                     NotchActivityPicker(activities: service.compactActivities, selected: activity,
@@ -502,7 +509,7 @@ struct NotchView: View {
     private func headerActions(quickActions: [NotchQuickAction]) -> some View {
         let updating = updates.state.isInProgress
         // Keyboard and VoiceOver users cannot hover, so the actions stay in view for them.
-        let revealed = headerHovered || updating || NSWorkspace.shared.isVoiceOverEnabled || NSApp.isFullKeyboardAccessEnabled
+        let revealed = headerHovered || updating || voiceOver || keyboardNavigation
         return HStack(spacing: NotchDesign.Spacing.xSmall) {
             NotchUpdateControl(action: service.showUpdate)
             if service.selected == .tools, !service.showingAppPanel, !service.showingSections,
@@ -916,7 +923,7 @@ struct NotchActivityPicker: View {
                 Button { select(activity) } label: {
                     HStack(spacing: NotchDesign.Spacing.xSmall) {
                         Image(systemName: activity.symbol)
-                        Text(activity.title(language)).lineLimit(1).minimumScaleFactor(0.8)
+                        Text(activity.title(language)).lineLimit(1).minimumScaleFactor(NotchDesign.Typography.label.minimumScale)
                     }
                     .font(NotchDesign.Typography.label.font)
                     .padding(.horizontal, NotchDesign.Spacing.small)
