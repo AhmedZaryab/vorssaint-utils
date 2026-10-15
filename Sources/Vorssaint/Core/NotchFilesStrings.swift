@@ -37,7 +37,7 @@ extension FeatureStrings {
             waiting: "No files in this folder",
             inProgress: "Downloading",
             totalUnknown: "Total size unavailable",
-            completed: "Download complete",
+            completed: "Downloaded",
             clearFolder: "Forget Folder",
             optimizeMedia: "Optimize media",
             optimizeDropHint: "Drag images or one video onto the island, then drop on Optimize media to choose how to save a copy.",

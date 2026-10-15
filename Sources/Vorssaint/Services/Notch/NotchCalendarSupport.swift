@@ -304,9 +304,13 @@ enum NotchCalendarSupport {
             + countdown.target.formatted(.dateTime.hour().minute().locale(locale))
     }
 
-    static func countdownText(until start: Date, now: Date) -> String {
+    /// "12 min" while a minute or more is left, "45 sec" under it: always with
+    /// a unit, because "12:00" beside a start time reads as noon. Localized.
+    static func countdownText(until start: Date, now: Date, locale: Locale = .autoupdatingCurrent) -> String {
         let seconds = max(0, Int(ceil(start.timeIntervalSince(now))))
-        return String(format: "%d:%02d", seconds / 60, seconds % 60)
+        let duration: Duration = seconds >= 60 ? .seconds((seconds + 59) / 60 * 60) : .seconds(seconds)
+        let unit: Set<Duration.UnitsFormatStyle.Unit> = seconds >= 60 ? [.minutes] : [.seconds]
+        return duration.formatted(.units(allowed: unit, width: .abbreviated).locale(locale))
     }
 
     static func countdownAccessibilityText(until start: Date, now: Date, locale: Locale) -> String {
