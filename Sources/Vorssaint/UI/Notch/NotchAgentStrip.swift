@@ -32,14 +32,11 @@ struct NotchAgentStrip: View {
         // walks the preferences for every font, inset and frame.
         let geometry = displayGeometry ?? service.compactActivityGeometry
         let working = working(live)
-                let budget = geometry.compactActivityContentHeight - NotchLayout.compactEdgeGap * 2
+        let budget = geometry.compactActivityContentHeight - NotchLayout.compactEdgeGap * 2
         // The mark is the peek's one wing artwork, smaller only when several agents share the wing.
         let iconSize = min(working.count > 1 ? 14.0 : NotchDesign.Peek.wingArtwork, max(8, budget))
-        let textBox = NotchDesign.Typography.stripPrimary.nsFont.capHeight
-        let iconInset = !geometry.compactActivityUsesFooter
-            ? geometry.compactActivityEdgeInset(boxHeight: iconSize + 4, radius: (iconSize + 4) / 2) : 0
-        let textInset = !geometry.compactActivityUsesFooter
-            ? geometry.compactActivityEdgeInset(boxHeight: textBox, radius: 0) : 0
+        let iconInset = !geometry.compactActivityUsesFooter ? geometry.compactWingInset : 0
+        let textInset = iconInset
         HStack(spacing: 0) {
             Button { service.openActivity(.agents) } label: {
                 HStack(spacing: 1) {

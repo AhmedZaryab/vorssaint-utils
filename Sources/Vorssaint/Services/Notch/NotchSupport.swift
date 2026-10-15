@@ -828,12 +828,12 @@ enum NotchCapsuleLayout {
     static let downloadMeterWidth: CGFloat = 36
     /// A progress indicator waiting for a download's size.
     static let spinnerWidth: CGFloat = 16
-    static let titleFont = NSFont.systemFont(ofSize: 12, weight: .semibold)
-    static let detailFont = NSFont.systemFont(ofSize: 12, weight: .medium)
+    static let titleFont = NotchDesign.Typography.stripPrimary.nsFont
+    static let detailFont = NotchDesign.Typography.stripSecondary.nsFont
     /// A level's reading, with digits of one width, so it never jitters.
-    static let levelFont = NSFont.monospacedDigitSystemFont(ofSize: 12, weight: .medium)
-    static let readingFont = NSFont.monospacedDigitSystemFont(ofSize: 13, weight: .semibold)
-    static let smallFont = NSFont.monospacedDigitSystemFont(ofSize: 11, weight: .medium)
+    static let levelFont = NotchTimerSupport.stripFont
+    static let readingFont = NotchTimerSupport.stripFont
+    static let smallFont = NotchTimerSupport.stripSecondaryFont
 
     /// The widest each kind of strip grows, in points of capsule.
     enum Maximum {
@@ -2596,15 +2596,6 @@ struct NotchSessionState {
     var hearsLockChange: Bool { !sleeping && onConsole && !displaysSleeping && !screenSaverRunning }
 }
 
-/// Reserve enough backing space for both ends. The visible silhouette moves
-/// inside it; the native window only shrinks after the transition finishes.
-///
-/// Both sides ride one spring, as the phone's island does, so the island's
-/// aspect changes along a straight line from where it is to where it goes.
-/// Growing, it passes its size by a few points before it settles; a side
-/// that shrinks never passes its target, which for a resting island is the
-/// housing it hugs. A new target starts from the size on screen and keeps
-/// the speed each side already had, so a reversal turns instead of stopping.
 /// True only while a key press is being answered: those changes land at once,
 /// with no transition and no resize spring.
 enum NotchKeyboardMoment {
@@ -2618,6 +2609,15 @@ enum NotchKeyboardMoment {
     }
 }
 
+/// Reserve enough backing space for both ends. The visible silhouette moves
+/// inside it; the native window only shrinks after the transition finishes.
+///
+/// Both sides ride one spring, as the phone's island does, so the island's
+/// aspect changes along a straight line from where it is to where it goes.
+/// Growing, it passes its size by a few points before it settles; a side
+/// that shrinks never passes its target, which for a resting island is the
+/// housing it hugs. A new target starts from the size on screen and keeps
+/// the speed each side already had, so a reversal turns instead of stopping.
 enum NotchMotion {
     /// Departing content has faded out by 0.12 s; the view then swaps it for
     /// the next content, which fades in once the swap is on screen.
@@ -2700,7 +2700,7 @@ enum NotchMotion {
                                   bounce: NotchDesign.Geometry.shrinkSpring.bounce)
     /// A strip that stays on screen and only fits a new reading, as a level
     /// passing 99% or 9%, eases to its width without a swing, either way.
-    static let steadyWidth = Spring(duration: 0.5, bounce: 0)
+    static let steadyWidth = Spring(duration: NotchDesign.Motion.steady.response, bounce: NotchDesign.Motion.steady.bounce)
     /// The farthest a side may pass its target. The display always keeps at
     /// least this much free around the island and its floating controls.
     static let overshootLimit: CGFloat = NotchDesign.Geometry.overshootLimit

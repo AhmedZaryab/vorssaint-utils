@@ -405,9 +405,8 @@ struct NotchWatchStrip: View {
     private var iconSize: CGFloat {
         NotchTimerSupport.stripAgentMarkSize(height: geometry.compactActivityContentHeight, working: 1)
     }
-    private var textSize: CGFloat { NotchTimerSupport.stripTextSize(height: geometry.compactActivityContentHeight) }
-    private var iconInset: CGFloat { geometry.compactActivityEdgeInset(boxHeight: iconSize, radius: iconSize / 2) }
-    private var textInset: CGFloat { geometry.compactActivityEdgeInset(boxHeight: textSize * 0.72, radius: 0) }
+    private var iconInset: CGFloat { geometry.compactWingInset }
+    private var textInset: CGFloat { geometry.compactWingInset }
 
     var body: some View {
         Button { service.openActivity(.watch) } label: {
