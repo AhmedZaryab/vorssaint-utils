@@ -1706,10 +1706,10 @@ enum NotchTests {
                         suite.expect((first.x + last.x) / 2 == body.midX && first.y == body.maxY + 34,
                                      "bottom actions stay centered beneath the island")
                     } else {
-                        suite.expect(first.y >= 34 && first.y <= 61 && last.y - first.y == CGFloat(count - 1) * 54,
+                        suite.expect(first.y >= 34 && first.y <= 61 && last.y - first.y == CGFloat(count - 1) * NotchQuickAccessLayout.rowSpacing,
                                      "side actions retain their size and spacing without crossing the top edge")
                         if height == 190 && count == 3 {
-                            suite.expect(first.y == 41 && last.y == 149,
+                            suite.expect(first.y == 39 && last.y == 151,
                                          "three actions balance the margins of a short compact page")
                         }
                         if height >= 280 {
