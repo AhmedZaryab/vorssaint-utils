@@ -71,13 +71,16 @@ enum NotchDesign {
         let style: Font.TextStyle
         let weight: Weight
         let rounded: Bool
+        /// A fixed point size, for a face that must fill a fixed box (Icon.wing); nil follows the text style.
+        let fixedSize: CGFloat?
         /// The AppKit face, built once: layout reads it many times a pass (NotchLayout.wings, preferredWings).
         let nsFont: NSFont
-        init(style: Font.TextStyle, weight: Weight, rounded: Bool = false) {
+        init(style: Font.TextStyle, weight: Weight, rounded: Bool = false, fixedSize: CGFloat? = nil) {
             self.style = style
             self.weight = weight
             self.rounded = rounded
-            let size = NSFont.preferredFont(forTextStyle: Self.appKitStyles[style] ?? .body).pointSize
+            self.fixedSize = fixedSize
+            let size = fixedSize ?? NSFont.preferredFont(forTextStyle: Self.appKitStyles[style] ?? .body).pointSize
             let font = NSFont.systemFont(ofSize: size, weight: weight.appKit)
             if rounded, let descriptor = font.fontDescriptor.withDesign(.rounded) {
                 self.nsFont = NSFont(descriptor: descriptor, size: size) ?? font
@@ -92,7 +95,10 @@ enum NotchDesign {
         /// For `minimumScaleFactor`: the most this style may shrink before it sits under minimumPointSize. Truncate instead of going lower.
         var minimumScale: CGFloat { min(1, Self.minimumPointSize / pointSize) }
         /// The SwiftUI font.
-        var font: Font { .system(style, design: rounded ? .rounded : .default, weight: weight.font) }
+        var font: Font {
+            if let fixedSize { return .system(size: fixedSize, weight: weight.font, design: rounded ? .rounded : .default) }
+            return .system(style, design: rounded ? .rounded : .default, weight: weight.font)
+        }
         private static let appKitStyles: [Font.TextStyle: NSFont.TextStyle] = [
             .largeTitle: .largeTitle, .title: .title1, .title2: .title2, .title3: .title3, .headline: .headline,
             .subheadline: .subheadline, .body: .body, .callout: .callout, .footnote: .footnote,
@@ -116,7 +122,7 @@ enum NotchDesign {
     enum Icon {
         /** A glyph in a 28 pt icon button: 13 pt. */ static let button = TypeStyle(style: .body, weight: .medium)
         /** A glyph beside the closed island's and a peek's text: 12 pt. */ static let strip = TypeStyle(style: .callout, weight: .semibold)
-        /** A mark in a compact peek's wing or a closed strip, filling Peek.wingArtwork (20 pt); one size for notices, strips and agent marks so a mark never resizes as a strip becomes a notice. Icon.strip stays for glyphs inline with text. */ static let wing = TypeStyle(style: .title2, weight: .medium)
+        /** A mark in a compact peek's wing or a closed strip, inking Peek.wingArtwork (20 pt): a fixed 17 pt face, so a symbol fills the 20 pt box at any text size; one size for notices, strips and agent marks so a mark never resizes as a strip becomes a notice. Icon.strip stays for glyphs inline with text. */ static let wing = TypeStyle(style: .title2, weight: .medium, fixedSize: 17)
         /** A shortcut tile's glyph in its 40 pt circle: 17 pt. */ static let tile = TypeStyle(style: .title2, weight: .medium)
         /** Previous and next, shuffle: 17 pt. */ static let transport = TypeStyle(style: .title2, weight: .semibold)
         /** Play and pause: 26 pt. */ static let transportPrimary = TypeStyle(style: .largeTitle, weight: .semibold)
@@ -139,12 +145,14 @@ enum NotchDesign {
         static let hint = HintInk()
         /// Hint ink as a Color for views that already read colorSchemeContrast.
         static func hint(_ contrast: ColorSchemeContrast) -> Color { contrast == .increased ? secondary : tertiary }
-        /// White unless white would fall under 4.5 to 1 on `fill`, then Ink.onInverse. Use on any coloured fill: pills, tile glyphs, toggle faces, tints.
-        static func onFill(_ fill: Color) -> Color {
+        /// Glyphs and semibold labels on the accent fill: white always, as in Control Center. Use this, not onFill, on Palette.accent.
+        static let onAccent = Color.white
+        /// White unless white would fall under the bar on `fill`, then Ink.onInverse. The bar is 3 to 1 for glyphs and bold or semibold text (the default), 4.5 to 1 only for `regularText`. Use on any other coloured fill: pills, tile glyphs, toggle faces, tints; one ink across the home tiles.
+        static func onFill(_ fill: Color, regularText: Bool = false) -> Color {
             guard let rgb = NSColor(fill).usingColorSpace(.sRGB) else { return primary }
             func linear(_ c: CGFloat) -> CGFloat { c <= 0.03928 ? c / 12.92 : pow((c + 0.055) / 1.055, 2.4) }
             let luminance = 0.2126 * linear(rgb.redComponent) + 0.7152 * linear(rgb.greenComponent) + 0.0722 * linear(rgb.blueComponent)
-            return 1.05 / (luminance + 0.05) < 4.5 ? onInverse : primary
+            return 1.05 / (luminance + 0.05) < (regularText ? 4.5 : 3) ? onInverse : primary
         }
     }
     /// See Ink.hint.
@@ -277,10 +285,13 @@ enum NotchDesign {
         /** Compact peek: the widest a wing beside the camera may grow. */ static let wingMaximum: CGFloat = 96
         /** Compact peek: the narrowest wing, its curved end and some air. */ static let wingMinimum: CGFloat = 36
         /** Compact peek: a glyph or cover in a wing. */ static let wingArtwork: CGFloat = 20
+        /** Compact peek: the one edge inset for a wingArtwork box on the curved outer end of a wing: the closed corner's radius at the 32 pt notch (10.3) plus a little air, rounded to the grid. Every strip and notice uses it, so no mark crowds the curve. */ static let wingInset: CGFloat = Spacing.small
+        /** Reference camera width of the owner's notch (185 pt), only to evaluate bandMaximumWidth; layout code uses bandMaximumWidth(cameraWidth:). */ static let referenceCameraWidth: CGFloat = 185
         /** Content waits this long inside a peek before it fades in. Zero: a volume, brightness, keyboard light or Copied notice answers on the first frame with the grow, no blur, as the system HUD does; keyboard-initiated moments never wait. */ static let contentRevealDelay: TimeInterval = 0
         /** Tall peek: the band grown below the strip. */ static let bandHeight: CGFloat = 60
         /** Tall peek: the band is the resting island's width but never narrower than this. */ static let bandMinimumWidth: CGFloat = 300
-        /** Tall peek: never wider than this; text truncates, the island does not widen for it. */ static let bandMaximumWidth: CGFloat = 360
+        /** Tall peek: never wider than the widest compact strip, camera plus a full wingMaximum each side; text truncates, the island does not widen for it. */ static func bandMaximumWidth(cameraWidth: CGFloat) -> CGFloat { cameraWidth + 2 * wingMaximum }
+        /** The same on the reference camera: 377 pt. */ static let bandMaximumWidth: CGFloat = referenceCameraWidth + 2 * wingMaximum
         /** Tall peek: the cover or glyph plate in the band. */ static let artwork: CGFloat = 32
         /** Tall peek: band inset under the strip; sides and bottom use Geometry.margin. */ static let bandTop: CGFloat = Spacing.medium
         /** The optional trailing live element: equaliser, ring, amount. */ static let trailingSide: CGFloat = 20
