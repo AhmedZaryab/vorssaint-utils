@@ -3,6 +3,8 @@
 
 import SwiftUI
 
+private typealias Design = NotchDesign
+
 /// The AI page: cards the person picked, paired across the strip.
 struct NotchAgentsView: View {
     let size: CGSize
@@ -36,9 +38,9 @@ struct NotchAgentsView: View {
     var body: some View {
         Group {
             if !usage.snapshot.loaded {
-                VStack(spacing: 10) {
+                VStack(spacing: Design.Spacing.medium) {
                     ProgressView().controlSize(.small)
-                    Text(text.loading).font(.system(size: 11)).foregroundStyle(.secondary)
+                    Text(text.loading).font(Design.Typography.label.font).foregroundStyle(Design.Ink.secondary)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if providers.isEmpty {
@@ -103,18 +105,19 @@ struct NotchAgentsView: View {
     }
 }
 
+/// A small plate for a plan name, a count or a multiple. The plate is neutral: an agent's colour stays on its mark.
 private struct NotchAgentChip: View {
     let text: String
-    var tint: Color = .white
 
     var body: some View {
         Text(text)
-            .font(.system(size: 9, weight: .semibold))
-            .foregroundStyle(tint.opacity(0.9))
+            .font(Design.Typography.caption.font)
+            .monospacedDigit()
+            .foregroundStyle(Design.Ink.secondary)
             .lineLimit(1)
-            .padding(.horizontal, 5)
-            .padding(.vertical, 1.5)
-            .background(tint.opacity(0.14), in: Capsule(style: .continuous))
+            .padding(.horizontal, Design.Spacing.xxSmall + 1)
+            .padding(.vertical, Design.Spacing.line)
+            .background(Design.Fill.control, in: Capsule(style: .continuous))
     }
 }
 
@@ -146,21 +149,21 @@ private struct NotchAgentLimitsCard: View {
     var body: some View {
         let windows = windows
         NotchAgentCardChrome {
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: Design.Spacing.xxSmall) {
                 NotchAgentCardHeader(title: provider.displayName, symbol: provider.symbol, tint: provider.tint,
                                      provider: provider) {
-                    HStack(spacing: 4) {
-                        if let plan = snapshot.plans[provider] { NotchAgentChip(text: plan.name, tint: provider.tint) }
+                    HStack(spacing: Design.Spacing.xxSmall) {
+                        if let plan = snapshot.plans[provider] { NotchAgentChip(text: plan.name) }
                         if !snapshot.working(provider).isEmpty { NotchAgentPulse(tint: provider.tint, size: 5) }
                     }
                 }
                 if windows.isEmpty {
                     estimate
                 } else {
-                    VStack(spacing: 5) {
+                    VStack(spacing: Design.Spacing.xxSmall) {
                         ForEach(windows) { row($0) }
                     }
-                    .opacity(stale ? 0.6 : 1)
+                    .opacity(stale ? Design.Opacity.secondary : Design.Opacity.primary)
                     if windows.count == 1 { caption }
                 }
             }
@@ -173,8 +176,8 @@ private struct NotchAgentLimitsCard: View {
         if let observed = snapshot.limits[provider]?.observedAt, now.timeIntervalSince(observed) > 600 {
             Text(text.updated(observed.formatted(.relative(presentation: .named, unitsStyle: .abbreviated)
                 .locale(locale))))
-                .font(.system(size: 9.5))
-                .foregroundStyle(.tertiary)
+                .font(Design.Typography.caption.font)
+                .foregroundStyle(Design.Ink.secondary)
                 .lineLimit(1)
         }
     }
@@ -186,32 +189,33 @@ private struct NotchAgentLimitsCard: View {
         let tint = agentLimitTint(provider, usedFraction: window.usedFraction)
         let remaining = display == .remaining
         let fraction = remaining ? window.remainingFraction : window.usedFraction
-        return VStack(alignment: .leading, spacing: 2) {
-            HStack(spacing: 5) {
+        return VStack(alignment: .leading, spacing: Design.Spacing.line) {
+            HStack(spacing: Design.Spacing.xxSmall) {
                 Text(label(window))
-                    .font(.system(size: 10, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.85))
+                    .font(Design.Typography.caption.font)
+                    .foregroundStyle(Design.Ink.primary)
                     .lineLimit(1)
                     .layoutPriority(1)
                 Group {
                     if let resets = window.resetsAt {
                         Label(countdown(to: resets), systemImage: "arrow.clockwise")
                             .labelStyle(NotchAgentInlineLabel())
-                            .foregroundStyle(.secondary)
+                            .monospacedDigit()
+                            .foregroundStyle(Design.Ink.secondary)
                     }
                 }
-                .font(.system(size: 9.5))
+                .font(Design.Typography.caption.font)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
-                Spacer(minLength: 2)
+                Spacer(minLength: Design.Spacing.line)
                 Text(AgentFormat.percent(fraction))
-                    .font(.system(size: 12, weight: .semibold, design: .rounded))
+                    .font(Design.Typography.readout.font)
                     .monospacedDigit()
-                    .foregroundStyle(tint == provider.tint ? Color.white : tint)
+                    .foregroundStyle(tint == provider.tint ? Design.Ink.primary : tint)
                     .contentTransition(.numericText())
             }
             NotchAgentMeter(value: fraction, pace: pace.map { remaining ? 1 - $0.elapsed : $0.elapsed },
-                            tint: tint, height: 4)
+                            tint: tint)
         }
         .help(help(window))
     }
@@ -252,67 +256,68 @@ private struct NotchAgentLimitsCard: View {
     @ViewBuilder private var estimate: some View {
         if provider == .claude, let block = snapshot.claudeBlock {
             let length = block.end.timeIntervalSince(block.start)
-            VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: 5) {
+            VStack(alignment: .leading, spacing: Design.Spacing.line) {
+                HStack(spacing: Design.Spacing.xxSmall) {
                     Text(text.session)
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(.white.opacity(0.85))
+                        .font(Design.Typography.caption.font)
+                        .foregroundStyle(Design.Ink.primary)
                     Label(countdown(to: block.end), systemImage: "arrow.clockwise")
                         .labelStyle(NotchAgentInlineLabel())
-                        .font(.system(size: 9.5))
-                        .foregroundStyle(.secondary)
-                    Spacer(minLength: 2)
+                        .font(Design.Typography.caption.font)
+                        .monospacedDigit()
+                        .foregroundStyle(Design.Ink.secondary)
+                    Spacer(minLength: Design.Spacing.line)
                     Text(AgentFormat.cost(block.totals.cost))
-                        .font(.system(size: 12, weight: .semibold, design: .rounded))
+                        .font(Design.Typography.readout.font)
                         .monospacedDigit()
                 }
                 NotchAgentMeter(value: length > 0 ? now.timeIntervalSince(block.start) / length : 0,
-                                tint: provider.tint, height: 4, dimmed: true)
+                                tint: provider.tint, dimmed: true)
             }
             .help(text.estimated)
             setUpLimits
         } else if provider == .claude {
-            Text(text.noSession).font(.system(size: 10.5)).foregroundStyle(.secondary)
+            Text(text.noSession).font(Design.Typography.label.font).foregroundStyle(Design.Ink.secondary)
             setUpLimits
         } else if provider == .opencode {
             let todayUsage = snapshot.usage(.today).byProvider[.opencode]
             if let todayUsage, todayUsage.tokens.total > 0 || todayUsage.requests > 0 || todayUsage.cost > 0 {
-                let costText: String = {
-                    if todayUsage.unpriced > 0 {
-                        return todayUsage.cost > 0 ? "≥ " + AgentFormat.cost(todayUsage.cost) : "—"
-                    }
-                    return AgentFormat.cost(todayUsage.cost)
-                }()
-                VStack(alignment: .leading, spacing: 3) {
-                    HStack(spacing: 5) {
+                // A cost with unpriced models in it is only a floor, so the figure is the tokens instead,
+                // as the trend card does.
+                let priced = todayUsage.unpriced == 0
+                VStack(alignment: .leading, spacing: Design.Spacing.line) {
+                    HStack(spacing: Design.Spacing.xxSmall) {
                         Text(text.period(.today))
-                            .font(.system(size: 10, weight: .medium))
-                            .foregroundStyle(.white.opacity(0.85))
-                        Spacer(minLength: 2)
-                        Text(costText)
-                            .font(.system(size: 12, weight: .semibold, design: .rounded))
+                            .font(Design.Typography.caption.font)
+                            .foregroundStyle(Design.Ink.primary)
+                        Spacer(minLength: Design.Spacing.line)
+                        Text(priced ? AgentFormat.cost(todayUsage.cost) : AgentFormat.tokens(todayUsage.tokens.total))
+                            .font(Design.Typography.readout.font)
                             .monospacedDigit()
                     }
-                    .help(todayUsage.unpriced > 0 ? text.unpriced : text.valueNote)
-                    HStack(spacing: 4) {
-                        Text(AgentFormat.tokens(todayUsage.tokens.total))
-                            .font(.system(size: 9.5))
-                            .foregroundStyle(.secondary)
+                    .help(priced ? text.valueNote : text.unpriced)
+                    HStack(spacing: Design.Spacing.xxSmall) {
+                        if priced {
+                            Text(AgentFormat.tokens(todayUsage.tokens.total))
+                                .font(Design.Typography.caption.font)
+                                .monospacedDigit()
+                                .foregroundStyle(Design.Ink.secondary)
+                        }
                         if let rate = todayUsage.tokens.cacheHitRate, rate > 0 {
-                            Text("· " + text.cached(AgentFormat.percent(rate)))
-                                .font(.system(size: 9.5))
-                                .foregroundStyle(.tertiary)
+                            Text((priced ? "· " : "") + text.cached(AgentFormat.percent(rate)))
+                                .font(Design.Typography.caption.font)
+                                .foregroundStyle(Design.Ink.secondary)
                         }
                         Spacer()
                         lastUsed
                     }
                 }
             } else {
-                Text(text.noSession).font(.system(size: 10.5)).foregroundStyle(.secondary)
+                Text(text.noSession).font(Design.Typography.label.font).foregroundStyle(Design.Ink.secondary)
                 lastUsed
             }
         } else {
-            Text(text.waitingForLimits).font(.system(size: 10.5)).foregroundStyle(.secondary).lineLimit(2)
+            Text(text.waitingForLimits).font(Design.Typography.label.font).foregroundStyle(Design.Ink.secondary).lineLimit(2)
             lastUsed
         }
     }
@@ -324,20 +329,21 @@ private struct NotchAgentLimitsCard: View {
         } label: {
             Label(text.claudeLimitsHint, systemImage: "arrow.up.forward")
                 .labelStyle(NotchAgentInlineLabel())
-                .font(.system(size: 9.5, weight: .medium))
-                .foregroundStyle(provider.tint)
+                .font(Design.Typography.caption.font)
+                .foregroundStyle(Design.Palette.accent)
                 .lineLimit(1)
                 .minimumScaleFactor(0.85)
-                .contentShape(Rectangle())
+                .padding(.horizontal, Design.Spacing.xxSmall)
+                .agentHitTarget(drawnHeight: 14)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(NotchPressStyle(shape: .rounded(Design.Radius.control), lifts: false))
     }
 
     @ViewBuilder private var lastUsed: some View {
         if let last = snapshot.lastActivity[provider] {
             Text(last.formatted(.relative(presentation: .named, unitsStyle: .abbreviated).locale(locale)))
-                .font(.system(size: 9.5))
-                .foregroundStyle(.tertiary)
+                .font(Design.Typography.caption.font)
+                .foregroundStyle(Design.Ink.secondary)
         }
     }
 }
@@ -345,7 +351,7 @@ private struct NotchAgentLimitsCard: View {
 /// A glyph and its words, closer together than a stock label.
 private struct NotchAgentInlineLabel: LabelStyle {
     func makeBody(configuration: Configuration) -> some View {
-        HStack(spacing: 2) {
+        HStack(spacing: Design.Spacing.line) {
             configuration.icon.imageScale(.small)
             configuration.title
         }
@@ -365,27 +371,32 @@ private struct NotchAgentSpendCard: View {
     var body: some View {
         let usage = snapshot.usage(chosen)
         NotchAgentCardChrome {
-            VStack(alignment: .leading, spacing: 5) {
+            VStack(alignment: .leading, spacing: Design.Spacing.line) {
                 NotchAgentCardHeader(title: text.spendCard, symbol: NotchAgentCard.spend.symbol) { periodMenu }
-                HStack(alignment: .firstTextBaseline, spacing: 5) {
-                    Text((usage.fullyPriced ? "" : "≥ ") + AgentFormat.cost(usage.total.cost))
-                        .font(.system(size: 22, weight: .medium, design: .rounded))
+                HStack(alignment: .firstTextBaseline, spacing: Design.Spacing.xSmall) {
+                    // Some models without a price make the cost only a floor; the figure is then the tokens.
+                    Text(usage.fullyPriced ? AgentFormat.cost(usage.total.cost)
+                         : text.tokens(AgentFormat.tokens(usage.total.tokens.total)))
+                        .font(Design.Typography.display.font)
                         .monospacedDigit()
                         .contentTransition(.numericText())
                         .lineLimit(1)
-                        .minimumScaleFactor(0.7)
-                    Text(text.apiValue)
-                        .font(.system(size: 9.5))
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
+                        .minimumScaleFactor(0.5)
+                    if usage.fullyPriced {
+                        Text(text.apiValue)
+                            .font(Design.Typography.caption.font)
+                            .foregroundStyle(Design.Ink.secondary)
+                            .lineLimit(1)
+                    }
                     Spacer(minLength: 0)
                     if chosen == .month { multiples(usage) }
                 }
                 .help(usage.fullyPriced ? text.valueNote : text.unpriced)
                 split(usage)
+                    .padding(.vertical, Design.Spacing.line)
                 Text(footer(usage))
-                    .font(.system(size: 10))
-                    .foregroundStyle(.secondary)
+                    .font(Design.Typography.caption.font)
+                    .foregroundStyle(Design.Ink.secondary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.85)
                     .help(text.saved(AgentFormat.cost(usage.total.savings)))
@@ -398,21 +409,21 @@ private struct NotchAgentSpendCard: View {
             NotchMenuItem(title: text.period(option), checked: option == chosen) { period = option.rawValue }
         }) {
             Text("\(text.period(chosen)) \(Image(systemName: "chevron.down"))")
-                .font(.system(size: 9.5, weight: .medium))
-                .foregroundStyle(.secondary)
-                .padding(.horizontal, 4)
-                .contentShape(Rectangle())
+                .font(Design.Typography.caption.font)
+                .foregroundStyle(Design.Ink.secondary)
+                .padding(.horizontal, Design.Spacing.xxSmall)
+                .agentHitTarget(drawnHeight: 17)
         }
     }
 
     /// Thirty days of API value against a plan's monthly price.
     @ViewBuilder private func multiples(_ usage: AgentPeriodUsage) -> some View {
-        HStack(spacing: 3) {
+        HStack(spacing: Design.Spacing.line) {
             ForEach(providers) { provider in
                 if let plan = snapshot.plans[provider], let price = plan.monthlyPrice, price > 0,
                    let spent = usage.byProvider[provider]?.cost, spent > 0 {
                     let multiple = (spent / price).formatted(.number.precision(.fractionLength(spent / price < 10 ? 1 : 0))) + "×"
-                    NotchAgentChip(text: multiple, tint: provider.tint)
+                    NotchAgentChip(text: multiple)
                         .help(text.planMultiple(multiple, plan: "\(provider.displayName) \(plan.name)"))
                 }
             }
@@ -425,28 +436,29 @@ private struct NotchAgentSpendCard: View {
         let total = parts.reduce(0, +)
         let shown = parts.filter { $0 > 0 }.count
         GeometryReader { proxy in
-            let gap: CGFloat = 2
+            let gap = Design.Spacing.line
+            let sliver = Design.Control.meter
             // Every agent keeps a visible sliver; the rest shares what is left.
-            let room = max(0, proxy.size.width - gap * CGFloat(max(0, shown - 1)) - 4 * CGFloat(shown))
+            let room = max(0, proxy.size.width - gap * CGFloat(max(0, shown - 1)) - sliver * CGFloat(shown))
             HStack(spacing: gap) {
                 if total <= 0 {
-                    Capsule().fill(.white.opacity(0.13))
+                    Capsule().fill(Design.Fill.track)
                 } else {
                     ForEach(providers.indices, id: \.self) { index in
                         if parts[index] > 0 {
-                            Capsule(style: .continuous).fill(providers[index].tint.opacity(0.9))
-                                .frame(width: 4 + room * parts[index] / total)
+                            Capsule(style: .continuous).fill(providers[index].tint)
+                                .frame(width: sliver + room * parts[index] / total)
                         }
                     }
                 }
             }
         }
-        .frame(height: 4)
+        .frame(height: Design.Control.meter)
         .accessibilityHidden(true)
     }
 
     private func footer(_ usage: AgentPeriodUsage) -> String {
-        var parts = [text.tokens(AgentFormat.tokens(usage.total.tokens.total))]
+        var parts = usage.fullyPriced ? [text.tokens(AgentFormat.tokens(usage.total.tokens.total))] : []
         if let rate = usage.total.tokens.cacheHitRate, rate > 0 { parts.append(text.cached(AgentFormat.percent(rate))) }
         return parts.joined(separator: " · ")
     }
@@ -463,21 +475,21 @@ private struct NotchAgentLiveCard: View {
     var body: some View {
         let live = snapshot.live.filter { providers.contains($0.provider) }
         NotchAgentCardChrome {
-            VStack(alignment: .leading, spacing: 7) {
+            VStack(alignment: .leading, spacing: Design.Spacing.xxSmall) {
                 NotchAgentCardHeader(title: text.liveCard, symbol: NotchAgentCard.live.symbol,
-                                     tint: live.first?.provider.tint ?? .secondary) {
-                    HStack(spacing: 4) {
+                                     tint: live.first?.provider.tint ?? Design.Ink.secondary) {
+                    HStack(spacing: Design.Spacing.xxSmall) {
                         if live.count > 2 { NotchAgentChip(text: "+\(live.count - 2)") }
                         if let first = live.first { NotchAgentPulse(tint: first.provider.tint, size: 5) }
                     }
                 }
                 if live.isEmpty {
-                    VStack(alignment: .leading, spacing: 5) {
+                    VStack(alignment: .leading, spacing: Design.Spacing.xxSmall) {
                         ForEach(providers) { idleRow($0) }
                     }
                 } else {
                     TimelineView(.periodic(from: .now, by: 1)) { context in
-                        VStack(alignment: .leading, spacing: 5) {
+                        VStack(alignment: .leading, spacing: Design.Spacing.xxSmall) {
                             ForEach(live.prefix(2)) { row($0, now: context.date) }
                         }
                     }
@@ -487,18 +499,19 @@ private struct NotchAgentLiveCard: View {
     }
 
     private func row(_ session: AgentLiveSession, now: Date) -> some View {
-        VStack(alignment: .leading, spacing: 1) {
-            HStack(spacing: 4) {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: Design.Spacing.xxSmall) {
                 NotchAgentGlyph(provider: session.provider, size: 9)
                 Text(session.project.isEmpty ? session.provider.displayName : session.project)
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(Design.Typography.stripPrimary.font)
+                    .foregroundStyle(Design.Ink.primary)
                     .lineLimit(1)
                     .truncationMode(.middle)
-                Spacer(minLength: 4)
+                Spacer(minLength: Design.Spacing.xxSmall)
                 Text(AgentFormat.clock(now.timeIntervalSince(session.started)))
-                    .font(.system(size: 11, weight: .medium))
+                    .font(Design.Typography.readout.font)
                     .monospacedDigit()
-                    .foregroundStyle(session.provider.tint)
+                    .foregroundStyle(Design.Ink.primary)
             }
             // Tokens the agent wrote, as its own window counts them; every
             // call also reads the whole context again, which the tooltip and
@@ -507,8 +520,8 @@ private struct NotchAgentLiveCard: View {
                   session.tokens.output > 0 ? text.written(AgentFormat.tokens(session.tokens.output)) : "",
                   session.cost > 0 ? AgentFormat.cost(session.cost) : ""]
                     .filter { !$0.isEmpty }.joined(separator: " · "))
-                .font(.system(size: 9.5))
-                .foregroundStyle(.secondary)
+                .font(Design.Typography.caption.font)
+                .foregroundStyle(Design.Ink.secondary)
                 .lineLimit(1)
         }
         .help(text.tokens(AgentFormat.tokens(session.tokens.total)) + " · "
@@ -516,15 +529,15 @@ private struct NotchAgentLiveCard: View {
     }
 
     private func idleRow(_ provider: AgentProvider) -> some View {
-        HStack(spacing: 5) {
+        HStack(spacing: Design.Spacing.xxSmall) {
             NotchAgentGlyph(provider: provider, size: 9, working: false)
-            Text(provider.displayName).font(.system(size: 10.5, weight: .medium))
-            Spacer(minLength: 4)
+            Text(provider.displayName).font(Design.Typography.label.font).foregroundStyle(Design.Ink.primary)
+            Spacer(minLength: Design.Spacing.xxSmall)
             Text(snapshot.lastActivity[provider].map {
                 $0.formatted(.relative(presentation: .named, unitsStyle: .abbreviated).locale(locale))
             } ?? text.idle)
-                .font(.system(size: 9.5))
-                .foregroundStyle(.secondary)
+                .font(Design.Typography.caption.font)
+                .foregroundStyle(Design.Ink.secondary)
                 .lineLimit(1)
         }
     }
@@ -547,12 +560,12 @@ private struct NotchAgentTrendCard: View {
     var body: some View {
         let byCost = snapshot.usage(period).fullyPriced
         NotchAgentCardChrome {
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: Design.Spacing.xSmall) {
                 NotchAgentCardHeader(title: text.trendCard, symbol: NotchAgentCard.trend.symbol) {
                     Text(caption(byCost: byCost))
-                        .font(.system(size: 9.5, weight: .medium))
+                        .font(Design.Typography.caption.font)
                         .monospacedDigit()
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Design.Ink.secondary)
                         .lineLimit(1)
                 }
                 NotchAgentBars(buckets: buckets, providers: providers, byCost: byCost, hovered: $hovered)
@@ -591,15 +604,15 @@ private struct NotchAgentTrendCard: View {
                 }
             } else {
                 ForEach(Array(marks.enumerated()), id: \.offset) { position, index in
-                    if position > 0 { Spacer(minLength: 4) }
+                    if position > 0 { Spacer(minLength: Design.Spacing.xxSmall) }
                     Text(label(buckets[index].start, long: false))
                 }
             }
         }
-        .font(.system(size: 8.5, weight: .medium))
-        .foregroundStyle(.tertiary)
+        .font(Design.Typography.caption.font)
+        .foregroundStyle(Design.Ink.secondary)
         .lineLimit(1)
-        .frame(height: 10)
+        .frame(height: 12)
     }
 }
 
@@ -616,12 +629,12 @@ private struct NotchAgentShareCard: View {
         let shown = Array(shares.prefix(3))
         let peak = max(shown.map { $0.totals.weight(byCost: byCost) }.max() ?? 0, .leastNonzeroMagnitude)
         NotchAgentCardChrome {
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: Design.Spacing.xSmall) {
                 NotchAgentCardHeader(title: title, symbol: symbol)
                 if shown.isEmpty {
-                    Text(text.noActivity).font(.system(size: 10.5)).foregroundStyle(.secondary)
+                    Text(text.noActivity).font(Design.Typography.label.font).foregroundStyle(Design.Ink.secondary)
                 } else {
-                    VStack(spacing: 5) {
+                    VStack(spacing: Design.Spacing.line) {
                         ForEach(shown) { share in row(share, peak: peak) }
                     }
                 }
@@ -631,24 +644,26 @@ private struct NotchAgentShareCard: View {
 
     private func row(_ share: AgentShare, peak: Double) -> some View {
         let weight = share.totals.weight(byCost: byCost)
-        let tint = share.provider?.tint ?? .white
-        return HStack(spacing: 6) {
+        let tint = share.provider?.tint ?? Design.Ink.primary
+        let barWidth = Design.Agents.shareBarWidth
+        return HStack(spacing: Design.Spacing.xSmall) {
             Text(share.name)
-                .font(.system(size: 10.5, weight: .medium))
+                .font(Design.Typography.label.font)
+                .foregroundStyle(Design.Ink.primary)
                 .lineLimit(1)
                 .truncationMode(.middle)
                 .frame(maxWidth: .infinity, alignment: .leading)
             Capsule(style: .continuous)
-                .fill(tint.opacity(0.85))
-                .frame(width: max(3, 44 * weight / peak), height: 4)
-                .frame(width: 44, alignment: .leading)
+                .fill(tint)
+                .frame(width: max(Design.Control.meter, barWidth * weight / peak), height: Design.Control.meter)
+                .frame(width: barWidth, alignment: .leading)
             Text(byCost ? AgentFormat.cost(share.totals.cost) : AgentFormat.tokens(share.totals.tokens.total))
-                .font(.system(size: 10, weight: .medium))
+                .font(Design.Typography.caption.font)
                 .monospacedDigit()
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Design.Ink.secondary)
                 .frame(minWidth: 40, alignment: .trailing)
         }
-        .frame(height: 14)
+        .frame(height: 16)
         .help([share.name, text.tokens(AgentFormat.tokens(share.totals.tokens.total)),
                AgentFormat.cost(share.totals.cost)].joined(separator: " · "))
     }
@@ -675,13 +690,14 @@ private struct NotchAgentActivityCard: View {
     var body: some View {
         let byCost = snapshot.days.allSatisfy { $0.total.unpriced == 0 }
         NotchAgentCardChrome {
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: Design.Spacing.xSmall) {
                 NotchAgentCardHeader(title: text.activityCard, symbol: NotchAgentCard.activity.symbol) {
                     if streak > 1 {
                         Label("\(streak)", systemImage: "flame.fill")
                             .labelStyle(NotchAgentInlineLabel())
-                            .font(.system(size: 9.5, weight: .semibold))
-                            .foregroundStyle(.orange)
+                            .font(Design.Typography.caption.font)
+                            .monospacedDigit()
+                            .foregroundStyle(Design.Ink.secondary)
                             .help(text.streak)
                             .accessibilityLabel(text.streak)
                             .accessibilityValue("\(streak)")
@@ -689,7 +705,7 @@ private struct NotchAgentActivityCard: View {
                 }
                 GeometryReader { proxy in
                     let map = NotchAgentHeatmap.width(height: proxy.size.height, days: snapshot.days)
-                    HStack(alignment: .top, spacing: 14) {
+                    HStack(alignment: .top, spacing: Design.Spacing.medium) {
                         NotchAgentHeatmap(days: snapshot.days, byCost: byCost, hovered: $hovered)
                             .frame(width: map, height: proxy.size.height)
                         figures(byCost: byCost)
@@ -706,15 +722,15 @@ private struct NotchAgentActivityCard: View {
         let active = snapshot.days.filter { $0.total.requests > 0 }
         let busiest = active.max { $0.total.weight(byCost: byCost) < $1.total.weight(byCost: byCost) }
         let pointed = hovered.flatMap { date in snapshot.days.first { $0.start == date } }
-        return VStack(alignment: .leading, spacing: 2) {
+        return VStack(alignment: .leading, spacing: Design.Spacing.line) {
             Text(value(snapshot.days.reduce(into: AgentTotals()) { $0 += $1.total }, byCost: byCost))
-                .font(.system(size: 17, weight: .medium, design: .rounded))
+                .font(Design.Typography.display.font)
                 .monospacedDigit()
                 .lineLimit(1)
-                .minimumScaleFactor(0.7)
+                .minimumScaleFactor(0.5)
             Text(AgentFormat.span(days: snapshot.days.count, locale: locale))
-                .font(.system(size: 9.5)).foregroundStyle(.secondary).lineLimit(1)
-            Spacer(minLength: 4)
+                .font(Design.Typography.caption.font).foregroundStyle(Design.Ink.secondary).lineLimit(1)
+            Spacer(minLength: Design.Spacing.xxSmall)
             figure(text.activeDays, "\(active.count)")
             if let day = pointed ?? busiest {
                 figure(pointed == nil ? text.busiestDay : day.start.formatted(.dateTime.weekday(.wide).locale(locale)),
@@ -724,12 +740,12 @@ private struct NotchAgentActivityCard: View {
     }
 
     private func figure(_ label: String, _ value: String) -> some View {
-        HStack(spacing: 6) {
-            Text(label).foregroundStyle(.secondary).lineLimit(1)
-            Spacer(minLength: 4)
-            Text(value).monospacedDigit().lineLimit(1)
+        HStack(spacing: Design.Spacing.xSmall) {
+            Text(label).foregroundStyle(Design.Ink.secondary).lineLimit(1)
+            Spacer(minLength: Design.Spacing.xxSmall)
+            Text(value).monospacedDigit().foregroundStyle(Design.Ink.primary).lineLimit(1)
         }
-        .font(.system(size: 10, weight: .medium))
+        .font(Design.Typography.caption.font)
         .minimumScaleFactor(0.85)
     }
 
@@ -741,14 +757,14 @@ private struct NotchAgentActivityCard: View {
 // MARK: Resets
 
 /// Codex's banked resets: how many the account holds, when the next one
-/// expires, and a use that asks first. Cancel takes the place of the button
-/// that asked, so a double click never spends one.
+/// expires, and a use that is a fuse. Pressing Use reset does not spend it:
+/// the button reads Undo in the same place while it burns, so a double click
+/// can never spend one, and it commits only when the burn ends.
 private struct NotchAgentResetsCard: View {
     let now: Date
     let text: NotchAgentStrings
     @ObservedObject private var resets = AgentCodexResetService.shared
     @ObservedObject private var l10n = L10n.shared
-    @State private var confirming = false
     @Environment(\.locale) private var locale
 
     private let tint = AgentProvider.codex.tint
@@ -760,11 +776,11 @@ private struct NotchAgentResetsCard: View {
 
     var body: some View {
         NotchAgentCardChrome {
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: Design.Spacing.xxSmall) {
                 NotchAgentCardHeader(title: text.resetsCard, symbol: NotchAgentCard.resets.symbol, tint: tint,
                                      provider: .codex) {
                     if let summary = resets.summary, summary.available > 0 {
-                        NotchAgentChip(text: summary.available.formatted(.number.locale(locale)), tint: tint)
+                        NotchAgentChip(text: summary.available.formatted(.number.locale(locale)))
                     } else if resets.checking {
                         ProgressView().controlSize(.mini)
                     }
@@ -774,30 +790,20 @@ private struct NotchAgentResetsCard: View {
         }
         .help(text.resetsHelp)
         .onAppear { resets.refreshIfStale() }
-        // A count that changed while the question was open asks again.
-        .onChange(of: resets.summary?.available) { _, _ in confirming = false }
     }
 
     @ViewBuilder private var content: some View {
         if resets.redeeming {
-            HStack(spacing: 5) {
+            HStack(spacing: Design.Spacing.xxSmall) {
                 ProgressView().controlSize(.mini)
                 line(text.resetting)
-            }
-        } else if confirming, let summary = resets.summary, summary.available > 0 {
-            action(text.resetConfirm, emphasized: true) {
-                pill(FeatureStrings.clipboard(l10n.language).cancel, prominent: false) { confirming = false }
-                pill(text.confirmReset) {
-                    confirming = false
-                    resets.redeem()
-                }
             }
         } else if let finished {
             if finished.outcome == nil, let summary = resets.summary, summary.available > 0 {
                 // Trying again repeats the same use, which never spends a second reset.
                 VStack(alignment: .leading, spacing: 0) {
                     outcome(nil)
-                    Spacer(minLength: 4)
+                    Spacer(minLength: Design.Spacing.xxSmall)
                     useButton
                 }
             } else {
@@ -805,7 +811,7 @@ private struct NotchAgentResetsCard: View {
             }
         } else if resets.summary == nil, let failure = resets.failure {
             action(message(failure)) {
-                pill(FeatureStrings.notchMusicExtras(l10n.language).retry, prominent: false) {
+                pill(FeatureStrings.notchMusicExtras(l10n.language).retry) {
                     resets.refresh(searchingShell: failure == .missing)
                 }
             }
@@ -813,7 +819,7 @@ private struct NotchAgentResetsCard: View {
             if summary.available > 0 {
                 // A reset a day from expiring is worth using soon.
                 let soon = summary.nextExpiry.map { $0.timeIntervalSince(now) < 86_400 } ?? false
-                action(summary.nextExpiry.map(expiry) ?? "", tint: soon ? .orange : nil) { useButton }
+                action(summary.nextExpiry.map(expiry) ?? "", tint: soon ? Design.Palette.warning : nil) { useButton }
             } else {
                 line(text.resetsNone)
             }
@@ -821,24 +827,25 @@ private struct NotchAgentResetsCard: View {
     }
 
     private var useButton: some View {
-        pill(text.useReset, symbol: "arrow.counterclockwise") { confirming = true }
+        NotchFuseButton(text.useReset, symbol: "arrow.counterclockwise", showsTitle: true) {
+            resets.redeem()
+        }
     }
 
     /// A line above the card's buttons, which keep to its bottom edge.
-    private func action<Buttons: View>(_ message: String, emphasized: Bool = false, tint: Color? = nil,
+    private func action<Buttons: View>(_ message: String, tint: Color? = nil,
                                        @ViewBuilder buttons: () -> Buttons) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             if !message.isEmpty {
                 Text(message)
-                    .font(.system(size: 10.5, weight: emphasized ? .medium : .regular))
-                    .foregroundStyle(tint.map { AnyShapeStyle($0) }
-                                     ?? (emphasized ? AnyShapeStyle(.white.opacity(0.9)) : AnyShapeStyle(.secondary)))
+                    .font(Design.Typography.label.font)
+                    .foregroundStyle(tint ?? Design.Ink.secondary)
                     .lineLimit(2)
                     .minimumScaleFactor(0.85)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            Spacer(minLength: 4)
-            HStack(spacing: 6) { buttons() }
+            Spacer(minLength: Design.Spacing.xxSmall)
+            HStack(spacing: Design.Spacing.xSmall) { buttons() }
         }
     }
 
@@ -849,15 +856,15 @@ private struct NotchAgentResetsCard: View {
     @ViewBuilder private func outcome(_ outcome: AgentCodexServer.Outcome?) -> some View {
         switch outcome {
         case .reset?:
-            line(text.resetDone, symbol: "checkmark.circle.fill", tint: .green)
+            line(text.resetDone, symbol: "checkmark.circle.fill", tint: Design.Palette.positive)
         case .nothingToReset?:
-            line(text.resetNotNeeded, symbol: "info.circle.fill", tint: .secondary)
+            line(text.resetNotNeeded, symbol: "info.circle.fill", tint: Design.Ink.secondary)
         case .alreadyRedeemed?:
-            line(text.resetTaken, symbol: "info.circle.fill", tint: .secondary)
+            line(text.resetTaken, symbol: "info.circle.fill", tint: Design.Ink.secondary)
         case .noCredit?:
             line(text.resetsNone)
         case nil:
-            line(text.resetFailed, symbol: "exclamationmark.circle.fill", tint: .orange)
+            line(text.resetFailed, symbol: "exclamationmark.circle.fill", tint: Design.Palette.warning)
         }
     }
 
@@ -870,32 +877,28 @@ private struct NotchAgentResetsCard: View {
         }
     }
 
-    private func line(_ message: String, symbol: String? = nil, tint: Color = .secondary) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 4) {
+    private func line(_ message: String, symbol: String? = nil, tint: Color = Design.Ink.secondary) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: Design.Spacing.xxSmall) {
             if let symbol { Image(systemName: symbol).foregroundStyle(tint) }
-            Text(message).foregroundStyle(symbol == nil ? AnyShapeStyle(.secondary) : AnyShapeStyle(.white.opacity(0.9)))
+            Text(message).foregroundStyle(symbol == nil ? Design.Ink.secondary : Design.Ink.primary)
         }
-        .font(.system(size: 10.5, weight: .medium))
+        .font(Design.Typography.label.font)
         .lineLimit(2)
         .minimumScaleFactor(0.85)
         .fixedSize(horizontal: false, vertical: true)
     }
 
-    private func pill(_ title: String, symbol: String? = nil, prominent: Bool = true,
-                      action: @escaping () -> Void) -> some View {
+    /// A plain tap pill: the plate is Fill.control, the press and wash are the tap class's.
+    private func pill(_ title: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            HStack(spacing: 3) {
-                if let symbol { Image(systemName: symbol).imageScale(.small) }
-                // A narrow island shrinks a long label before cutting it.
-                Text(title).lineLimit(1).minimumScaleFactor(0.8)
-            }
-            .font(.system(size: 10.5, weight: .semibold))
-            .foregroundStyle(prominent ? AnyShapeStyle(tint) : AnyShapeStyle(.white.opacity(0.85)))
-            .padding(.horizontal, 9)
-            .frame(height: 20)
-            .background(prominent ? tint.opacity(0.2) : .white.opacity(0.1), in: Capsule(style: .continuous))
-            .contentShape(Capsule(style: .continuous))
+            // A narrow island shrinks a long label before cutting it.
+            Text(title).lineLimit(1).minimumScaleFactor(0.8)
+                .font(Design.Typography.label.font)
+                .foregroundStyle(Design.Ink.primary)
+                .padding(.horizontal, Design.Spacing.medium)
+                .frame(minHeight: Design.Control.rowHeight)
+                .background(Design.Fill.control, in: Capsule(style: .continuous))
         }
-        .buttonStyle(NotchButtonStyle(cornerRadius: 10))
+        .buttonStyle(NotchPressStyle(shape: .capsule))
     }
 }
