@@ -45,8 +45,6 @@ private struct NotchMusicPageCover: View {
 
 struct NotchMusicView: View {
     let size: CGSize
-    /// Room lyrics or the queue may add below the player.
-    let extrasHeight: CGFloat
     @ObservedObject private var service = NotchMusicService.shared
     @ObservedObject private var l10n = L10n.shared
     @ObservedObject private var features = FeatureRuntime.shared
@@ -91,8 +89,8 @@ struct NotchMusicView: View {
         // page when music starts with lyrics already chosen.
         let geometry = NotchService.shared.geometry
         let split = NotchLayout.musicSplit(
-            height: size.height, controlsRow: controlsRow, extras: extrasHeight, resting: geometry.musicPlayerHeight,
-            keepsPlayer: !preview && geometry.layout != .custom, extraOpen: openExtra != nil)
+            height: size.height, controlsRow: controlsRow, extras: .greatestFiniteMagnitude, resting: geometry.musicPlayerHeight,
+            keepsPlayer: false, extraOpen: openExtra != nil)
         let extraHeight = split.extra, showsPlayer = split.showsPlayer, playerHeight = split.player
         VStack(spacing: NotchLayout.rowSpacing) {
             if showsPlayer {

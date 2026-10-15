@@ -27,7 +27,8 @@ struct NotchTimerView: View {
             if service.session.hasSession { activeTimer }
             else { setup }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        // Readout page: centred in the canvas (NOTCH-DESIGN 2.3) so slack splits evenly.
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
         .tint(Design.Palette.accent)
     }
 

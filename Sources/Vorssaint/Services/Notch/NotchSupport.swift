@@ -2400,11 +2400,8 @@ struct NotchGeometry: Equatable {
     /// Room a vertical surface gets: the budget, or a readable page where a
     /// preset's strip would leave it a few lines.
     var pageBudget: CGFloat { layout == .custom ? contentBudget : max(contentBudget, NotchLayout.pageContentHeight) }
-    /// Lyrics and the queue open below the player; custom heights keep them
-    /// within the chosen limit and the page swaps the player out instead.
-    var musicExtrasHeight: CGFloat { layout == .custom ? min(216, contentBudget) : 216 }
-    /// The player's height at rest. The island keeps this room for it, and
-    /// the page holds it there while lyrics or the queue grow the island.
+    /// The player's height at rest. Lyrics and the queue open inside the
+    /// canvas (NOTCH-DESIGN 2.3), so the island never grows for them.
     var musicPlayerHeight: CGFloat { NotchLayout.musicPlayerHeight(layout: layout, height: contentBudget) }
 
     func toolRows(count: Int) -> Int {
@@ -2429,7 +2426,7 @@ struct NotchGeometry: Equatable {
     func expandedSize(module: NotchModule, detail: Bool = false, panel: Bool = false,
                       detailHeight: CGFloat? = nil, shortcutCount: Int = 4,
                       sliderCount: Int = 2, controlsHaveMusic: Bool = false, musicHasContent: Bool = true,
-                      musicHasControlsRow: Bool = true, musicExtraHeight: CGFloat = 0,
+                      musicHasControlsRow: Bool = true,
                       fileMediaHeight: CGFloat? = nil, toolCount: Int? = 8,
                       capturePreviewHeight: CGFloat? = nil,
                       timerHasSession: Bool = false, timerMode: NotchTimerMode = .timer,
@@ -2449,27 +2446,13 @@ struct NotchGeometry: Equatable {
         } else if showsCapturePreview {
             contentHeight = max(0, capturePreviewHeight ?? 0) + 4
         } else {
+            // NOTCH-DESIGN 2.3: switching pages never resizes the island.
+            // Every page draws into the one canvas (the budget), whatever
+            // it holds; a page with more content scrolls inside it and a
+            // page with less is laid out to fill or centre in it.
             switch module {
-            case .controls:
-                let sliders = min(2, max(0, sliderCount))
-                let home = NotchLayout.controls(hasCards: controlsHaveMusic || sliders > 0, shortcutCount: max(0, shortcutCount),
-                                                width: contentWidth, height: budget)
-                contentHeight = min(budget, home.height == 0 ? NotchLayout.emptyHeight : home.height)
-            case .music:
-                let controlsRow = musicHasControlsRow ? NotchLayout.musicControlsRowHeight + NotchLayout.rowSpacing : 0
-                let player = musicHasContent ? musicPlayerHeight : NotchLayout.musicIdleHeight
-                contentHeight = min(budget, player + controlsRow) + max(0, musicExtraHeight)
-            case .tools:
-                guard let toolCount else { contentHeight = pageBudget; break }
-                contentHeight = min(budget, toolCount == 0 ? NotchLayout.emptyHeight
-                    : NotchLayout.railHeight(rows: toolRows(count: toolCount), rowHeight: NotchLayout.toolHeight, spacing: NotchLayout.toolSpacing))
-            case .timer:
-                contentHeight = min(budget, NotchLayout.timer(mode: timerMode, hasSession: timerHasSession, width: contentWidth, height: budget))
-            case .agents:
-                // Only the cards a person chose; a short set leaves a short island.
-                contentHeight = min(budget, agentsHeight.map { $0 > 0 ? $0 : NotchLayout.emptyHeight } ?? budget)
-            // Lists and previews fill the chosen content budget.
-            case .mixer, .calendar, .clipboard, .captures, .files, .notifications, .downloads, .camera, .scratchpad, .watch:
+            case .controls, .music, .timer, .agents, .tools,
+                 .mixer, .calendar, .clipboard, .captures, .files, .notifications, .downloads, .camera, .scratchpad, .watch:
                 contentHeight = budget
             }
         }
