@@ -79,9 +79,9 @@ Closed, then a peek, then the expanded panel: one motion language for all three.
 
 1. **Anchor:** top centre, always. The island grows down and out from the camera; it never slides.
 2. **Both axes on one spring:** `Geometry.growSpring` (response 0.40 s, damping 0.85, bounce 0.15) for width and height together, so the aspect changes in a straight line, like Dynamic Island. Overshoot is capped at `Geometry.overshootLimit` (8 pt). It reaches 99% of its travel at 0.29 s and settles under 0.55 s for a 400 pt move. A peek uses the gentler `Peek.grow` (0.36 s, damping 0.88).
-3. **Content arrives with the shape, never squished:** content is laid out at its final size from the first frame and clipped by the growing silhouette. It **never scales**: not 0.86, not 0.95, so it is never squished. At `Geometry.contentRevealDelay` (0.12 s, when the shape has covered about 60% of its travel) it starts to fade in over `contentRevealDuration` (0.18 s) from a `contentRevealBlur` of 4 pt to sharp, so it is fully in at 0.30 s, the moment the shape arrives (99% of its travel at 0.29 s).
+3. **Content arrives after the shape settles, never squished:** content is laid out at its final size from the first frame and clipped by the growing silhouette. It **never scales**: not 0.86, not 0.95, so it is never squished. At `Geometry.contentRevealDelay` (0.28 s, after the shape has settled) it starts its `contentRevealDuration` (0.18 s) fade from a `contentRevealBlur` of 4 pt to sharp, so it is fully in at 0.46 s. Until then the island shows only the growing silhouette.
 
-   Why not wait for the shape to settle: the owner asked that content "appears only after the shape has settled, never squished". Waiting for the full settle means about 0.46 s before the page reads (0.55 s to the last half point), on a surface that opens tens of times a day; that reads as lag (`[Emil]` UI under 300 ms, `[emil-apple-design]` section 1, response). Dynamic Island cross-fades its content in while the shape grows. So "never squished" holds absolutely, and "after it has settled" is met as "sharp exactly when it has arrived": during the move the content is faint and blurred, never crisp and clipped. If the owner wants the strict reading, set `contentRevealDelay` to 0.28 and change nothing else.
+   The strict reading is the owner's call; a faster reveal is a one token change (`contentRevealDelay`) if he asks for it.
 4. **Shrinking:** content leaves first, `contentExitDuration` (0.12 s) on ease out, and the shape starts its `shrinkSpring` (0.30 s, damping 1, no bounce) halfway through. Never ease in `[Emil]`.
 5. **Interrupting:** a new target always starts from the presentation value with the current velocity, never from the logical size (NotchMotion already plans from what is on screen; keep that).
 6. **Reduce Motion:** the silhouette resizes on a plain ease out of `reducedMotionResize` (0.2 s), no spring, no overshoot; content cross-fades with no blur.
@@ -356,7 +356,7 @@ Words in quotes give the English sense; every string comes from the language's s
 | --- | --- | --- | --- | --- | --- | --- |
 | Volume, brightness, keyboard light | compact | Symbol (fills with level) | | | Meter, 4 pt, plus percent | hudDwell 1.5 s after the last change |
 | Microphone muted or live | compact | `mic.slash` or `mic` | Muted or Live | | | infoDwell 2.5 s |
-| Song change | tall | Cover 32 | Title | Artist | Live equaliser | tallDwell 4 s; replaces the compact `.track` notice and the up-next band |
+| Song change | compact notice (unchanged) | Cover in the leading wing at `Peek.wingArtwork` | Title | | | wings within `Peek.wingMinimum` to `Peek.wingMaximum`; stays the compact `.track` notice because a tall peek would change NotchService behaviour, which is out of scope |
 | Agent wrap-up | tall | Agent mark | "Claude finished" | Time taken · cost | | tallDwell 4 s |
 | Agent limit near or reset | tall | Agent mark, warning glyph when near | "Claude · Weekly" | "20% left" or "Renewed" | | tallDwell 4 s |
 | Notification | tall | App icon 32 | Sender or title | One line of the message | | tallDwell 4 s, held while the pointer rests on it |
@@ -428,7 +428,7 @@ The owner called it out. It should feel like Dynamic Island on iPhone when a tra
 |                 Artist                               |
 ```
 
-- **When:** at the track change, showing the song that just started, for `Peek.tallDwell` 4 s (Spotify and every player, from `NotchMusicService.trackChanges`). The current pre-roll ("up next" during the last 10 s) becomes an option that is off by default; when on it uses the same band with "Up next · Artist" as its second line and still no ring.
+- **When:** the up next pre-roll stays on with its current timing (last 10 s of a song; it is a feature the owner uses and behaviour is out of scope). Only the up next band uses this tall peek anatomy (cover 32, title, "Up next · Artist" as the second line, live equaliser; no ring, no uppercase eyebrow). The track change peek stays a compact notice (cover in the leading wing at `Peek.wingArtwork`, title, wings within `Peek.wingMinimum` to `Peek.wingMaximum`). No new setting.
 - **Leading:** the cover at `Peek.artwork` 32 pt, `Radius.card` 12, continuous, `Stroke.artworkEdge` hairline. No cover yet: `music.note` in a `Fill.card` plate, and the real cover cross-fades in when it lands.
 - **Text:** title `Typography.stripPrimary` white; artist `Typography.stripSecondary` at 0.6. No eyebrow, no uppercase, no kerning, no 9 or 10.5 pt sizes.
 - **Trailing:** `NotchLiveEqualizerBars`, 3 bars, 2 pt wide, 12 pt tall, in the artwork tint (white for neutral covers). Static bars under Reduce Motion and while paused.
