@@ -592,6 +592,8 @@ struct NotchActionTile: View {
     var reading: String?
     /// A timer's reading rolls down toward zero; a stopwatch's rolls up.
     var readingCountsDown = false
+    /// A shorter second line for when `reading` does not fit whole (the calendar's title without its time).
+    var readingFallback: String?
     /// A shorter title for the line under a reading when `title` does not
     /// fit whole; help and VoiceOver keep `title`.
     var compactTitle: String?
@@ -645,11 +647,10 @@ struct NotchActionTile: View {
                 // "dom, 10:45 p. m.", needs up to 91 pt on a 68 pt line. The
                 // smaller optical size spaces its letters wider, so scaling
                 // alone would still cut it off.
-                Text(reading).font(Design.Typography.readout.font).monospacedDigit()
-                    .foregroundStyle(Design.Ink.secondary)
-                    .allowsTightening(true)
-                    .minimumScaleFactor(Design.SpecTime.scale(Design.Typography.readout, preferred: 0.7))
-                    .modifier(NotchRollingDigits(value: reading, countsDown: readingCountsDown))
+                ViewThatFits(in: .horizontal) {
+                    if readingFallback != nil { readingLine(reading, scales: false) }
+                    readingLine(readingFallback ?? reading, scales: true)
+                }
             }
             .lineLimit(1)
             .minimumScaleFactor(Design.SpecTime.scale(Design.Typography.label, preferred: 0.85))
@@ -660,6 +661,14 @@ struct NotchActionTile: View {
                 .minimumScaleFactor(Design.SpecTime.scale(Design.Typography.label, preferred: 0.85))
                 .fixedSize(horizontal: false, vertical: true)
         }
+    }
+
+    private func readingLine(_ text: String, scales: Bool) -> some View {
+        Text(text).font(Design.Typography.readout.font).monospacedDigit()
+            .foregroundStyle(Design.Ink.secondary)
+            .allowsTightening(true)
+            .minimumScaleFactor(scales ? Design.SpecTime.scale(Design.Typography.readout, preferred: 0.7) : 1)
+            .modifier(NotchRollingDigits(value: text, countsDown: readingCountsDown))
     }
 
     private func readingTitle(_ text: String) -> some View {
@@ -722,13 +731,17 @@ private struct NotchCalendarTile: View {
     private func tile(now: Date) -> some View {
         let event = NotchCalendarSupport.tileEvent(calendar.events, now: now)
         let title = event?.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        // Line 2 is the event title; the start time leads it when both fit.
+        let name = title.map { $0.isEmpty ? FeatureStrings.notchCalendar(l10n.language).untitled : $0 }
+        let shown = event.flatMap { e in
+            name.map { "\(NotchCalendarSupport.tileStartText(e.start, now: now, locale: l10n.language.formattingLocale())) \($0)" }
+        }
         return NotchActionTile(
             symbol: NotchControlItem.calendar.symbol,
             title: NotchControlItem.calendar.title(l10n),
-            reading: event.map {
-                NotchCalendarSupport.tileStartText($0.start, now: now, locale: l10n.language.formattingLocale())
-            },
-            detail: title.map { $0.isEmpty ? FeatureStrings.notchCalendar(l10n.language).untitled : $0 }) { service.select(.calendar) }
+            reading: shown,
+            readingFallback: shown == nil ? nil : name,
+            detail: name) { service.select(.calendar) }
     }
 }
 
