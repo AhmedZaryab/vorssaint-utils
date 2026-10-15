@@ -3,20 +3,6 @@
 
 import SwiftUI
 
-extension NotchDesign {
-    /// Peek marks, in one place so a state change never resizes a mark.
-    enum PeekMark {
-        /// A symbol that fills the 20 pt wing artwork, as the timer strip's glyph does, so the
-        /// "Time is up" mark is the size of the timer's (Icon.strip is for glyphs inline with text).
-        static let wingGlyph = Font.system(size: Peek.wingArtwork, weight: .medium)
-    }
-}
-
-extension NotchDesign.TypeStyle {
-    /// The least a line of this style may scale down to: 10 pt, the floor (docs/design/NOTCH-DESIGN.md 5, 14).
-    var minimumScale: CGFloat { min(1, 10 / nsFont.pointSize) }
-}
-
 /// Feedback keeps the central camera area clear on physical and simulated notches.
 struct NotchNoticeView: View {
     let notice: NotchNotice
@@ -162,7 +148,7 @@ struct NotchNoticeView: View {
             NotchAgentMark(provider: agent, size: Self.markSize(agent, fitting: side))
         } else {
             Image(systemName: notice.symbol)
-                .font(NotchDesign.PeekMark.wingGlyph)
+                .font(NotchDesign.Icon.wing.font)
                 .foregroundStyle(tint)
         }
     }
