@@ -120,7 +120,7 @@ struct NotchMusicView: View {
             }
             if hasControlsRow {
                 HStack(spacing: NotchDesign.Spacing.xSmall) {
-                    if AppFeature.mixer.isAvailable { NotchAudioControls(style: .inline) }
+                    if AppFeature.mixer.isAvailable { NotchAudioControls(style: .inline, fillStops: service.artworkTint?.fillStops) }
                     Spacer(minLength: NotchDesign.Spacing.large)
                     if showsLyrics {
                         extraButton(.lyrics, title: FeatureStrings.notchMusicExtras(l10n.language).lyrics, symbol: "quote.bubble")
@@ -299,7 +299,8 @@ struct NotchMusicView: View {
                         .lineLimit(1)
                 }
             }
-            if timeline { NotchMusicTimeline(playback: playback, service: service, tint: accent, timesBeside: true) }
+            if timeline { NotchMusicTimeline(playback: playback, service: service, tint: accent,
+                                             fillStops: service.artworkTint?.fillStops, timesBeside: true) }
             if !preview && shuffle.isOffered {
                 // Shuffle sits beside the transport as one more of its buttons,
                 // spaced like them. The other side keeps its room while it
@@ -518,6 +519,8 @@ struct NotchMusicTimeline: View {
     let playback: NotchPlayback
     @ObservedObject var service: NotchMusicService
     var tint: Color = .white
+    /// The cover's colours, blended across the elapsed part of the bar.
+    var fillStops: [Color]?
     /// The island's player sets the times beside the bar, as a phone's
     /// island does, which leaves its short row room for the artist.
     var timesBeside = false
@@ -592,6 +595,8 @@ struct NotchMusicTimeline: View {
                 label: FeatureStrings.notch(l10n.language).playbackPosition,
                 range: 0...playback.duration,
                 tint: tint,
+                fillStops: fillStops,
+                knobOnlyWhenActive: true,
                 valueText: timestamp(position),
                 onEditingChanged: { editing in
                     if editing {

@@ -21,7 +21,43 @@ struct NotchArtworkTint: Equatable {
         // Stretch the channels onto a fixed range so every cover glows with the
         // same strength instead of following its own exposure.
         let stretched = channels.map { min(1, max(0, ($0 - lowest) / range * 0.86 + 0.06)) }
-        return NotchArtworkTint(red: stretched[0], green: stretched[1], blue: stretched[2])
+        let lifted = lifted(stretched[0], stretched[1], stretched[2], toLuminance: minimumLuminance)
+        return NotchArtworkTint(red: lifted.0, green: lifted.1, blue: lifted.2)
+    }
+
+    /// Relative luminance 0.10 is 3:1 against the notch's black, the HIG floor
+    /// for a graphic that carries meaning such as a fill.
+    static let minimumLuminance = 0.10
+
+    static func luminance(_ red: Double, _ green: Double, _ blue: Double) -> Double {
+        func linear(_ value: Double) -> Double {
+            value <= 0.04045 ? value / 12.92 : pow((value + 0.055) / 1.055, 2.4)
+        }
+        return 0.2126 * linear(red) + 0.7152 * linear(green) + 0.0722 * linear(blue)
+    }
+
+    /// Mixes toward white only as far as needed, so the hue survives.
+    private static func lifted(_ red: Double, _ green: Double, _ blue: Double,
+                               toLuminance floor: Double) -> (Double, Double, Double) {
+        guard luminance(red, green, blue) < floor else { return (red, green, blue) }
+        var low = 0.0, high = 1.0
+        for _ in 0..<12 {
+            let mid = (low + high) / 2
+            let mixed = luminance(red + (1 - red) * mid, green + (1 - green) * mid, blue + (1 - blue) * mid)
+            if mixed < floor { low = mid } else { high = mid }
+        }
+        return (red + (1 - red) * high, green + (1 - green) * high, blue + (1 - blue) * high)
+    }
+
+    /// Three stops for a fill, deep to bright, each at or above the floor:
+    /// the cover's colour, a deeper take of it, and a lighter take.
+    var stops: [NotchArtworkTint] {
+        func mix(_ target: Double, _ amount: Double) -> NotchArtworkTint {
+            let r = red + (target - red) * amount, g = green + (target - green) * amount, b = blue + (target - blue) * amount
+            let l = Self.lifted(r, g, b, toLuminance: Self.minimumLuminance)
+            return NotchArtworkTint(red: l.0, green: l.1, blue: l.2)
+        }
+        return [mix(0, 0.28), self, mix(1, 0.32)]
     }
 }
 

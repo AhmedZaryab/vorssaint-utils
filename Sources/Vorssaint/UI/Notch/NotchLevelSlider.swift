@@ -14,6 +14,8 @@ struct NotchLevelSlider: View {
     let label: String
     var range: ClosedRange<Double> = 0...1
     var tint: Color = .white
+    /// Horizontal only: colours blended across the filled part.
+    var fillStops: [Color]?
     var vertical = false
     /// Only the vertical fader draws a thicker track; a horizontal level uses the token track.
     var trackThickness: CGFloat?
@@ -29,7 +31,7 @@ struct NotchLevelSlider: View {
                        onEditingChanged: onEditingChanged)
         } else {
             NotchSlider(value: $value, label: label, range: range, detents: marker.map { [$0] } ?? [],
-                        tint: tint, valueText: valueLabel, onEditingChanged: onEditingChanged)
+                        tint: tint, fillStops: fillStops, valueText: valueLabel, onEditingChanged: onEditingChanged)
         }
     }
 }

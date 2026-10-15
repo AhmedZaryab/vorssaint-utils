@@ -22,6 +22,8 @@ struct NotchButtonStyle: ButtonStyle {
 
 extension NotchArtworkTint {
     var color: Color { Color(.sRGB, red: red, green: green, blue: blue, opacity: 1) }
+    /// The stops a scrubber or volume fill draws left to right.
+    var fillStops: [Color] { stops.map(\.color) }
 }
 
 /// The bars with the live levels attached. Only this small view observes the

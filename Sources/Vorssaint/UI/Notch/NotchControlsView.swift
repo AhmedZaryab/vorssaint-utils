@@ -188,6 +188,8 @@ struct NotchAudioControls: View {
     @ObservedObject var notch: NotchService = .shared
     var style: NotchLevelStyle = .card
     var showsDevice = true
+    /// The inline volume's fill, taken from the cover; nil keeps it flat.
+    var fillStops: [Color]?
     @ObservedObject private var mixer = AppVolumeMixer.shared
     @ObservedObject private var l10n = L10n.shared
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -286,7 +288,7 @@ struct NotchAudioControls: View {
             // bar, keeping the full height to grab it by.
             NotchLevelSlider(value: Binding(get: { level }, set: { adjustOutput(volume: $0) }),
                              label: FeatureStrings.notch(l10n.language).volume,
-                             tint: Design.Ink.primary)
+                             tint: Design.Ink.primary, fillStops: fillStops)
                 .frame(height: NotchLevelMetrics.row)
         } else {
             Text(l10n.s.mixerOutputUnavailable).font(Design.Typography.caption.font).foregroundStyle(Design.Ink.secondary)

@@ -225,7 +225,8 @@ struct NotchLockScreenPlayer: View {
                     .lineLimit(1)
                     .padding(.top, NotchDesign.Spacing.line)
             }
-            NotchMusicTimeline(playback: playback, service: music, tint: accent)
+            NotchMusicTimeline(playback: playback, service: music, tint: accent,
+                               fillStops: music.artworkTint?.fillStops)
                 .padding(.top, NotchDesign.Spacing.large)
             transport(playback)
         }
@@ -248,7 +249,8 @@ struct NotchLockScreenPlayer: View {
                 .lineLimit(1)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
-            NotchMusicTimeline(playback: playback, service: music, tint: accent)
+            NotchMusicTimeline(playback: playback, service: music, tint: accent,
+                               fillStops: music.artworkTint?.fillStops)
                 .padding(.top, NotchDesign.Spacing.medium)
             transport(playback)
         }
