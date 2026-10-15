@@ -52,7 +52,8 @@ struct NotchAgentsView: View {
                 TimelineView(.periodic(from: .now, by: 15)) { context in
                     if NotchAgentSupport.contentHeight(rows) > size.height + 0.5 {
                         ScrollView { grid(rows, now: context.date) }
-                            .scrollIndicators(.automatic)
+                            .scrollIndicators(.never)
+                            .notchScrollEdgeFade()
                     } else {
                         grid(rows, now: context.date)
                     }
@@ -154,7 +155,7 @@ private struct NotchAgentLimitsCard: View {
                                      provider: provider) {
                     HStack(spacing: Design.Spacing.xxSmall) {
                         if let plan = snapshot.plans[provider] { NotchAgentChip(text: plan.name) }
-                        if !snapshot.working(provider).isEmpty { NotchAgentPulse(tint: provider.tint, size: 5) }
+                        if !snapshot.working(provider).isEmpty { NotchAgentPulse(tint: Design.Ink.primary, size: 5) }
                     }
                 }
                 if windows.isEmpty {
@@ -206,12 +207,18 @@ private struct NotchAgentLimitsCard: View {
                 }
                 .font(Design.Typography.caption.font)
                 .lineLimit(1)
-                .minimumScaleFactor(0.8)
+                .minimumScaleFactor(Design.Agents.minimumScale(Design.Typography.caption, preferred: 0.8))
                 Spacer(minLength: Design.Spacing.line)
+                if agentLimitIsNear(usedFraction: window.usedFraction) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(Design.Typography.caption.font)
+                        .foregroundStyle(tint)
+                        .accessibilityLabel(text.usedShare(AgentFormat.percent(window.usedFraction)))
+                }
                 Text(AgentFormat.percent(fraction))
                     .font(Design.Typography.readout.font)
                     .monospacedDigit()
-                    .foregroundStyle(tint == provider.tint ? Design.Ink.primary : tint)
+                    .foregroundStyle(Design.Ink.primary)
                     .contentTransition(.numericText())
             }
             NotchAgentMeter(value: fraction, pace: pace.map { remaining ? 1 - $0.elapsed : $0.elapsed },
@@ -272,7 +279,7 @@ private struct NotchAgentLimitsCard: View {
                         .monospacedDigit()
                 }
                 NotchAgentMeter(value: length > 0 ? now.timeIntervalSince(block.start) / length : 0,
-                                tint: provider.tint, dimmed: true)
+                                dimmed: true)
             }
             .help(text.estimated)
             setUpLimits
@@ -332,7 +339,7 @@ private struct NotchAgentLimitsCard: View {
                 .font(Design.Typography.caption.font)
                 .foregroundStyle(Design.Palette.accent)
                 .lineLimit(1)
-                .minimumScaleFactor(0.85)
+                .minimumScaleFactor(Design.Agents.minimumScale(Design.Typography.caption, preferred: 0.85))
                 .padding(.horizontal, Design.Spacing.xxSmall)
                 .agentHitTarget(drawnHeight: 14)
         }
@@ -381,7 +388,7 @@ private struct NotchAgentSpendCard: View {
                         .monospacedDigit()
                         .contentTransition(.numericText())
                         .lineLimit(1)
-                        .minimumScaleFactor(0.5)
+                        .minimumScaleFactor(Design.Agents.minimumScale(Design.Typography.display, preferred: 0.5))
                     if usage.fullyPriced {
                         Text(text.apiValue)
                             .font(Design.Typography.caption.font)
@@ -398,7 +405,7 @@ private struct NotchAgentSpendCard: View {
                     .font(Design.Typography.caption.font)
                     .foregroundStyle(Design.Ink.secondary)
                     .lineLimit(1)
-                    .minimumScaleFactor(0.85)
+                    .minimumScaleFactor(Design.Agents.minimumScale(Design.Typography.caption, preferred: 0.85))
                     .help(text.saved(AgentFormat.cost(usage.total.savings)))
             }
         }
@@ -446,7 +453,7 @@ private struct NotchAgentSpendCard: View {
                 } else {
                     ForEach(providers.indices, id: \.self) { index in
                         if parts[index] > 0 {
-                            Capsule(style: .continuous).fill(providers[index].tint)
+                            Capsule(style: .continuous).fill(Design.Ink.primary.opacity(NotchAgentBars.slotOpacity(index, active: true)))
                                 .frame(width: sliver + room * parts[index] / total)
                         }
                     }
@@ -477,10 +484,10 @@ private struct NotchAgentLiveCard: View {
         NotchAgentCardChrome {
             VStack(alignment: .leading, spacing: Design.Spacing.xxSmall) {
                 NotchAgentCardHeader(title: text.liveCard, symbol: NotchAgentCard.live.symbol,
-                                     tint: live.first?.provider.tint ?? Design.Ink.secondary) {
+                                     tint: Design.Ink.secondary) {
                     HStack(spacing: Design.Spacing.xxSmall) {
                         if live.count > 2 { NotchAgentChip(text: "+\(live.count - 2)") }
-                        if let first = live.first { NotchAgentPulse(tint: first.provider.tint, size: 5) }
+                        if let first = live.first { NotchAgentPulse(tint: Design.Ink.primary, size: 5) }
                     }
                 }
                 if live.isEmpty {
@@ -644,7 +651,7 @@ private struct NotchAgentShareCard: View {
 
     private func row(_ share: AgentShare, peak: Double) -> some View {
         let weight = share.totals.weight(byCost: byCost)
-        let tint = share.provider?.tint ?? Design.Ink.primary
+        let tint = Design.Ink.primary
         let barWidth = Design.Agents.shareBarWidth
         return HStack(spacing: Design.Spacing.xSmall) {
             Text(share.name)
@@ -727,7 +734,7 @@ private struct NotchAgentActivityCard: View {
                 .font(Design.Typography.display.font)
                 .monospacedDigit()
                 .lineLimit(1)
-                .minimumScaleFactor(0.5)
+                .minimumScaleFactor(Design.Agents.minimumScale(Design.Typography.display, preferred: 0.5))
             Text(AgentFormat.span(days: snapshot.days.count, locale: locale))
                 .font(Design.Typography.caption.font).foregroundStyle(Design.Ink.secondary).lineLimit(1)
             Spacer(minLength: Design.Spacing.xxSmall)
@@ -746,7 +753,7 @@ private struct NotchAgentActivityCard: View {
             Text(value).monospacedDigit().foregroundStyle(Design.Ink.primary).lineLimit(1)
         }
         .font(Design.Typography.caption.font)
-        .minimumScaleFactor(0.85)
+        .minimumScaleFactor(Design.Agents.minimumScale(Design.Typography.caption, preferred: 0.85))
     }
 
     private func value(_ totals: AgentTotals, byCost: Bool) -> String {
@@ -841,7 +848,7 @@ private struct NotchAgentResetsCard: View {
                     .font(Design.Typography.label.font)
                     .foregroundStyle(tint ?? Design.Ink.secondary)
                     .lineLimit(2)
-                    .minimumScaleFactor(0.85)
+                    .minimumScaleFactor(Design.Agents.minimumScale(Design.Typography.label, preferred: 0.85))
                     .fixedSize(horizontal: false, vertical: true)
             }
             Spacer(minLength: Design.Spacing.xxSmall)
@@ -884,7 +891,7 @@ private struct NotchAgentResetsCard: View {
         }
         .font(Design.Typography.label.font)
         .lineLimit(2)
-        .minimumScaleFactor(0.85)
+        .minimumScaleFactor(Design.Agents.minimumScale(Design.Typography.label, preferred: 0.85))
         .fixedSize(horizontal: false, vertical: true)
     }
 
@@ -892,7 +899,7 @@ private struct NotchAgentResetsCard: View {
     private func pill(_ title: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             // A narrow island shrinks a long label before cutting it.
-            Text(title).lineLimit(1).minimumScaleFactor(0.8)
+            Text(title).lineLimit(1).minimumScaleFactor(Design.Agents.minimumScale(Design.Typography.label, preferred: 0.8))
                 .font(Design.Typography.label.font)
                 .foregroundStyle(Design.Ink.primary)
                 .padding(.horizontal, Design.Spacing.medium)

@@ -228,7 +228,7 @@ enum NotchAgentSupport {
 
     // MARK: Layout
 
-    static let spacing: CGFloat = 10
+    static let spacing: CGFloat = NotchDesign.Spacing.gutter
     static let cardHeight: CGFloat = 96
     static let chartHeight: CGFloat = 118
     /// Below this width every card takes a row of its own.
