@@ -233,7 +233,7 @@ enum NotchLayout {
     /// detail, a hosted utility) still get a readable page inside a preset.
     static let pageContentHeight: CGFloat = 320
     static let rowSpacing: CGFloat = NotchDesign.Spacing.gutter
-    static let cardHeight: CGFloat = 96
+    static let cardHeight: CGFloat = 98
     static let minimumCardHeight: CGFloat = 68
     /// Glyph circle 40 + 6 gap + two reserved label lines 28 + 4 pt of air above and below (NotchActionTile).
     static let shortcutHeight: CGFloat = 82
