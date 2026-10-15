@@ -40,7 +40,7 @@ enum NotchDesign {
         /** Growth on both axes together, one spring, anchored at the top centre. */ static let growSpring = Spring(response: 0.40, dampingFraction: 0.85)
         /** Shrink on both axes together, no overshoot. */ static let shrinkSpring = Spring(response: 0.30, dampingFraction: 1)
         /** The farthest a growing side may pass its target, in points. */ static let overshootLimit: CGFloat = 8
-        /** Content waits for the shape to settle, the owner's explicit rule ("appears only after the shape has settled, never squished"). */ static let contentRevealDelay: TimeInterval = 0.28
+        /** Content arrives the way Dynamic Island does: it starts 0.12 s in, under blur, while the shape is still growing, and the 0.18 s fade from the 4 pt blur is sharp by 0.30 s. Never scaled, clipped to the growing shape. */ static let contentRevealDelay: TimeInterval = 0.12
         /** Content then fades in over this, fully in by 0.3 s. It never scales, so it is never squished. */ static let contentRevealDuration: TimeInterval = 0.18
         /** The blur content arrives from, in points; none under Reduce Motion. */ static let contentRevealBlur: CGFloat = 4
         /** Content leaves this fast, ease out; the shrink starts halfway through it. */ static let contentExitDuration: TimeInterval = 0.12
