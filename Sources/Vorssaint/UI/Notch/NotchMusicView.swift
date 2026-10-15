@@ -329,16 +329,20 @@ struct NotchMusicView: View {
         let name = service.sources.first(where: { $0.pid == pid })?.displayName
             ?? pid.flatMap { NSRunningApplication(processIdentifier: $0)?.localizedName }
             ?? playback?.track.appBundleIdentifier ?? extras.playbackSource
-        var items = [NotchMenuItem(title: extras.automaticSource, checked: service.sourceIsAutomatic,
-                                         action: { service.selectSource(nil) }), .separator]
-        for source in service.sources {
-            let title = source.displayName ?? NSRunningApplication(processIdentifier: source.pid)?.localizedName ?? source.bundleIdentifier
-            // The chosen row, even while the automatic player fills its gap.
-            items.append(NotchMenuItem(title: title, checked: source.pid == service.selectedSourcePID,
-                                             icon: NotchMenuAnchor.icon(bundleIdentifier: source.bundleIdentifier),
-                                             action: { service.selectSource(source.selection) }))
+        // Built when the menu pops up: each entry looks its app icon up.
+        let items = { () -> [NotchMenuItem] in
+            var items = [NotchMenuItem(title: extras.automaticSource, checked: service.sourceIsAutomatic,
+                                       action: { service.selectSource(nil) }), .separator]
+            for source in service.sources {
+                let title = source.displayName ?? NSRunningApplication(processIdentifier: source.pid)?.localizedName ?? source.bundleIdentifier
+                // The chosen row, even while the automatic player fills its gap.
+                items.append(NotchMenuItem(title: title, checked: source.pid == service.selectedSourcePID,
+                                           icon: NotchMenuAnchor.icon(bundleIdentifier: source.bundleIdentifier),
+                                           action: { service.selectSource(source.selection) }))
+            }
+            return items
         }
-        return NotchMenuButton(title: extras.playbackSource, items: items) {
+        return NotchMenuButton(title: extras.playbackSource, items: items()) {
             NotchPullDownFace(text: name, maxWidth: 140)
         }
         .accessibilityLabel(extras.playbackSource)

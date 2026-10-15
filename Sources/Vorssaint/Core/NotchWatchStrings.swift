@@ -71,7 +71,7 @@ extension FeatureStrings {
             permissionHint: "Watch reads the area you choose on your Mac, so it needs Screen Recording. Nothing leaves your Mac.",
             allowAccess: "Allow Screen Recording",
             tellMe: "Tell me",
-            changes: "When it changes",
+            changes: "When It Changes",
             settles: "When it stops changing",
             contains: "When it shows",
             reaches: "When the number reaches",

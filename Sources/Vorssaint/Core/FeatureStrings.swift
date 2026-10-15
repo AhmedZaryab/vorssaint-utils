@@ -500,7 +500,7 @@ struct ClipboardFeatureStrings {
         recent: "Recent",
         pin: "Pin",
         unpin: "Unpin",
-        clearRecent: "Clear unpinned",
+        clearRecent: "Clear Unpinned",
         clearRecentKeywords: "Clear recent",
         empty: "No saved text",
         disabled: "Enable history to start saving copied text.",

@@ -179,7 +179,7 @@ struct NotchScratchpadView: View {
                 copyCount += 1
             }
             .disabled(pad.text.isEmpty)
-            NotchMoreMenu(title: text.padActions, items: padMenuItems)
+            NotchMoreMenu(title: text.padActions, symbol: "doc.badge.ellipsis", items: padMenuItems)
         }
         .frame(height: NotchDesign.Control.rowHeight)
     }
@@ -189,7 +189,6 @@ struct NotchScratchpadView: View {
         var items: [NotchMenuItem] = []
         if let selectedPad {
             items.append(NotchMenuItem(title: text.renamePad) { presentRename(selectedPad) })
-            items.append(NotchMenuItem(title: text.closePad, enabled: pad.canClosePad) { requestClose(selectedPad) })
             items.append(.separator)
         }
         items.append(NotchMenuItem(title: text.exportAction, enabled: !pad.text.isEmpty) {
@@ -198,11 +197,15 @@ struct NotchScratchpadView: View {
                                from: window)
             }
         })
-        items.append(NotchMenuItem(title: text.clearAction, enabled: !pad.text.isEmpty) {
+        items.append(NotchMenuItem(title: text.openButton) { service.perform { pad.show(allowsIsland: false) } })
+        // Destructive entries go last, after a line, in red.
+        items.append(.separator)
+        items.append(NotchMenuItem(title: text.clearAction, enabled: !pad.text.isEmpty, destructive: true) {
             pad.clear(through: editor.view)
         })
-        items.append(.separator)
-        items.append(NotchMenuItem(title: text.openButton) { service.perform { pad.show(allowsIsland: false) } })
+        if let selectedPad {
+            items.append(NotchMenuItem(title: text.closePad, enabled: pad.canClosePad, destructive: true) { requestClose(selectedPad) })
+        }
         return items
     }
 

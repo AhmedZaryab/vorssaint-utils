@@ -311,7 +311,7 @@ struct NotchAudioControls: View {
     }
 
     private var readoutMenu: some View {
-        NotchLevelReadoutMenu(title: l10n.s.mixerSystemOutputTitle, items: outputItems) { percent }
+        NotchLevelReadoutMenu(title: l10n.s.mixerSystemOutputTitle, symbol: "airplay.audio", items: outputItems) { percent }
             .help(mixer.outputSwitchError ?? deviceName)
             .accessibilityValue(deviceName)
     }
@@ -331,25 +331,30 @@ struct NotchAudioControls: View {
     }
 }
 
-/// Where a row or a short card folds its chooser into the readout: the whole
-/// percent at the width of "100%" with the menu's chevron beside it. Volume
-/// and brightness end on this same column, so their sliders line up.
+/// Where a row or a short card folds its chooser: the whole percent at the
+/// width of "100%" as a plain readout, then a glyph menu that names the kind
+/// of list it opens (output devices, displays). The device lives in the help
+/// and the accessibility value. Volume and brightness end on this same
+/// column, so their sliders line up.
 private struct NotchLevelReadoutMenu<Readout: View>: View {
     let title: String
+    let symbol: String
     let items: [NotchMenuItem]
     @ViewBuilder let readout: () -> Readout
 
     var body: some View {
-        NotchMenuButton(title: title, items: items) {
-            HStack(spacing: Design.Spacing.xxSmall) {
-                readout().frame(width: NotchLevelMetrics.readoutWidth, alignment: .trailing)
-                Image(systemName: "chevron.down").font(Design.Icon.strip.font)
+        HStack(spacing: Design.Spacing.xxSmall) {
+            readout().frame(width: NotchLevelMetrics.readoutWidth, alignment: .trailing)
+            NotchMenuButton(title: title, items: items) {
+                Image(systemName: symbol)
+                    .font(Design.Icon.button.font)
                     .foregroundStyle(Design.Ink.secondary)
+                    .padding(.horizontal, Design.Spacing.xxSmall)
+                    .frame(height: NotchLevelMetrics.row)
+                    .contentShape(RoundedRectangle(cornerRadius: Design.Radius.control, style: .continuous))
             }
-            .padding(.horizontal, Design.Spacing.xxSmall)
-            .frame(height: NotchLevelMetrics.row)
-            .contentShape(RoundedRectangle(cornerRadius: Design.Radius.control, style: .continuous))
         }
+        .frame(height: NotchLevelMetrics.row)
     }
 }
 
@@ -424,7 +429,7 @@ private struct NotchBrightnessControls: View {
 
     @ViewBuilder private var readoutMenu: some View {
         if let display {
-            NotchLevelReadoutMenu(title: FeatureStrings.notch(l10n.language).brightness,
+            NotchLevelReadoutMenu(title: FeatureStrings.notch(l10n.language).brightness, symbol: "display",
                                   items: displayItems(current: display)) { percent }
                 .help(display.name)
                 .accessibilityValue(display.name)

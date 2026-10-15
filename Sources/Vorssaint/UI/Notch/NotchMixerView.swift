@@ -579,7 +579,7 @@ private struct NotchAppFader: View {
         }
         .frame(maxWidth: .infinity)
         .frame(height: height, alignment: .top)
-        .contextMenu { actions }
+        .notchContextMenu(menuItems)
         .accessibilityElement(children: .contain)
         .accessibilityLabel(app.name)
         .accessibilityValue("\(percent)%")
@@ -636,10 +636,13 @@ private struct NotchAppFader: View {
         if !app.isBypassed {
             if app.persistenceID != nil { items.append(.separator) }
             let current = app.selectedOutputDeviceUID ?? MixerRoutingSupport.systemDefaultSelectionID
+            var routes: [NotchMenuItem] = []
             func route(_ title: String, _ id: String) {
-                items.append(NotchMenuItem(title: title, checked: current == id) { outputSelection.wrappedValue = id })
+                routes.append(NotchMenuItem(title: title, checked: current == id) { outputSelection.wrappedValue = id })
             }
-            route(l10n.s.mixerOutputDefault, MixerRoutingSupport.systemDefaultSelectionID)
+            let systemOutput = mixer.outputDevices.first(where: \.isDefault)?.name
+            route(systemOutput.map { "\(l10n.s.mixerOutputDefault): \($0)" } ?? l10n.s.mixerOutputDefault,
+                  MixerRoutingSupport.systemDefaultSelectionID)
             for device in mixer.outputDevices {
                 route(device.isDefault ? "\(device.name) (\(l10n.s.mixerOutputCurrent))" : device.name, device.uid)
             }
@@ -650,9 +653,10 @@ private struct NotchAppFader: View {
                 route(l10n.s.mixerOutputUnavailable, selected)
             }
             if mixer.outputDevices.contains(where: { MixerRoutingSupport.isAirPlaySentinel($0.uid) }) {
-                items.append(.separator)
+                routes.append(.separator)
                 route(l10n.s.mixerAirPlayChooseSpeaker, MixerRoutingSupport.airPlaySpeakerChoiceID)
             }
+            items.append(NotchMenuItem(title: l10n.s.mixerOutputTooltip, symbol: "speaker.wave.2", submenu: routes))
             items.append(.separator)
             items.append(NotchMenuItem(title: l10n.s.mixerResetTooltip, enabled: percent != 100) {
                 mixer.setVolume(1, for: app)
@@ -663,45 +667,6 @@ private struct NotchAppFader: View {
             items.append(NotchMenuItem(title: l10n.s.mixerHideFromList) { mixer.hideFromList(app) })
         }
         return items
-    }
-
-    @ViewBuilder private var actions: some View {
-        if app.persistenceID != nil {
-            Button(action: togglePin) {
-                Label(isPinned ? strings.unpin : strings.pinFirst, systemImage: isPinned ? "pin.slash" : "pin")
-            }
-            Button { moveBack?() } label: { Label(strings.moveLeft, systemImage: "arrow.left") }
-                .disabled(moveBack == nil)
-            Button { moveForward?() } label: { Label(strings.moveRight, systemImage: "arrow.right") }
-                .disabled(moveForward == nil)
-        }
-        if !app.isBypassed {
-            if app.persistenceID != nil { Divider() }
-            Picker(l10n.s.mixerOutputTooltip, selection: outputSelection) {
-                Text(l10n.s.mixerOutputDefault).tag(MixerRoutingSupport.systemDefaultSelectionID)
-                ForEach(mixer.outputDevices) { device in
-                    Text(device.isDefault ? "\(device.name) (\(l10n.s.mixerOutputCurrent))" : device.name).tag(device.uid)
-                }
-                if let selected = app.selectedOutputDeviceUID,
-                   MixerRoutingSupport.needsUnavailableOutputRow(selectedUID: selected,
-                                                                 isUnavailable: app.outputDeviceUnavailable,
-                                                                 listedUIDs: mixer.outputDevices.map(\.uid)) {
-                    Text(l10n.s.mixerOutputUnavailable).tag(selected)
-                }
-                if mixer.outputDevices.contains(where: { MixerRoutingSupport.isAirPlaySentinel($0.uid) }) {
-                    Divider()
-                    Text(l10n.s.mixerAirPlayChooseSpeaker).tag(MixerRoutingSupport.airPlaySpeakerChoiceID)
-                }
-            }
-            .pickerStyle(.menu)
-            Divider()
-            Button(l10n.s.mixerResetTooltip) { mixer.setVolume(1, for: app) }
-                .disabled(percent == 100)
-        }
-        if app.persistenceID != nil {
-            Divider()
-            Button(l10n.s.mixerHideFromList) { mixer.hideFromList(app) }
-        }
     }
 
     private var outputSelection: Binding<String> {
