@@ -227,7 +227,7 @@ struct NotchMusicView: View {
     private func extraButton(_ target: MusicExtra, title: String, symbol: String) -> some View {
         Toggle(isOn: Binding(get: { extra == target }, set: { extra = $0 ? target : nil })) { Text(title) }
             .toggleStyle(NotchToggleStyle(symbol: symbol, shape: .rounded(NotchDesign.Radius.control),
-                                          size: NotchDesign.Control.iconButton, symbolSize: 13, tint: toggleTint))
+                                          size: NotchDesign.Control.iconButton, glyph: NotchDesign.Icon.button, tint: toggleTint))
             .help(title)
     }
 
@@ -238,7 +238,7 @@ struct NotchMusicView: View {
         let consent = shuffle.availability?.access == .consent
         return Toggle(isOn: Binding(get: { shuffle.enabled == true }, set: { want in if want != (shuffle.enabled == true) { shuffle.toggle() } })) { Text(strings.shuffle) }
             .toggleStyle(NotchToggleStyle(symbol: "shuffle", shape: .capsule, size: NotchDesign.Music.sidePlate,
-                                          symbolSize: 15, tint: toggleTint))
+                                          glyph: NotchDesign.Icon.button, tint: toggleTint))
             .disabled(shuffle.requestingAccess || !shuffle.allowed)
             .help(consent ? strings.allowPlayback : strings.shuffle)
             .accessibilityHint(consent ? strings.allowPlayback : "")

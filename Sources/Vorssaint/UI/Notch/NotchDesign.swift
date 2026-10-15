@@ -173,6 +173,7 @@ enum NotchDesign {
         /** A card or tile at rest. */ static let card = Color.white.opacity(0.06)
         /** A control plate: an icon button's chosen state, a segmented track, a tile's glyph circle. */ static let control = Color.white.opacity(0.10)
         /** The wash under the pointer. */ static let hover = Color.white.opacity(0.08)
+        /** The wash under a pressed plate when the scale is off (Reduce Motion). */ static let press = Color.white.opacity(0.13)
         /** The chosen option in a set; the keyboard's highlighted tile. */ static let selected = Color.white.opacity(0.16)
         /** Slider and meter tracks; AppKit cells take NSColor(Fill.track). */ static let track = Color.white.opacity(0.16)
         /** The one chosen chip in a picker, with Ink.onInverse on it. */ static let inverse = Color.white
@@ -185,6 +186,9 @@ enum NotchDesign {
         /** Artwork's edge, so a dark cover stays apart from the island. */ static let artworkEdge = Color.white.opacity(0.12)
         /** Increase Contrast: every plate and card gets this 1 pt edge. */ static let increasedContrast = Color.white.opacity(0.5)
         /** Width of the Increase Contrast edge. */ static let increasedContrastWidth: CGFloat = 1
+        /** The library's keyboard focus ring: the system's own focus colour. NotchSectionsView draws the same ring from its own extension; the two merge when that file moves to the tokens. */ static let keyboardFocus = Color(nsColor: .keyboardFocusIndicatorColor)
+        /** Width of the library's focus ring, the same 2 pt NotchSectionsView uses. */ static let keyboardFocusWidth: CGFloat = 2
+        /** Gap between a control's edge and its focus ring. */ static let focusRingGap: CGFloat = 2.5
         /** Drop targets only. */ static let dropTarget = StrokeStyle(lineWidth: 1, dash: [5, 4])
     }
     /// A shadow recipe.
@@ -273,6 +277,7 @@ enum NotchDesign {
         /** The smallest hit target on the island. */ static let minimumHit: CGFloat = 28
         /** Icon buttons in the header and in rows. */ static let iconButton: CGFloat = 28
         /** A level row, a list row, a menu button, a pill. */ static let rowHeight: CGFloat = 28
+        /** A commit button when its caller names no size. */ static let commit: CGFloat = 32
         /** Transport on cards and short players. */ static let transportCompact: CGFloat = 36
         /** Transport on a roomy music page. */ static let transport: CGFloat = 44
         /** A shortcut tile's glyph circle. */ static let tileGlyph: CGFloat = 40

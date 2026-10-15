@@ -295,7 +295,7 @@ final class NotchTimerRulerControl: NSSlider {
         NSColor.white.withAlphaComponent(enabledAlpha).setFill()
         pointer.fill()
         if window?.firstResponder === self, showsKeyboardFocus {
-            NSColor.white.withAlphaComponent(NotchInteractionMetrics.focusRingOpacity).setStroke()
+            NSColor(NotchInteractionMetrics.focusRingInk).setStroke()
             let focus = NSBezierPath(roundedRect: bounds.insetBy(dx: 1, dy: 1),
                                      xRadius: Design.Radius.control, yRadius: Design.Radius.control)
             focus.lineWidth = NotchInteractionMetrics.focusRingWidth
