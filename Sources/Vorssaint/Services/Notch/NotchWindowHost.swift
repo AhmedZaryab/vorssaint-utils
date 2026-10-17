@@ -47,6 +47,33 @@ private struct NotchCanvasReader: View {
     var body: some View { content.environment(\.notchCanvas, model.canvas) }
 }
 
+/// How much larger the screen draws a hosting view than its layout, see
+/// NotchGeometry.displayScale.
+final class NotchHostScale: ObservableObject {
+    @Published var factor: CGFloat = 1
+}
+
+/// A hosting view's content, laid out at 1.0 and drawn `factor` times larger
+/// from its top left. The window's content view already presents its layout
+/// scaled through its bounds, which AppKit views honour, but SwiftUI hit-tests
+/// in its own coordinates and knows nothing of a bounds transform above it:
+/// under one, every button it draws is dead (2026-10-17, every control on an
+/// external display). So a hosting view keeps bounds that match its window
+/// pixels, cancelling the content view's transform for SwiftUI, and the
+/// magnification happens here, where SwiftUI's hit-testing follows it.
+private struct NotchScaledRoot: View {
+    @ObservedObject var scale: NotchHostScale
+    let content: AnyView
+
+    var body: some View {
+        GeometryReader { proxy in
+            content
+                .frame(width: proxy.size.width / scale.factor, height: proxy.size.height / scale.factor)
+                .scaleEffect(scale.factor, anchor: .topLeading)
+        }
+    }
+}
+
 /// The window reserves the transition's bounds once. Core Animation moves
 /// the silhouette independently of SwiftUI layout and the application run loop.
 final class NotchWindowHost: NSObject, CAAnimationDelegate {
@@ -449,6 +476,8 @@ final class NotchWindowHost: NSObject, CAAnimationDelegate {
         let scale = max(0.01, currentGeometry.displayScale)
         let size = CGSize(width: view.frame.width / scale, height: view.frame.height / scale)
         if view.bounds.size != size { view.setBoundsSize(size) }
+        canvas.setDisplayScale(scale)
+        quickAccessContainer?.setDisplayScale(scale)
     }
 
     /// Short pages may end above the last side button. Keep its circle and
@@ -527,14 +556,14 @@ final class NotchWindowHost: NSObject, CAAnimationDelegate {
         // The silhouette's shoulders sit outside its vertical body.
         let shoulder = NotchLayout.shoulder(height: targetSize.height)
         // Placed on the controls' own stage, so a resized window leaves them be.
-        let islandX = canvas.convert(CGPoint(x: islandMinX(quickAccessNotchSize), y: 0), to: container.quickView).x
+        let islandX = container.layoutPoint(canvas.convert(CGPoint(x: islandMinX(quickAccessNotchSize), y: 0), to: container.quickView)).x
         let body = CGRect(x: islandX + shoulder, y: 0,
                           width: quickAccessNotchSize.width - shoulder * 2, height: quickAccessNotchSize.height)
         container.motion.configure(configuration, body: body,
                                    headerTop: currentGeometry.quickAccessCenterY,
                                    animated: quickAccessAnimate)
         container.setHoverRects(container.motion.hoverRects.map {
-            container.convert($0, from: container.quickView).intersection(container.bounds)
+            container.convert(container.quickRect($0), from: container.quickView).intersection(container.bounds)
         })
     }
 
@@ -716,7 +745,7 @@ final class NotchWindowHost: NSObject, CAAnimationDelegate {
     func contains(_ screenPoint: CGPoint) -> Bool {
         if containsSurface(screenPoint) { return true }
         guard isPresented, !concealedForMissionControl, let container = quickAccessContainer else { return false }
-        return container.motion.contains(container.quickView.convert(panel.convertPoint(fromScreen: screenPoint), from: nil))
+        return container.motion.contains(container.layoutPoint(container.quickView.convert(panel.convertPoint(fromScreen: screenPoint), from: nil)))
     }
 
     func setFileDropActions(_ actions: NotchFileDropActions?) { canvas.setFileDropActions(actions) }
@@ -772,7 +801,7 @@ final class NotchWindowHost: NSObject, CAAnimationDelegate {
         guard let container = quickAccessContainer else { return [] }
         let motion = container.motion
         return motion.placements.map { placement in
-            panel.convertPoint(toScreen: container.quickView.convert(placement.center(progress: 1), to: nil))
+            panel.convertPoint(toScreen: container.quickView.convert(container.quickPoint(placement.center(progress: 1)), to: nil))
         }
     }
 
@@ -991,6 +1020,7 @@ private final class NotchQuickAccessContainer: NSView {
     let canvas: NotchCanvasView
     let motion: NotchQuickAccessMotion
     let quickView: NSHostingView<AnyView>
+    private let quickScale = NotchHostScale()
     private(set) var hoverRects: [CGRect] = []
     private var hoverTrackingAreas: [NSTrackingArea] = []
     var hoverChanged: ((Bool) -> Void)?
@@ -1007,7 +1037,7 @@ private final class NotchQuickAccessContainer: NSView {
         self.canvas = canvas
         let motion = NotchQuickAccessMotion()
         self.motion = motion
-        quickView = NSHostingView(rootView: content(motion, canvas.backdropPresentation))
+        quickView = NSHostingView(rootView: AnyView(NotchScaledRoot(scale: quickScale, content: content(motion, canvas.backdropPresentation))))
         quickView.sizingOptions = []
         quickView.wantsLayer = true
         quickView.isHidden = true
@@ -1039,7 +1069,32 @@ private final class NotchQuickAccessContainer: NSView {
         stage = NotchStage.size(including: CGSize(width: max(stage.width, bounds.width), height: max(stage.height, bounds.height)))
         let stageFrame = NotchStage.frame(stage, in: bounds)
         if quickView.frame != stageFrame { quickView.frame = stageFrame }
+        let quickBounds = quickRect(CGRect(origin: .zero, size: stageFrame.size)).size
+        if quickView.bounds.size != quickBounds { quickView.setBoundsSize(quickBounds) }
         CATransaction.commit()
+    }
+
+    /// See NotchScaledRoot: the quick view's bounds are its window pixels.
+    func setDisplayScale(_ factor: CGFloat) {
+        guard quickScale.factor != factor else { return }
+        quickScale.factor = factor
+        needsLayout = true
+    }
+
+    /// A point in the quick view's bounds as the layout point drawn there.
+    func layoutPoint(_ point: CGPoint) -> CGPoint {
+        CGPoint(x: point.x / quickScale.factor, y: point.y / quickScale.factor)
+    }
+
+    /// A layout point in the quick view's bounds.
+    func quickPoint(_ layout: CGPoint) -> CGPoint {
+        CGPoint(x: layout.x * quickScale.factor, y: layout.y * quickScale.factor)
+    }
+
+    /// A layout rect in the quick view's bounds.
+    func quickRect(_ layout: CGRect) -> CGRect {
+        CGRect(x: layout.minX * quickScale.factor, y: layout.minY * quickScale.factor,
+               width: layout.width * quickScale.factor, height: layout.height * quickScale.factor)
     }
 
     func setHoverRects(_ rects: [CGRect]) {
@@ -1065,7 +1120,7 @@ private final class NotchQuickAccessContainer: NSView {
     override func hitTest(_ point: NSPoint) -> NSView? {
         let local = convert(point, from: superview)
         guard canvas.containsVisiblePoint(canvas.convert(local, from: self))
-                || motion.contains(quickView.convert(local, from: self)) else { return nil }
+                || motion.contains(layoutPoint(quickView.convert(local, from: self))) else { return nil }
         return super.hitTest(point)
     }
 }
@@ -1084,6 +1139,7 @@ private final class NotchBackdropTick: NSObject {
 
 private final class NotchCanvasView: NSView {
     private let host: NotchHostingView
+    private let hostScale = NotchHostScale()
     private let backdrop: NotchHostingView
     let backdropPresentation = NotchBackdropPresentation()
     /// The backdrop keeps one width, centred on the island, so resizing the
@@ -1120,7 +1176,7 @@ private final class NotchCanvasView: NSView {
         backdrop.sizingOptions = []
         backdrop.wantsLayer = true
         backdrop.autoresizingMask = []
-        host = NotchHostingView(rootView: content)
+        host = NotchHostingView(rootView: AnyView(NotchScaledRoot(scale: hostScale, content: content)))
         host.sizingOptions = []
         host.wantsLayer = true
         host.autoresizingMask = []
@@ -1161,6 +1217,14 @@ private final class NotchCanvasView: NSView {
 
     func setContentSize(_ size: CGSize) {
         contentSize = size
+        needsLayout = true
+    }
+
+    /// See NotchScaledRoot: the content host's bounds are its window pixels.
+    /// The backdrop only draws, so it keeps following the canvas's bounds.
+    func setDisplayScale(_ factor: CGFloat) {
+        guard hostScale.factor != factor else { return }
+        hostScale.factor = factor
         needsLayout = true
     }
 
@@ -1824,6 +1888,8 @@ private final class NotchCanvasView: NSView {
         var hostFrame = NotchStage.frame(stage, in: bounds)
         hostFrame.origin.x = centre - stage.width / 2
         if host.frame != hostFrame { host.frame = hostFrame }
+        let hostBounds = CGSize(width: hostFrame.width * hostScale.factor, height: hostFrame.height * hostScale.factor)
+        if host.bounds.size != hostBounds { host.setBoundsSize(hostBounds) }
         contentVisibility.frame = host.bounds
         if let arrival, arrival.width != host.layer?.bounds.width { installArrivalScale() }
         var backdropFrame = NotchStage.frame(stage, in: bounds)
