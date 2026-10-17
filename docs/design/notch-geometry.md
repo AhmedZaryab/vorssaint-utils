@@ -183,3 +183,7 @@ build one with `NotchCanvas(geometry:size:)`). Fields, all in points:
 Rules: lay out for `canvas.size` from the first frame, never animate your own
 frame to follow the shape; never draw past `contentInsets`; never scale on
 enter; keep wings symmetric; text truncates, the island never widens for it.
+
+## Display scale
+
+Layout is always computed at 1.0. `NotchGeometry.displayScale` (from `NotchDisplayScale.factor`, set per screen in `NotchService.baseGeometry`) makes the window that many times larger: `frame(for:)` multiplies, and `NotchWindowHost.syncContentScale()` keeps the content view's bounds at the layout size, so every page, peek and silhouette scales together. The factor is `1 + (width / 1512 - 1) * 0.5` clamped to 1.0...1.8, always 1.0 on a display with a camera housing. The `notchExternalScale` setting (Auto, Same as built-in, Larger = x1.2) picks it. Screen-space distances compared with layout metrics divide by `displayScale`.
