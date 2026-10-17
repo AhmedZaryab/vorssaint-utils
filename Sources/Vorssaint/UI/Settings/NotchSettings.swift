@@ -32,6 +32,7 @@ struct NotchSettings: View {
     @AppStorage(DefaultsKey.notchEnabled) private var enabled = false
     @AppStorage(DefaultsKey.notchDisplay) private var display = NotchDisplay.automatic.rawValue
     @AppStorage(DefaultsKey.notchSilhouette) private var silhouette = NotchSilhouette.capsule.rawValue
+    @AppStorage(DefaultsKey.notchExternalScale) private var externalScale = NotchExternalScale.auto.rawValue
     @AppStorage(DefaultsKey.notchOpenOnHover) private var hover = false
     @AppStorage(DefaultsKey.notchHideInFullscreen) private var hideInFullscreen = false
     @AppStorage(DefaultsKey.notchHideUntilHover) private var hideUntilHover = false
@@ -111,7 +112,7 @@ struct NotchSettings: View {
          String(capsuleFitWidth), String(capsuleFitHeight), String(capsuleFitDrop), String(hapticFeedback),
          String(shelfWindow), String(dragReveal), String(captureControls), String(quickPanel), String(appPanel),
          String(hoverExpand), String(hideUntilHover), String(hideInFullscreen), String(coversMenus),
-         display, silhouette, String(hover), hidden, order, String(volume), String(brightness), String(keyboardLight),
+         display, silhouette, externalScale, String(hover), hidden, order, String(volume), String(brightness), String(keyboardLight),
          String(microphone), String(battery), String(clipboard), String(clipboardWindow),
          String(capture), String(trackChange), String(showInCaptures),
          String(returnHome), homeModule, String(opensActivity), String(scratchpad),
@@ -224,6 +225,16 @@ struct NotchSettings: View {
                     HStack(spacing: 10) {
                         silhouetteChoice(.capsule, title: text.capsuleShape)
                         silhouetteChoice(.notch, title: text.notchShape)
+                    }
+                }
+                SettingsCard(title: text.otherDisplaysSize) {
+                    HStack(spacing: 10) {
+                        choice(text.otherDisplaysAuto, symbol: "arrow.up.left.and.arrow.down.right",
+                               selected: NotchExternalScale(rawValue: externalScale) ?? .auto == .auto) { externalScale = NotchExternalScale.auto.rawValue }
+                        choice(text.otherDisplaysSame, symbol: "equal.square",
+                               selected: externalScale == NotchExternalScale.same.rawValue) { externalScale = NotchExternalScale.same.rawValue }
+                        choice(text.otherDisplaysLarger, symbol: "plus.magnifyingglass",
+                               selected: externalScale == NotchExternalScale.larger.rawValue) { externalScale = NotchExternalScale.larger.rawValue }
                     }
                 }
                 if NotchSilhouette(rawValue: silhouette) ?? .capsule == .capsule {

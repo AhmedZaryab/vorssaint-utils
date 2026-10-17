@@ -111,6 +111,35 @@ enum NotchSilhouette: String, CaseIterable {
     }
 }
 
+/// How big the island draws on a display without a camera housing. A larger
+/// display is far away and holds more, so the island grows with it, by half
+/// as much as the display does.
+enum NotchExternalScale: String, CaseIterable {
+    case auto, same, larger
+
+    static func current(in defaults: UserDefaults = .standard) -> NotchExternalScale {
+        NotchExternalScale(rawValue: defaults.string(forKey: DefaultsKey.notchExternalScale) ?? "") ?? .auto
+    }
+}
+
+/// The one factor a display's island is drawn at. The layout is always
+/// computed at 1.0 and the window presents it scaled, so every page, peek and
+/// silhouette grows together.
+enum NotchDisplayScale {
+    /// The built-in 14 inch display's width in points, where the island was designed.
+    static let referenceWidth: CGFloat = 1512
+    static let range: ClosedRange<CGFloat> = 1.0...1.8
+    static let largerBoost: CGFloat = 1.2
+
+    /// A display with a camera housing keeps 1.0: the island must match the hardware.
+    static func factor(screenWidth: CGFloat, isNotched: Bool, setting: NotchExternalScale = .auto) -> CGFloat {
+        guard !isNotched, screenWidth.isFinite, screenWidth > 0, setting != .same else { return 1 }
+        let damped = 1 + (screenWidth / referenceWidth - 1) * 0.5
+        let base = min(range.upperBound, max(range.lowerBound, damped))
+        return setting == .larger ? base * largerBoost : base
+    }
+}
+
 enum NotchSize: String, CaseIterable {
     case compact, spacious, custom
 
@@ -1988,6 +2017,8 @@ struct NotchGeometry: Equatable {
     /// that only covers the camera would hide it behind the housing.
     let outlineRoom: CGFloat
     private let capsuleWidthFit: CGFloat
+    /// How much larger the screen draws this island than its layout, see NotchDisplayScale.
+    var displayScale: CGFloat = 1
     var compactSideRoom: CGFloat?
     var quickAccessBottomInset: CGFloat = 0
     var requiresFullWidthHeader = false
@@ -2489,16 +2520,20 @@ struct NotchGeometry: Equatable {
                height: max(0, size.height - headerTopInset - headerChromeHeight))
     }
     var appPanelSize: CGSize { contentSize(for: expandedSize(module: .tools, panel: true)) }
+    /// The window frame of an island laid out at `size`: the layout is at 1.0
+    /// and the screen shows it `displayScale` times larger, from its top centre.
     func frame(for size: CGSize) -> CGRect {
-        CGRect(x: screen.midX + surfaceShift - size.width / 2,
-               y: screen.maxY - floatingDrop - size.height,
-               width: size.width, height: size.height)
+        let scale = displayScale
+        let width = size.width * scale, height = size.height * scale
+        return CGRect(x: screen.midX + surfaceShift * scale - width / 2,
+                      y: screen.maxY - floatingDrop * scale - height,
+                      width: width, height: height)
     }
 
     func contains(_ point: CGPoint, in size: CGSize) -> Bool {
         let frame = self.frame(for: size)
         // Match the flipped native view: the top edge belongs to the island.
-        return CGRect(origin: .zero, size: size).contains(
+        return CGRect(origin: .zero, size: frame.size).contains(
             CGPoint(x: point.x - frame.minX, y: frame.maxY - point.y))
     }
 }

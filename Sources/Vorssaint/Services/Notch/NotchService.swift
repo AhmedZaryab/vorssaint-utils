@@ -3207,7 +3207,7 @@ final class NotchService: ObservableObject {
         if let left = screen.auxiliaryTopLeftArea, let right = screen.auxiliaryTopRightArea {
             cameraWidth = max(0, right.minX - left.maxX)
         } else { cameraWidth = 0 }
-        return NotchGeometry(screen: screen.frame, safeAreaTop: screen.safeAreaInsets.top,
+        var base = NotchGeometry(screen: screen.frame, safeAreaTop: screen.safeAreaInsets.top,
                              cameraWidth: cameraWidth,
                              layout: NotchSize(rawValue: UserDefaults.standard.string(forKey: DefaultsKey.notchSize) ?? "") ?? .spacious,
                              menuBarHeight: menuBarMeasurements.height(
@@ -3221,6 +3221,9 @@ final class NotchService: ObservableObject {
                              hideMenuBarGap: UserDefaults.standard.bool(forKey: DefaultsKey.notchHideMenuBarGap),
                              outline: UserDefaults.standard.bool(forKey: DefaultsKey.notchOutlineEnabled),
                              barEdge: 1 / max(1, screen.backingScaleFactor))
+        base.displayScale = NotchDisplayScale.factor(screenWidth: screen.frame.width, isNotched: base.isNotched,
+                                                     setting: NotchExternalScale.current())
+        return base
     }
 
     private func updateFullscreenVisibility(displayID: CGDirectDisplayID) {
@@ -3523,7 +3526,7 @@ final class NotchService: ObservableObject {
         let screenPoint = panel.convertPoint(toScreen: event.locationInWindow)
         // The header keeps its own gesture; the tiles and the rest of the body step rows.
         guard windowHost?.containsSurface(screenPoint) == true,
-              panel.frame.maxY - screenPoint.y > expandedGeometry.headerTopInset + expandedGeometry.headerRowHeight else {
+              (panel.frame.maxY - screenPoint.y) / geometry.displayScale > expandedGeometry.headerTopInset + expandedGeometry.headerRowHeight else {
             sectionScroll = NotchSectionScroll()
             return false
         }
@@ -3545,7 +3548,7 @@ final class NotchService: ObservableObject {
         }
         let screenPoint = panel.convertPoint(toScreen: event.locationInWindow)
         guard windowHost?.contains(screenPoint) == true else { gesture = NotchGestureSupport(); return false }
-        let fromTop = panel.frame.maxY - screenPoint.y
+        let fromTop = (panel.frame.maxY - screenPoint.y) / geometry.displayScale
         let inHeader = NotchSupport.gestureIsOverHeader(expanded: expanded, peeking: peeking,
                                                        fromTop: fromTop, safeTop: expanded ? expandedGeometry.headerTopInset : geometry.safeContentTop,
                                                        height: expanded ? expandedGeometry.headerRowHeight : NotchLayout.headerHeight)
