@@ -313,6 +313,7 @@ enum SettingsDirectory {
                                           + (NotchSupport.hasNotchedDisplay ? [FeatureStrings.notch(language).cameraFit] : [])
                                           + (NotchSupport.hasDisplayWithoutNotch
                                              ? [FeatureStrings.notch(language).withoutNotch,
+                                                FeatureStrings.notch(language).otherDisplaysSize,
                                                 FeatureStrings.notch(language).capsuleFit] : [])),
                 SettingsDirectoryItem(page: .quickTools, title: s.quickToolsTab, icon: "wand.and.rays",
                                        featureKeywords: [

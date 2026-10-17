@@ -118,10 +118,11 @@ final class NotchWindowHost: NSObject, CAAnimationDelegate {
         panel.collectionBehavior = NotchPanel.overlayCollectionBehavior
         panel.contentView = quickAccessContainer ?? canvas
         panel.setFrame(pixelAligned(geometry.frame(for: size)), display: false)
+        syncContentScale()
         canvas.islandMinX = { [weak self] size in self?.islandMinX(size) }
         canvas.stageCentreX = { [weak self] in
             guard let self else { return nil }
-            return self.currentGeometry.screen.midX - self.panel.frame.minX - self.canvas.convert(CGPoint.zero, to: nil).x
+            return self.canvas.convert(self.panel.convertPoint(fromScreen: CGPoint(x: self.currentGeometry.screen.midX, y: 0)), from: nil).x
         }
         canvas.setFloatingGap(geometry.floatingGap)
         canvas.layoutSubtreeIfNeeded()
@@ -432,7 +433,22 @@ final class NotchWindowHost: NSObject, CAAnimationDelegate {
     /// arithmetic, half a point of odd margin moved it a pixel on a
     /// standard-resolution display as a transition began or settled.
     private func islandMinX(_ size: CGSize) -> CGFloat {
-        pixelAligned(currentGeometry.frame(for: size)).minX - panel.frame.minX - canvas.convert(CGPoint.zero, to: nil).x
+        let screenMinX = pixelAligned(currentGeometry.frame(for: size)).minX
+        return canvas.convert(panel.convertPoint(fromScreen: CGPoint(x: screenMinX, y: 0)), from: nil).x
+    }
+
+    /// How much larger this screen draws the island than its layout.
+    var displayScale: CGFloat { currentGeometry.displayScale }
+
+    /// The layout is computed at 1.0 and the window is `displayScale` times
+    /// larger: the content view keeps the layout's own coordinate space while
+    /// its frame is the scaled one, so every page, silhouette and hit test
+    /// scales together and nothing else needs to know.
+    private func syncContentScale() {
+        guard let view = panel.contentView else { return }
+        let scale = max(0.01, currentGeometry.displayScale)
+        let size = CGSize(width: view.frame.width / scale, height: view.frame.height / scale)
+        if view.bounds.size != size { view.setBoundsSize(size) }
     }
 
     /// Short pages may end above the last side button. Keep its circle and
@@ -489,6 +505,7 @@ final class NotchWindowHost: NSObject, CAAnimationDelegate {
         quickAccessContainer?.gutter = gutter
         quickAccessContainer?.bottomInset = bottom
         panel.setFrame(reservedFrame(mainSize: mainSize, gutter: gutter, bottom: bottom), display: false)
+        syncContentScale()
         // A media measurement can arrive during AppKit layout. A nested
         // layoutSubtreeIfNeeded is then deferred, so reserve the actual canvas
         // and hosting view now, before the animated mask can expose new pixels.
@@ -677,7 +694,7 @@ final class NotchWindowHost: NSObject, CAAnimationDelegate {
         // A moving island's centre may still be on its way to the new one;
         // pixel rounding of one at rest is not a shift.
         if let shift = canvas.visibleShift, abs(shift - currentGeometry.surfaceShift) >= 1 {
-            frame.origin.x += shift - currentGeometry.surfaceShift
+            frame.origin.x += (shift - currentGeometry.surfaceShift) * currentGeometry.displayScale
         }
         return frame
     }

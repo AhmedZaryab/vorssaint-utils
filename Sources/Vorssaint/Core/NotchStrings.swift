@@ -69,6 +69,11 @@ struct NotchStrings {
     let hideMenuBarGap: String
     let hideMenuBarGapHint: String
     let withoutNotch: String
+    // English until translated; the memberwise initializers of the other languages leave these out.
+    var otherDisplaysSize = "Size on other displays"
+    var otherDisplaysAuto = "Auto"
+    var otherDisplaysSame = "Same as built-in"
+    var otherDisplaysLarger = "Larger"
     let capsuleShape: String
     let notchShape: String
     let capsuleFit: String

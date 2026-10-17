@@ -609,6 +609,7 @@ enum DefaultsKey {
     static let notchDisplay = "notchDisplay"
     // How the island looks on a display without a camera housing.
     static let notchSilhouette = "notchSilhouette"
+    static let notchExternalScale = "notchExternalScale"
     // The capsule's size and place, fitted by hand on such a display.
     static let notchCapsuleFitWidth = "notchCapsuleFitWidth"
     static let notchCapsuleFitHeight = "notchCapsuleFitHeight"
@@ -1109,6 +1110,7 @@ enum Defaults {
         DefaultsKey.notchEnabled: false,
         DefaultsKey.notchDisplay: NotchDisplay.automatic.rawValue,
         DefaultsKey.notchSilhouette: NotchSilhouette.capsule.rawValue,
+        DefaultsKey.notchExternalScale: NotchExternalScale.auto.rawValue,
         DefaultsKey.notchCapsuleFitWidth: 0.0,
         DefaultsKey.notchCapsuleFitHeight: 0.0,
         DefaultsKey.notchCapsuleFitDrop: 0.0,
