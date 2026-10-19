@@ -28,6 +28,8 @@ enum NotchDesign {
     /// The silhouette: how the island sits on the hardware notch and how it grows.
     enum Geometry {
         /** Closed corner, a continuous curve, as a share of the notch height: 10.3 pt on the 32 pt notch, measured from the panel (docs/design/notch-geometry.md). Feeds NotchLayout.surfaceRadius. */ static let closedCornerRatio: CGFloat = 0.322
+        /** Points per inch of the 14 inch built-in (1512 pt over its 301.6 mm width), where the island was designed. A display of another density draws the island at the ratio, so it keeps one physical size. The built-in's own reading replaces it when present. */ static let referencePointsPerInch: CGFloat = 127.4
+        /** The most a display's island grows over the built-in's physical size, and the least: never smaller than on the MacBook. */ static let displayScaleRange: ClosedRange<CGFloat> = 1.0...1.25
         /** The open panel's bottom corners, and the cap for an island of any height. */ static let panelCornerRadius: CGFloat = 28
         /** The flare where the island meets the screen's top edge, at full height. Feeds NotchLayout.shoulder. */ static let shoulderRadius: CGFloat = 14
         /** Shoulder as a share of height until it reaches shoulderRadius: 6.8 pt on a 32 pt notch, measured. */ static let shoulderRatio: CGFloat = 0.2129

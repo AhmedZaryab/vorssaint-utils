@@ -51,6 +51,10 @@ private struct NotchCanvasReader: View {
 /// NotchGeometry.displayScale.
 final class NotchHostScale: ObservableObject {
     @Published var factor: CGFloat = 1
+    /// The hosting view's bounds, its window pixels. SwiftUI reports the
+    /// view's frame instead, which is `factor` times too small once the
+    /// window content view's bounds transform is in play.
+    @Published var pixels: CGSize = .zero
 }
 
 /// A hosting view's content, laid out at 1.0 and drawn `factor` times larger
@@ -67,8 +71,9 @@ private struct NotchScaledRoot: View {
 
     var body: some View {
         GeometryReader { proxy in
+            let size = scale.pixels == .zero ? proxy.size : scale.pixels
             content
-                .frame(width: proxy.size.width / scale.factor, height: proxy.size.height / scale.factor)
+                .frame(width: size.width / scale.factor, height: size.height / scale.factor)
                 .scaleEffect(scale.factor, anchor: .topLeading)
         }
     }
@@ -1071,6 +1076,7 @@ private final class NotchQuickAccessContainer: NSView {
         if quickView.frame != stageFrame { quickView.frame = stageFrame }
         let quickBounds = quickRect(CGRect(origin: .zero, size: stageFrame.size)).size
         if quickView.bounds.size != quickBounds { quickView.setBoundsSize(quickBounds) }
+        if quickScale.pixels != quickBounds { quickScale.pixels = quickBounds }
         CATransaction.commit()
     }
 
@@ -1890,6 +1896,7 @@ private final class NotchCanvasView: NSView {
         if host.frame != hostFrame { host.frame = hostFrame }
         let hostBounds = CGSize(width: hostFrame.width * hostScale.factor, height: hostFrame.height * hostScale.factor)
         if host.bounds.size != hostBounds { host.setBoundsSize(hostBounds) }
+        if hostScale.pixels != hostBounds { hostScale.pixels = hostBounds }
         contentVisibility.frame = host.bounds
         if let arrival, arrival.width != host.layer?.bounds.width { installArrivalScale() }
         var backdropFrame = NotchStage.frame(stage, in: bounds)

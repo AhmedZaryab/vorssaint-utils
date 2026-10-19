@@ -124,19 +124,80 @@ enum NotchExternalScale: String, CaseIterable {
 
 /// The one factor a display's island is drawn at. The layout is always
 /// computed at 1.0 and the window presents it scaled, so every page, peek and
-/// silhouette grows together.
+/// silhouette grows together. The factor is physical: the island keeps the
+/// size it has on the built-in display, on any display.
 enum NotchDisplayScale {
-    /// The built-in 14 inch display's width in points, where the island was designed.
-    static let referenceWidth: CGFloat = 1512
-    static let range: ClosedRange<CGFloat> = 1.0...1.8
     static let largerBoost: CGFloat = 1.2
 
+    /// Points per inch of a screen from its reported physical size, nil when
+    /// the display reports none (some lie with zero).
+    static func pointsPerInch(screenWidth: CGFloat, widthMillimetres: CGFloat) -> CGFloat? {
+        guard screenWidth.isFinite, screenWidth > 0, widthMillimetres.isFinite, widthMillimetres > 0 else { return nil }
+        return screenWidth / (widthMillimetres / 25.4)
+    }
+
     /// A display with a camera housing keeps 1.0: the island must match the hardware.
-    static func factor(screenWidth: CGFloat, isNotched: Bool, setting: NotchExternalScale = .auto) -> CGFloat {
-        guard !isNotched, screenWidth.isFinite, screenWidth > 0, setting != .same else { return 1 }
-        let damped = 1 + (screenWidth / referenceWidth - 1) * 0.5
-        let base = min(range.upperBound, max(range.lowerBound, damped))
+    /// An unknown density keeps 1.0 too.
+    static func factor(pointsPerInch: CGFloat?, referencePointsPerInch: CGFloat = NotchDesign.Geometry.referencePointsPerInch,
+                       isNotched: Bool, setting: NotchExternalScale = .auto) -> CGFloat {
+        guard !isNotched, setting != .same, let ppi = pointsPerInch, ppi.isFinite, ppi > 0,
+              referencePointsPerInch.isFinite, referencePointsPerInch > 0 else { return 1 }
+        let range = NotchDesign.Geometry.displayScaleRange
+        let base = min(range.upperBound, max(range.lowerBound, ppi / referencePointsPerInch))
         return setting == .larger ? base * largerBoost : base
+    }
+
+    /// The factor for a real screen, reading its size from the display and the
+    /// built-in's density as the reference when one is attached.
+    static func factor(for screen: NSScreen, isNotched: Bool, setting: NotchExternalScale) -> CGFloat {
+        func density(_ screen: NSScreen) -> CGFloat? {
+            guard let number = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber else { return nil }
+            return pointsPerInch(screenWidth: screen.frame.width,
+                                 widthMillimetres: CGFloat(CGDisplayScreenSize(number.uint32Value).width))
+        }
+        let builtIn = NSScreen.screens.first {
+            ($0.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber).map { CGDisplayIsBuiltin($0.uint32Value) != 0 } ?? false
+        }
+        return factor(pointsPerInch: density(screen),
+                      referencePointsPerInch: builtIn.flatMap(density) ?? NotchDesign.Geometry.referencePointsPerInch,
+                      isNotched: isNotched, setting: setting)
+    }
+}
+
+/// What a screen reports, as plain values, so the island's placement and size
+/// can be computed (and tested) without an NSScreen.
+struct NotchScreenDescription: Equatable {
+    var frame: CGRect
+    var safeAreaTop: CGFloat
+    /// The gap between the two auxiliary top areas, zero without a camera.
+    var cameraWidth: CGFloat
+    /// The menu bar's height in screen points.
+    var menuBarHeight: CGFloat
+    var backingScale: CGFloat
+    /// The factor this screen draws the island at, see NotchDisplayScale.
+    var displayScale: CGFloat
+}
+
+extension NotchGeometry {
+    /// The island's geometry on a described screen: centred on that screen's own
+    /// frame, hung from its top, laid out at 1.0 and drawn `displayScale` larger.
+    static func base(for screen: NotchScreenDescription, layout: NotchSize, customWidth: Double, customHeight: Double,
+                     cameraFit: NotchCameraFit = .zero, silhouette: NotchSilhouette = .capsule,
+                     capsuleFit: NotchCapsuleFit = .zero, hideMenuBarGap: Bool = true,
+                     outline: Bool = false) -> NotchGeometry {
+        let scale = screen.displayScale
+        // The layout is at 1.0 and the window is drawn displayScale times larger, so the
+        // bar measured in screen points is divided down to layout points: the island's
+        // strip then covers exactly the menu bar that screen draws.
+        var base = NotchGeometry(screen: screen.frame, safeAreaTop: screen.safeAreaTop,
+                                 cameraWidth: screen.cameraWidth, layout: layout,
+                                 menuBarHeight: screen.menuBarHeight / scale,
+                                 customWidth: customWidth, customHeight: customHeight,
+                                 cameraFit: cameraFit, silhouette: silhouette, capsuleFit: capsuleFit,
+                                 hideMenuBarGap: hideMenuBarGap, outline: outline,
+                                 barEdge: 1 / max(1, screen.backingScale) / scale)
+        base.displayScale = scale
+        return base
     }
 }
 

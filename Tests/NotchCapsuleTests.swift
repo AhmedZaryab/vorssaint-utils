@@ -355,18 +355,20 @@ enum NotchCapsuleTests {
     /// A fitted capsule grows from its top edge, keeps its margins, lowers
     /// open and closed alike, and leaves every other island untouched.
     private static func fitContracts(_ suite: TestSuite) {
-        // A larger display draws the island larger, by half as much as the display.
+        // The island keeps one physical size: scaled by density, never below the built-in's, never past 1.25.
         func near(_ a: CGFloat, _ b: CGFloat) -> Bool { abs(a - b) < 0.001 }
-        suite.expect(near(NotchDisplayScale.factor(screenWidth: 1512, isNotched: false), 1)
-                     && near(NotchDisplayScale.factor(screenWidth: 2560, isNotched: false), 1 + (2560.0 / 1512 - 1) * 0.5)
-                     && near(NotchDisplayScale.factor(screenWidth: 3008, isNotched: false), 1 + (3008.0 / 1512 - 1) * 0.5)
-                     && near(NotchDisplayScale.factor(screenWidth: 1280, isNotched: false), 1)
-                     && near(NotchDisplayScale.factor(screenWidth: 20_000, isNotched: false), 1.8),
-                     "the island scales at half the display's growth, from 1.0 up to 1.8")
-        suite.expect(near(NotchDisplayScale.factor(screenWidth: 3008, isNotched: true), 1)
-                     && near(NotchDisplayScale.factor(screenWidth: 3008, isNotched: false, setting: .same), 1)
-                     && near(NotchDisplayScale.factor(screenWidth: 3008, isNotched: false, setting: .larger), (1 + (3008.0 / 1512 - 1) * 0.5) * 1.2)
-                     && near(NotchDisplayScale.factor(screenWidth: 3008, isNotched: true, setting: .larger), 1),
+        let ref = NotchDesign.Geometry.referencePointsPerInch
+        suite.expect(near(NotchDisplayScale.factor(pointsPerInch: ref, isNotched: false), 1)
+                     && near(NotchDisplayScale.factor(pointsPerInch: ref * 1.1, isNotched: false), 1.1)
+                     && near(NotchDisplayScale.factor(pointsPerInch: ref * 0.5, isNotched: false), 1)
+                     && near(NotchDisplayScale.factor(pointsPerInch: ref * 9, isNotched: false), 1.25)
+                     && near(NotchDisplayScale.factor(pointsPerInch: nil, isNotched: false), 1)
+                     && NotchDisplayScale.pointsPerInch(screenWidth: 3008, widthMillimetres: 0) == nil,
+                     "the island scales by display density, from 1.0 up to 1.25, and an unknown size keeps 1.0")
+        suite.expect(near(NotchDisplayScale.factor(pointsPerInch: ref * 1.1, isNotched: true), 1)
+                     && near(NotchDisplayScale.factor(pointsPerInch: ref * 1.1, isNotched: false, setting: .same), 1)
+                     && near(NotchDisplayScale.factor(pointsPerInch: ref * 1.1, isNotched: false, setting: .larger), 1.1 * 1.2)
+                     && near(NotchDisplayScale.factor(pointsPerInch: ref * 1.1, isNotched: true, setting: .larger), 1),
                      "a camera housing keeps 1.0, and the setting picks same or larger")
         var scaled = NotchGeometry(screen: CGRect(x: 0, y: 0, width: 3008, height: 1692), safeAreaTop: 0, cameraWidth: 0)
         let layoutSize = scaled.collapsed

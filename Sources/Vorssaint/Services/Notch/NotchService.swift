@@ -3207,23 +3207,24 @@ final class NotchService: ObservableObject {
         if let left = screen.auxiliaryTopLeftArea, let right = screen.auxiliaryTopRightArea {
             cameraWidth = max(0, right.minX - left.maxX)
         } else { cameraWidth = 0 }
-        var base = NotchGeometry(screen: screen.frame, safeAreaTop: screen.safeAreaInsets.top,
-                             cameraWidth: cameraWidth,
-                             layout: NotchSize(rawValue: UserDefaults.standard.string(forKey: DefaultsKey.notchSize) ?? "") ?? .spacious,
-                             menuBarHeight: menuBarMeasurements.height(
-                                displayID: screen.notchDisplayID, frame: screen.frame,
-                                visibleTop: screen.visibleFrame.maxY, scale: screen.backingScaleFactor,
-                                statusBarThickness: NSStatusBar.system.thickness),
-                             customWidth: UserDefaults.standard.double(forKey: DefaultsKey.notchCustomWidth),
-                             customHeight: UserDefaults.standard.double(forKey: DefaultsKey.notchCustomHeight),
-                             cameraFit: NotchCameraFit.current(), silhouette: NotchSilhouette.current(),
-                             capsuleFit: NotchCapsuleFit.current(),
-                             hideMenuBarGap: UserDefaults.standard.bool(forKey: DefaultsKey.notchHideMenuBarGap),
-                             outline: UserDefaults.standard.bool(forKey: DefaultsKey.notchOutlineEnabled),
-                             barEdge: 1 / max(1, screen.backingScaleFactor))
-        base.displayScale = NotchDisplayScale.factor(screenWidth: screen.frame.width, isNotched: base.isNotched,
-                                                     setting: NotchExternalScale.current())
-        return base
+        let notched = screen.safeAreaInsets.top > 0 && cameraWidth > 0
+        let barHeight = menuBarMeasurements.height(
+            displayID: screen.notchDisplayID, frame: screen.frame,
+            visibleTop: screen.visibleFrame.maxY, scale: screen.backingScaleFactor,
+            statusBarThickness: NSStatusBar.system.thickness)
+        let description = NotchScreenDescription(
+            frame: screen.frame, safeAreaTop: screen.safeAreaInsets.top, cameraWidth: cameraWidth,
+            menuBarHeight: barHeight, backingScale: screen.backingScaleFactor,
+            displayScale: NotchDisplayScale.factor(for: screen, isNotched: notched, setting: NotchExternalScale.current()))
+        return NotchGeometry.base(
+            for: description,
+            layout: NotchSize(rawValue: UserDefaults.standard.string(forKey: DefaultsKey.notchSize) ?? "") ?? .spacious,
+            customWidth: UserDefaults.standard.double(forKey: DefaultsKey.notchCustomWidth),
+            customHeight: UserDefaults.standard.double(forKey: DefaultsKey.notchCustomHeight),
+            cameraFit: NotchCameraFit.current(), silhouette: NotchSilhouette.current(),
+            capsuleFit: NotchCapsuleFit.current(),
+            hideMenuBarGap: UserDefaults.standard.bool(forKey: DefaultsKey.notchHideMenuBarGap),
+            outline: UserDefaults.standard.bool(forKey: DefaultsKey.notchOutlineEnabled))
     }
 
     private func updateFullscreenVisibility(displayID: CGDirectDisplayID) {
