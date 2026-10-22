@@ -1576,8 +1576,23 @@ enum NotchTests {
         suite.expect(!NotchSupport.routes(.clipboard, in: defaults), "hidden module cannot leak an activity")
         defaults.set("system,music,music,unknown", forKey: DefaultsKey.notchModuleOrder)
         defaults.set(true, forKey: DefaultsKey.notchAgentsEnabled)
-        suite.expect(NotchSupport.modules(in: defaults) == [.music, .controls, .mixer, .captures, .files, .tools, .calendar, .notifications, .timer, .camera, .downloads, .scratchpad, .agents, .watch],
+        suite.expect(NotchSupport.modules(in: defaults) == [.music, .controls, .mixer, .captures, .files, .tools, .calendar, .notifications, .timer, .camera, .downloads, .scratchpad, .agents, .watch, .os],
                "module order ignores unknown ids and duplicates, preserving newly added modules")
+        let osJSON = Data(#"{"ok":true,"owner":"Zaryab","agents":[{"name":"a","status":"duty"},{"name":"b","status":"door"},{"name":"c","status":"odd"}],"on_duty":1,"at_door":1,"hq":{"title":"Zaryab HQ","unread":1,"last":{"name":"PA","body":"hi","at":1}},"board":{"p0":3,"in_progress":4,"review":2},"url":"http://localhost:7777/board/#pods"}"#.utf8)
+        if case .live(let os) = NotchOSService.state(from: osJSON) {
+            suite.expect(os.dots == [.duty, .door, .off] && os.dutyCount == 1 && os.doorCount == 1
+                         && os.board?.p0 == 3 && os.hq?.title == "Zaryab HQ" && os.hq?.last?.name == "PA",
+                         "the OS reply decodes to dots, counts, HQ and P0, an unknown status reading as off")
+            suite.expect(NotchOSService.destination(for: os).absoluteString == "http://localhost:7777/board/#pods",
+                         "the OS page opens the address the OS names")
+        } else {
+            suite.expect(false, "a good OS reply is live")
+        }
+        suite.expect(NotchOSService.state(from: Data(#"{"ok":false}"#.utf8)) == .off
+                     && NotchOSService.state(from: Data("<html>".utf8)) == .off,
+                     "an OS reply that is not ok, or not JSON, reads as off")
+        suite.expect(NotchOSService.destination(for: nil) == NotchOSService.home,
+                     "without a reply the tap opens the default OS address")
         suite.expect(NotchSupport.routesShelf(in: defaults) && NotchSupport.revealsShelfDrag(in: defaults),
                "the enabled notch replaces the file destination and reveals active drags")
         defaults.set(false, forKey: DefaultsKey.notchDragReveal)

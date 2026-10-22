@@ -89,6 +89,7 @@ struct NotchEditorStrings {
         case .scratchpad: return scratchpadSummary
         case .agents: return agentsSummary
         case .watch: return watchSummary
+        case .os: return FeatureStrings.notchOS(L10n.shared.language).summary
         }
     }
 }
