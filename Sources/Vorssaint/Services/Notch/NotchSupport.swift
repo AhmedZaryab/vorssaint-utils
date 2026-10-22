@@ -8,7 +8,7 @@ import CoreGraphics
 import SwiftUI
 
 enum NotchModule: String, CaseIterable, Identifiable {
-    case controls, mixer, music, clipboard, captures, files, tools, calendar, notifications, timer, camera, downloads, scratchpad, agents, watch
+    case controls, mixer, music, clipboard, captures, files, tools, calendar, notifications, timer, camera, downloads, scratchpad, agents, watch, os
     var id: String { rawValue }
 
     var symbol: String {
@@ -31,6 +31,7 @@ enum NotchModule: String, CaseIterable, Identifiable {
         case .scratchpad: return "note.text"
         case .agents: return "sparkles"
         case .watch: return "eye"
+        case .os: return "antenna.radiowaves.left.and.right"
         }
     }
 
@@ -52,6 +53,7 @@ enum NotchModule: String, CaseIterable, Identifiable {
         case .scratchpad: return "p"
         case .agents: return "g"
         case .watch: return "o"
+        case .os: return "h"
         }
     }
 
@@ -72,6 +74,7 @@ enum NotchModule: String, CaseIterable, Identifiable {
         case .scratchpad: return AppFeature.scratchpad.isAvailable(in: defaults)
         case .agents: return AppFeature.notchAgents.isAvailable(in: defaults)
         case .watch: return AppFeature.notchWatch.isAvailable(in: defaults)
+        case .os: return true
         }
     }
 }
@@ -2483,7 +2486,7 @@ struct NotchGeometry: Equatable {
             // page with less is laid out to fill or centre in it.
             switch module {
             case .controls, .music, .timer, .agents, .tools,
-                 .mixer, .calendar, .clipboard, .captures, .files, .notifications, .downloads, .camera, .scratchpad, .watch:
+                 .mixer, .calendar, .clipboard, .captures, .files, .notifications, .downloads, .camera, .scratchpad, .watch, .os:
                 contentHeight = budget
             }
         }

@@ -284,6 +284,7 @@ enum NotchDesign {
         /** An empty page's glyph plate. */ static let heroGlyph: CGFloat = 56
         /** A slider's drawn track; its hit area stays rowHeight tall. */ static let sliderTrack: CGFloat = 6
         /** A read-only meter's bar. */ static let meter: CGFloat = 4
+        /** A status dot: one agent on the OS page. Always beside a count in words. */ static let statusDot: CGFloat = 8
     }
     /// Every moment the closed island widens or grows on its own shares this anatomy.
     enum Peek {
