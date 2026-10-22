@@ -66,10 +66,10 @@ enum NotchOSState: Equatable {
 @MainActor
 final class NotchOSService: ObservableObject {
     static let shared = NotchOSService()
-    static let endpoint = URL(string: "http://localhost:7777/api/notch")!
-    static let home = URL(string: "http://localhost:7777/board/#pods")!
-    static let interval: Duration = .seconds(10)
-    static let timeout: TimeInterval = 2
+    nonisolated static let endpoint = URL(string: "http://localhost:7777/api/notch")!
+    nonisolated static let home = URL(string: "http://localhost:7777/board/#pods")!
+    nonisolated static let interval: Duration = .seconds(10)
+    nonisolated static let timeout: TimeInterval = 2
 
     @Published private(set) var state: NotchOSState = .waiting
 
@@ -102,7 +102,7 @@ final class NotchOSService: ObservableObject {
         }
     }
 
-    static func state(from data: Data) -> NotchOSState {
+    nonisolated static func state(from data: Data) -> NotchOSState {
         guard let snapshot = try? JSONDecoder().decode(NotchOSSnapshot.self, from: data), snapshot.ok else { return .off }
         return .live(snapshot)
     }
@@ -110,7 +110,7 @@ final class NotchOSService: ObservableObject {
     /// The page the tap opens: the OS's own address when it names a local
     /// http one, otherwise the default. The island never opens a remote page
     /// on the strength of a reply.
-    static func destination(for snapshot: NotchOSSnapshot?) -> URL {
+    nonisolated static func destination(for snapshot: NotchOSSnapshot?) -> URL {
         guard let text = snapshot?.url, let url = URL(string: text), url.scheme == "http",
               ["localhost", "127.0.0.1"].contains(url.host) else { return home }
         return url
